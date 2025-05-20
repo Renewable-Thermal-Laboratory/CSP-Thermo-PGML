@@ -14,6 +14,11 @@ surf_map = {0: 0.98, 1: 0.76}
 # Flexible pattern to handle various suffixes and spacing
 pattern = r"h(\d+).*?flux(\d+).*?abs(\d+).*?surf.*?(\d+).*?([0-9]+)s"
 
+ALLOWED_COLS = [
+    "Time", "TC1_tip", "TC2", "TC3", "TC4", "TC5",
+    "TC6", "TC7", "TC8", "TC9", "TC10"
+]
+
 def extract_params_from_filename(filename):
     match = re.search(pattern, filename)
 
@@ -50,6 +55,9 @@ def preprocess_and_save_with_params(file_path, save=True):
         df = df[df["Time"] >= start_time].reset_index(drop=True)
     else:
         print(f"No 'Time' column in {filename}. Skipping time trim.")
+    
+    # Drop any columns not in ALLOWED_COLS
+    df = df[[col for col in ALLOWED_COLS if col in df.columns]]
 
     if "TC_9.5" in df.columns:
         df.drop(columns=["TC_9.5"], inplace=True)
