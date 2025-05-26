@@ -34,7 +34,9 @@ class TempLSTM(nn.Module):
         self.drop1 = nn.Dropout(0.2)
         self.lstm2 = nn.LSTM(256, 128, batch_first=True)
         self.drop2 = nn.Dropout(0.2)
-        self.fc = nn.Linear(128, output_size)
+        self.lstm3 = nn.LSTM(128, 64, batch_first=True)
+        self.drop3 = nn.Dropout(0.2)
+        self.fc = nn.Linear(64, output_size)
         self.act = nn.LeakyReLU(0.3)
 
     def forward(self, x):
@@ -42,7 +44,9 @@ class TempLSTM(nn.Module):
         out = self.act(self.drop1(out))
         out, _ = self.lstm2(out)
         out = self.act(self.drop2(out))
-        out = out[:, -1, :]
+        out, _ = self.lstm3(out)
+        out = self.act(self.drop3(out))
+        out = out[:, -1, :]  # use the last time step
         return self.fc(out)
 
 model = TempLSTM(input_size, output_size)
