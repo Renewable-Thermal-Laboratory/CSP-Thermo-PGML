@@ -15,12 +15,12 @@ PATIENCE = 10
 VALIDATION_SPLIT = 0.2
 WEIGHT_DECAY = 1e-4
 
-# Initialize dataset (now automatically holds out test set)
+# Initialize dataset
 dataset = TempSequenceDataset("data/processed", sequence_length=SEQUENCE_LENGTH)
 input_size = dataset[0][0].shape[1]
 output_size = dataset[0][1].shape[0]
 
-# Train/val split (unchanged)
+# Train/val split
 val_size = int(len(dataset) * VALIDATION_SPLIT)
 train_size = len(dataset) - val_size
 train_set, val_set = random_split(dataset, [train_size, val_size])
@@ -52,7 +52,7 @@ class TempLSTM(nn.Module):
         out = out[:, -1, :]  # use the last time step
         return self.fc(out)
 
-# Training loop (unchanged)
+# Training loop
 model = TempLSTM(input_size, output_size)
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 criterion = nn.MSELoss()
@@ -157,6 +157,6 @@ for i in range(10):  # For all 10 couples
             plt.xlabel("Time Steps")
     
 plt.tight_layout()
-os.makedirs("results", exist_ok=True)
+os.makedirs("results_50_3", exist_ok=True)
 plt.savefig("results/all_couple_predictions.png", dpi=300)
 print("\nSaved all channel predictions plot to results/all_couple_predictions.png")
