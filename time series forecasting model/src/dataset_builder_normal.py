@@ -32,7 +32,7 @@ class TempSequenceDataset(Dataset):
                 continue
             thermal_cols = [col for col in df.columns if col.startswith("TC")]
             thermal_data_all.append(df[thermal_cols])
-            param_data_all.append(df[["h", "flux", "abs"]].iloc[0])
+            param_data_all.append(df[["abs"]].iloc[0])
 
         # Thermal data scaling (with feature names)
         thermal_cols = ["TC1_tip", "TC2", "TC3", "TC4", "TC5", 
@@ -46,7 +46,7 @@ class TempSequenceDataset(Dataset):
         joblib.dump(self.thermal_scaler, scaler_path)
 
         # Parameter scaling (with feature names)
-        param_cols = ["h", "flux", "abs"]
+        param_cols = ["abs"]
         full_params = pd.DataFrame(param_data_all, columns=param_cols)
         self.param_scaler = MinMaxScaler()
         self.param_scaler.fit(full_params)
@@ -76,7 +76,7 @@ class TempSequenceDataset(Dataset):
             
             # Use the same scalers from training
             scaled_temp = self.thermal_scaler.transform(df[thermal_cols])
-            scaled_param = self.param_scaler.transform(df[["h", "flux", "abs"]].iloc[0].values.reshape(1, -1))[0]
+            scaled_param = self.param_scaler.transform(df[["abs"]].iloc[0].values.reshape(1, -1))[0]
 
             for i in range(len(scaled_temp) - self.sequence_length):
                 X_seq = scaled_temp[i:i + self.sequence_length]

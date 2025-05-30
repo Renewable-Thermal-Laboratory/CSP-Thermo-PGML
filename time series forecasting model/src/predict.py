@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import re
 import os
-from train_model import TempLSTM
+from model import TempLSTM
 
 # Thermal and parameter feature definitions
 THERMAL_COLS = ["TC1_tip", "TC2", "TC3", "TC4", "TC5", 
