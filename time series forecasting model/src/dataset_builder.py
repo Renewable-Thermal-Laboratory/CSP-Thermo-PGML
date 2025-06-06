@@ -9,6 +9,7 @@ import numpy as np
 
 class TempSequenceDataset(Dataset):
     def __init__(self, data_dir, sequence_length=10, scaler_path="models/scaler.save"):
+        os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
         self.sequence_length = sequence_length
         self.samples = []
         self.test_files = []  # Store test files separately

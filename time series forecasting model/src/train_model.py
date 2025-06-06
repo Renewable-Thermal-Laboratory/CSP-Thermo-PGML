@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from dataset_builder import TempSequenceDataset
 from plot_residual_errors import plot_sensor_errors
-from model import TempLSTM
+from trial_model import TempLSTM
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import numpy as np
 import os
@@ -141,3 +141,11 @@ plt.tight_layout()
 os.makedirs("results", exist_ok=True)
 plt.savefig("results/all_couple_predictions.png", dpi=300)
 print("\nSaved all channel predictions plot to results/all_couple_predictions.png")
+
+# Residual Analysis
+residuals = test_targets_raw - test_preds_raw
+plt.figure(figsize=(12, 6))
+plt.hist(residuals.flatten(), bins=50, edgecolor='k')
+plt.title("Distribution of Prediction Errors")
+plt.xlabel("Error (°C)")
+plt.savefig("results/error_distribution.png")

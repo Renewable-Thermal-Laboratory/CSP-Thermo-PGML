@@ -28,7 +28,7 @@ def extract_params_from_filename(filename):
     return [h, flux, abs_val, surf]
 
 def load_model_and_scalers():
-    model = TempLSTM(input_size=14, output_size=10)  # 10 thermal + 4 physical params
+    model = TempLSTM(input_size=15, output_size=10)  # 10 thermal + 4 physical params
     model.load_state_dict(torch.load("models/temp_lstm_final.pt"))
     model.eval()
     

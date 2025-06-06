@@ -1,262 +1,152 @@
 import torch
+from torch.utils.data import DataLoader
+from trial_dataset import TempSequenceDataset
+from trial_model import ImprovedTempModel
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, random_split
-import numpy as np
-from sklearn.metrics import mean_absolute_error
 from plot_residual_errors import plot_sensor_errors
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
-import joblib
+import numpy as np
 import os
-from dataset_builder import TempSequenceDataset
 
 # Configuration
-SEQUENCE_LENGTH = 10
-BATCH_SIZE = 64
-EPOCHS = 200
-LEARNING_RATE = 3e-4
-PATIENCE = 15
-VALIDATION_SPLIT = 0.15
-WEIGHT_DECAY = 1e-5
-EPSILON = 1e-6
+config = {
+    "sequence_length": 20,
+    "batch_size": 64,
+    "epochs": 200,
+    "learning_rate": 0.0005,
+    "weight_decay": 1e-5,
+    "patience": 15
+}
 
-# Ensure directories exist
-os.makedirs("models", exist_ok=True)
-os.makedirs("results", exist_ok=True)
-
-# Enhanced Model Architecture
-class HighPrecisionTempModel(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-        
-        # Main LSTM Encoder
-        self.encoder = nn.LSTM(input_size, 512, num_layers=3, 
-                              batch_first=True, dropout=0.1)
-        
-        # Attention Mechanism
-        self.attention = nn.MultiheadAttention(512, num_heads=8, batch_first=True)
-        
-        # Sensor-specific decoders
-        self.decoders = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(512, 256),
-                nn.SiLU(),
-                nn.Linear(256, 128),
-                nn.SiLU(),
-                nn.Linear(128, 1)
-            ) for _ in range(output_size)
-        ])
-        
-        # Temperature stabilization
-        self.stabilizer = nn.Sequential(
-            nn.Linear(output_size, 64),
-            nn.ReLU(),
-            nn.Linear(64, output_size)
-        )
-
-    def forward(self, x):
-        # Encoder
-        enc_out, _ = self.encoder(x)
-        
-        # Attention
-        attn_out, _ = self.attention(enc_out, enc_out, enc_out)
-        
-        # Sensor-specific predictions
-        predictions = []
-        for decoder in self.decoders:
-            predictions.append(decoder(attn_out[:, -1, :]))
-        
-        combined = torch.cat(predictions, dim=1)
-        
-        # Stabilization
-        stabilized = self.stabilizer(combined)
-        
-        return combined + 0.1 * stabilized  # Residual connection
-
-# Physics-Informed Loss
-class PrecisionLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.base_loss = nn.L1Loss()
-        self.temp_range = (20, 50)  # Expected temperature range
-        
-    def forward(self, preds, targets):
-        # Base MAE
-        loss = self.base_loss(preds, targets)
-        
-        # Temperature bounds penalty
-        lower_penalty = torch.relu(self.temp_range[0] - preds).mean()
-        upper_penalty = torch.relu(preds - self.temp_range[1]).mean()
-        range_penalty = (lower_penalty + upper_penalty) * 0.3
-        
-        # Thermal gradient penalty (TC1 should be warmer than TC10)
-        gradient_penalty = torch.relu(preds[:, -1] - preds[:, 0]).mean() * 0.2
-        
-        return loss + range_penalty + gradient_penalty
-
-# Initialize dataset
-dataset = TempSequenceDataset("data/processed", sequence_length=SEQUENCE_LENGTH)
-input_size = dataset[0][0].shape[1]
-output_size = dataset[0][1].shape[0]
-
-# Data splits
-train_size = int(0.85 * len(dataset))
-val_size = int(0.1 * len(dataset))
-test_size = len(dataset) - train_size - val_size
-
-train_set, val_set, test_set = random_split(
-    dataset, [train_size, val_size, test_size]
+# Initialize
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+dataset = TempSequenceDataset(
+    "data/processed_H6",
+    sequence_length=config["sequence_length"]
 )
 
-train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)
-val_loader = DataLoader(val_set, batch_size=BATCH_SIZE)
-test_loader = DataLoader(test_set, batch_size=BATCH_SIZE)
+# Data loaders
+train_loader = DataLoader(
+    dataset,
+    batch_size=config["batch_size"],
+    shuffle=True
+)
 
-# Model and training setup
-model = HighPrecisionTempModel(input_size, output_size)
-optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
-criterion = PrecisionLoss()
+# Model
+model = ImprovedTempModel(
+    input_size=dataset[0][0].shape[-1],
+    output_size=dataset[0][1].shape[-1]
+).to(device)
+
+# Optimizer and loss
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=config["learning_rate"],
+    weight_decay=config["weight_decay"]
+)
+criterion = nn.HuberLoss()
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer,
+    patience=5
+)
 
 # Training loop
-best_mae = float('inf')
-patience_counter = 0
+best_metrics = {"mse": float('inf'), "mae": float('inf'), "r2": -float('inf')}
 
-for epoch in range(EPOCHS):
-    # Training
+for epoch in range(config["epochs"]):
     model.train()
     train_loss = 0
+    
     for X, y in train_loader:
+        X, y = X.to(device), y.to(device)
+        
         optimizer.zero_grad()
-        preds = model(X)
-        loss = criterion(preds, y)
+        outputs = model(X)
+        loss = criterion(outputs, y)
         loss.backward()
         
-        # Gradient clipping
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        
         optimizer.step()
         train_loss += loss.item()
     
     # Validation
     model.eval()
-    val_preds, val_targets = [], []
+    X_test, y_test = dataset.get_test_data()
+    X_test, y_test = X_test.to(device), y_test.to(device)
+    
     with torch.no_grad():
-        for X, y in val_loader:
-            val_preds.append(model(X))
-            val_targets.append(y)
+        test_preds = model(X_test).cpu().numpy()
+        test_targets = y_test.cpu().numpy()
     
-    val_preds = torch.cat(val_preds).numpy()
-    val_targets = torch.cat(val_targets).numpy()
+    # Inverse transform
+    test_preds_raw = dataset.thermal_scaler.inverse_transform(test_preds)
+    test_targets_raw = dataset.thermal_scaler.inverse_transform(test_targets)
     
-    # Inverse scaling
-    val_preds_raw = dataset.thermal_scaler.inverse_transform(val_preds)
-    val_targets_raw = dataset.thermal_scaler.inverse_transform(val_targets)
+    # Metrics
+    mse = mean_squared_error(test_targets_raw, test_preds_raw)
+    mae = mean_absolute_error(test_targets_raw, test_preds_raw)
+    r2 = r2_score(test_targets_raw, test_preds_raw)
     
-    # Calculate metrics
-    val_mae = mean_absolute_error(val_targets_raw, val_preds_raw)
-    sensor_maes = [
-        mean_absolute_error(val_targets_raw[:, i], val_preds_raw[:, i]) 
-        for i in range(output_size)
-    ]
+    print(f"Epoch {epoch+1}/{config['epochs']}")
+    print(f"Train Loss: {train_loss/len(train_loader):.4f}")
+    print(f"Test MSE: {mse:.2f} | MAE: {mae:.2f} | R²: {r2:.4f}")
     
-    scheduler.step(val_mae)
+    # Update scheduler
+    scheduler.step(mse)
     
-    # Print progress
-    print(f"Epoch {epoch+1}/{EPOCHS} | "
-          f"Train Loss: {train_loss/len(train_loader):.4f} | "
-          f"Val MAE: {val_mae:.4f}°C")
+    # Save best model
+    if mse < best_metrics["mse"]:
+        best_metrics = {"mse": mse, "mae": mae, "r2": r2}
+        torch.save(model.state_dict(), "models/best_model.pth")
+        print("Saved new best model")
     
-    print("Per-sensor MAE:", [f"{mae:.3f}°C" for mae in sensor_maes])
-    
-    # Early stopping and model saving
-    if all(mae < 1.0 for mae in sensor_maes):
-        torch.save(model.state_dict(), "models/high_precision_model.pt")
-        print("🎯 Target accuracy achieved! Model saved.")
+    # Early stopping
+    if epoch > config["patience"] and mse >= best_metrics["mse"]:
+        print("Early stopping triggered")
         break
-        
-    if val_mae < best_mae:
-        best_mae = val_mae
-        patience_counter = 0
-        torch.save(model.state_dict(), "models/best_model.pt")
-    else:
-        patience_counter += 1
-        if patience_counter >= PATIENCE:
-            print("Early stopping triggered")
-            break
 
-# Final Evaluation
-model_path = "models/high_precision_model.pt" if os.path.exists("models/high_precision_model.pt") else "models/best_model.pt"
-model.load_state_dict(torch.load(model_path))
-model.eval()
+# ====== Visualization Code ======
+os.makedirs("results", exist_ok=True)
 
-test_preds, test_targets = [], []
-with torch.no_grad():
-    for X, y in test_loader:
-        test_preds.append(model(X))
-        test_targets.append(y)
-
-test_preds = torch.cat(test_preds).numpy()
-test_targets = torch.cat(test_targets).numpy()
-
-# Inverse scaling
-test_preds_raw = dataset.thermal_scaler.inverse_transform(test_preds)
-test_targets_raw = dataset.thermal_scaler.inverse_transform(test_targets)
-
-# Calculate final metrics
-test_mae = mean_absolute_error(test_targets_raw, test_preds_raw)
-sensor_maes = [
-    mean_absolute_error(test_targets_raw[:, i], test_preds_raw[:, i]) 
-    for i in range(output_size)
-]
-
-print("\n🔥 Final Test Results 🔥")
-print(f"Overall MAE: {test_mae:.4f}°C")
-print("Per-sensor MAE:")
-for i, mae in enumerate(sensor_maes):
-    print(f"  TC{i+1}: {mae:.4f}°C")
-
-# Save results
-results = {
-    'overall_mae': test_mae,
-    'per_sensor_mae': sensor_maes,
-    'predictions': test_preds_raw,
-    'targets': test_targets_raw
-}
-joblib.dump(results, "results/final_metrics.save")
-
-# Plot results
-plt.figure(figsize=(14, 8))
-for i in range(min(output_size, 10)):  # Limit to 10 subplots
-    plt.subplot(2, 5, i+1)
-    plt.plot(test_targets_raw[:100, i], label='Actual', color='blue')
-    plt.plot(test_preds_raw[:100, i], label='Predicted', color='red', linestyle='--')
-    plt.title(f"TC{i+1} (MAE: {sensor_maes[i]:.2f}°C)")
-    plt.ylabel("Temperature (°C)")
-    plt.legend()
-plt.tight_layout()
-plt.savefig("results/final_predictions.png", dpi=300)
-plt.close()
-print("\nSaved prediction plots to results/final_predictions.png")
-
+# 1. Plot sensor errors
 plot_sensor_errors(test_preds_raw, test_targets_raw, dataset.thermal_scaler, label_prefix="10seq_")
 
 # 2. Plot all sensor predictions
 plt.figure(figsize=(16, 20))
-for i in range(10):  # For all 10 sensors
+for i in range(10):  # For all 10 couples
     plt.subplot(5, 2, i+1)
     plt.plot(test_targets_raw[:100, i], label="Actual", color='blue', alpha=0.7)
     plt.plot(test_preds_raw[:100, i], label="Predicted", color='red', linestyle='--', alpha=0.7)
     
     # Use feature names if available
-    sensor_name = dataset.thermal_scaler.feature_names_in_[i] if hasattr(dataset.thermal_scaler, 'feature_names_in_') else f"TC{i+1}"
-    plt.title(f"{sensor_name} (MAE: {sensor_maes[i]:.2f}°C)")
+    if hasattr(dataset.thermal_scaler, 'feature_names_in_'):
+        plt.title(dataset.thermal_scaler.feature_names_in_[i])
+    else:
+        plt.title(f"Sensor {i+1}")
+    
     plt.ylabel("Temperature (°C)")
     plt.legend()
     
-    if i >= 8:  
+    if i >= 8:  # Only add xlabel to bottom plots
         plt.xlabel("Time Steps")
 
 plt.tight_layout()
 plt.savefig("results/all_couple_predictions.png", dpi=300)
 plt.close()
+print("Saved all channel predictions plot to results/all_couple_predictions.png")
+
+# 3. Residual analysis
+residuals = test_targets_raw - test_preds_raw
+plt.figure(figsize=(12, 6))
+plt.hist(residuals.flatten(), bins=50, edgecolor='k')
+plt.title("Distribution of Prediction Errors")
+plt.xlabel("Error (°C)")
+plt.savefig("results/error_distribution.png")
+plt.close()
+print("Saved error distribution plot to results/error_distribution.png")
+
+print("\nTraining complete. Best metrics:")
+print(f"MSE: {best_metrics['mse']:.2f}")
+print(f"MAE: {best_metrics['mae']:.2f}")
+print(f"R²: {best_metrics['r2']:.4f}")
