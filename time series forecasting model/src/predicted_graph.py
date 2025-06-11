@@ -15,7 +15,6 @@ THERMAL_COLS = ["TC1_tip", "TC2", "TC3", "TC4", "TC5",
 PARAM_COLS = ["h", "flux", "abs", "surf", "Time"]
 INPUT_FEATURES = len(THERMAL_COLS) + len(PARAM_COLS)  # Should be 15
 
-# === Utility Functions ===
 def extract_params_from_filename(filename):
     """Extract parameters using regex pattern matching."""
     match = re.search(r"h(\d+).*?flux(\d+).*?abs(\d+).*?surf.*?(\d+).*?(\d+)s", filename)
@@ -81,22 +80,51 @@ def process_file(filepath, model, thermal_scaler, param_scaler, sequence_length=
         "thermal_cols": THERMAL_COLS
     }
 
-def plot_depth_profile(result, save_path=None):
-    tc_numbers = list(range(1, 11))
-    depths = np.linspace(0, 1, len(tc_numbers))
+def print_numerical_results(result):
+    """Print the predicted, actual, and residual values for each thermocouple."""
+    print(f"\nNumerical Results for {result['filename']}:")
+    print("-" * 70)
+    print(f"{'TC':<6} {'Predicted (°C)':<15} {'Actual (°C)':<15} {'Residual (°C)':<15}")
+    print("-" * 70)
+    
+    for i, tc_name in enumerate(result['thermal_cols']):
+        tc_num = tc_name.replace('_tip', '')  # Clean TC name for display
+        predicted = result['predicted'][i]
+        actual = result['actual'][i]
+        residual = result['residuals'][i]
+        print(f"{tc_num:<6} {predicted:<15.3f} {actual:<15.3f} {residual:<15.3f}")
+    
+    print("-" * 70)
+    print(f"{'AVG':<6} {'':<15} {'':<15} {result['avg_residual']:<15.3f}")
+    print("-" * 70)
 
-    plt.figure(figsize=(7, 6))
-    plt.plot(result["actual"], depths, 'o-', label='Actual', color='blue')
-    plt.plot(result["predicted"], depths, 'x--', label='Predicted', color='red')
-    for i, (act, pred, tc) in enumerate(zip(result["actual"], result["predicted"], tc_numbers)):
-        plt.text(act, depths[i], f'TC{tc}', ha='right', va='center', fontsize=8)
-        plt.text(pred, depths[i], f'TC{tc}', ha='left', va='center', fontsize=8)
+def plot_depth_profile(result, save_path=None):
+    # TC10 at top (0), TC1 at bottom (-0.016), equidistant spacing
+    tc_numbers = list(range(10, 0, -1))  # TC10 to TC1 (top to bottom)
+    depths = np.linspace(0, -0.016, len(tc_numbers))  # 0 to -0.016 m
+    
+    # Reorder data to match TC10 to TC1 order (reverse the original order)
+    actual_ordered = result["actual"][::-1]  # Reverse to get TC10 first
+    predicted_ordered = result["predicted"][::-1]  # Reverse to get TC10 first
+
+    plt.figure(figsize=(7, 6))  
+    plt.plot(actual_ordered, depths, 'o-', label='Actual', color='blue', markersize=6)
+    plt.plot(predicted_ordered, depths, 'x--', label='Predicted', color='red', markersize=8)
+    
+    # Add TC labels
+    for i, (act, pred, tc) in enumerate(zip(actual_ordered, predicted_ordered, tc_numbers)):
+        plt.text(act, depths[i], f'TC{tc}', ha='right', va='center', fontsize=8, 
+                bbox=dict(boxstyle="round,pad=0.1", facecolor='lightblue', alpha=0.7))
+        plt.text(pred, depths[i], f'TC{tc}', ha='left', va='center', fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.1", facecolor='lightcoral', alpha=0.7))
+    
     plt.xlabel('Temperature (°C)')
-    plt.ylabel('Normalized Depth')
+    plt.ylabel('Depth (m)')
     plt.title(f'Vertical Profile: {result["filename"]}')
-    plt.gca().invert_yaxis()
-    plt.grid(True)
+    plt.grid(True, alpha=0.3)
     plt.legend()
+    plt.tight_layout()
+    
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
@@ -107,7 +135,8 @@ def main():
     model, thermal_scaler, param_scaler = load_model_and_scalers()
     sequence_length = 20
     data_dir = "data/processed_H6"
-    output_dir = "results/profiles"
+    output_dir = "results/profiles_graph" \
+    ""
     os.makedirs(output_dir, exist_ok=True)
 
     results = []
@@ -116,19 +145,23 @@ def main():
             result = process_file(filepath, model, thermal_scaler, param_scaler, sequence_length)
             results.append(result)
         except Exception as e:
-            print(f"❌ {filepath}: {e}")
+            print(f"{filepath}: {e}")
 
     results.sort(key=lambda x: x["avg_residual"])
 
-    print("\n📊 Top 5 Best Predictions:")
+    print("\nTop 5 Best Predictions:")
     print("Filename".ljust(45), "Avg Residual (°C)")
     for r in results[:5]:
         print(f"{r['filename']:<45} {r['avg_residual']:.3f}")
 
     for i, result in enumerate(results[:5]):
-        save_path = os.path.join(output_dir, f"top_{i+1}_{result['filename'].replace('.csv', '')}.png")
+        # Print numerical results
+        print_numerical_results(result)
+        
+        # Generate and save plot
+        save_path = os.path.join(output_dir, f"{result['filename'].replace('.csv', '')}.png")
         plot_depth_profile(result, save_path)
-        print(f"✅ Saved plot: {save_path}")
+        print(f"Saved plot: {save_path}")
 
 if __name__ == "__main__":
     main()

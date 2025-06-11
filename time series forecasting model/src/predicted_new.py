@@ -5,7 +5,7 @@ import pandas as pd
 import re
 import os
 import glob
-from trial_model import ImprovedTempModel
+from model import TempLSTM
 
 # Thermal and parameter feature definitions
 THERMAL_COLS = ["TC1_tip", "TC2", "TC3", "TC4", "TC5", 
@@ -31,12 +31,12 @@ def extract_params_from_filename(filename):
     return [h, flux, abs_val, surf]
 
 def load_model_and_scalers():
-    model = ImprovedTempModel(input_size=14, output_size=10)  # 10 thermal + 4 physical params
-    model.load_state_dict(torch.load("models/best_model.pth"))
+    model = TempLSTM(input_size=14, output_size=10)  # 10 thermal + 4 physical params
+    model.load_state_dict(torch.load("models/temp_lstm_final.pt"))
     model.eval()
     
-    scaler = joblib.load("models/thermal_scaler.save")
-    param_scaler = joblib.load("models/param_scaler.save")
+    scaler = joblib.load("models/scaler.save")
+    param_scaler = joblib.load("models/scaler_params.save")
     return model, scaler, param_scaler
 
 def predict_from_csv_with_residuals(csv_path, model, scaler, param_scaler):
@@ -102,7 +102,7 @@ def predict_from_csv_with_residuals(csv_path, model, scaler, param_scaler):
         print(f"⚠️ Error processing {filename}: {e}")
         return None
 
-def process_all_files_for_min_max_residual(data_dir="data/processed_H6", top_n=5):
+def process_all_files_for_min_max_residual(data_dir="data/processed", top_n=5):
     """Process all files and show only the ones with the smallest maximum residuals"""
     
     # Get all CSV files in the directory
