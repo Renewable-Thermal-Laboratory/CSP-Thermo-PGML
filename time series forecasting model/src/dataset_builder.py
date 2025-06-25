@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 
 class TempSequenceDataset(Dataset):
-    def __init__(self, data_dir, sequence_length=10, scaler_path="models/scaler.save"):
+    def __init__(self, data_dir, sequence_length=10, scaler_path="models/scaler_nt.save"):
         os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
         self.sequence_length = sequence_length
         self.samples = []
@@ -51,7 +51,7 @@ class TempSequenceDataset(Dataset):
         full_params = pd.DataFrame(param_data_all, columns=param_cols)
         self.param_scaler = MinMaxScaler()
         self.param_scaler.fit(full_params)
-        joblib.dump(self.param_scaler, scaler_path.replace(".save", "_params.save"))
+        joblib.dump(self.param_scaler, scaler_path.replace(".save", "_params_nt.save"))
 
         # Build training samples
         for thermal_df, param_row in zip(thermal_data_all, param_data_all):

@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from dataset_builder import TempSequenceDataset
 from plot_residual_errors import plot_sensor_errors
-from trial_model import TempLSTM
+from model import TempLSTM
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import numpy as np
 import os

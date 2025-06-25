@@ -31,29 +31,29 @@ class TempSequenceDataset(Dataset):
         all_files = glob.glob(os.path.join(data_dir, "*.csv"))
         if not all_files:
             raise ValueError(f"No CSV files found in {data_dir}")
-            
-        np.random.shuffle(all_files)
-        split_idx = int(0.8 * len(all_files))
-        self.train_files = all_files[:split_idx]
-        self.test_files = all_files[split_idx:]
         
-        # Process training files
+        np.random.shuffle(all_files)
+        split_1 = int(0.7 * len(all_files))
+        split_2 = int(0.85 * len(all_files))
+        
+        self.train_files = all_files[:split_1]
+        self.val_files = all_files[split_1:split_2]
+        self.test_files = all_files[split_2:]
+
         train_dfs = []
         for file in self.train_files:
             df = self._process_file(file)
             train_dfs.append(df)
-        
-        # Fit scalers on training data only
+
         thermal_cols = [col for col in train_dfs[0].columns if col.startswith("TC")]
         param_cols = ["h", "flux", "abs", "surf", "Time"]
         
         thermal_data = pd.concat([df[thermal_cols] for df in train_dfs])
-        param_data = pd.concat([df[param_cols].iloc[0:1] for df in train_dfs])  # Use first row params
+        param_data = pd.concat([df[param_cols].iloc[0:1] for df in train_dfs])
         
         self.thermal_scaler.fit(thermal_data)
         self.param_scaler.fit(param_data)
         
-        # Save scalers using self.scaler_dir
         joblib.dump(self.thermal_scaler, os.path.join(self.scaler_dir, "thermal_scaler.save"))
         joblib.dump(self.param_scaler, os.path.join(self.scaler_dir, "param_scaler.save"))
 
@@ -80,17 +80,21 @@ class TempSequenceDataset(Dataset):
     def _build_samples(self):
         """Build sequence samples from processed data"""
         self.samples = []
+        self.val_samples = []
         self.test_samples = []
-        
-        # Process training files
+
         for file in self.train_files:
             df = self._process_file(file)
             self._create_sequences(df, self.samples)
         
-        # Process test files
+        for file in self.val_files:
+            df = self._process_file(file)
+            self._create_sequences(df, self.val_samples)
+        
         for file in self.test_files:
             df = self._process_file(file)
             self._create_sequences(df, self.test_samples)
+
 
     def _create_sequences(self, df, sample_list):
         """Create sequences from a single dataframe"""
@@ -129,4 +133,10 @@ class TempSequenceDataset(Dataset):
         """Return test data as tensors"""
         X = torch.stack([torch.FloatTensor(x[0]) for x in self.test_samples])
         y = torch.stack([torch.FloatTensor(x[1]) for x in self.test_samples])
+        return X, y
+    
+    def get_val_data(self):
+        """Return validation data as tensors"""
+        X = torch.stack([torch.FloatTensor(x[0]) for x in self.val_samples])
+        y = torch.stack([torch.FloatTensor(x[1]) for x in self.val_samples])
         return X, y
