@@ -174,7 +174,7 @@ data_dir = "data/processed_H6"
 output_dir = "results/predicted_graph_plots"
 os.makedirs(output_dir, exist_ok=True)
 
-for filepath in glob.glob(os.path.join(data_dir, "*.csv")):
+for filepath in dataset.test_files:
     try:
         result = process_file(filepath, model, dataset.thermal_scaler, dataset.param_scaler, config["sequence_length"])
         all_results.append(result)
