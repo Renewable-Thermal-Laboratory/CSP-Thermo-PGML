@@ -32,7 +32,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Dataset
 dataset = TempSequenceDataset(
-    "data/processed_H6",
+    "data/processed_theoretical_H6",
     sequence_length=config["sequence_length"]
 )
 
@@ -100,7 +100,7 @@ for epoch in range(config["epochs"]):
 
     if val_mse < best_metrics["mse"]:
         best_metrics = {"mse": val_mse, "mae": val_mae, "r2": val_r2}
-        torch.save(model.state_dict(), "models/best_model.pth")
+        torch.save(model.state_dict(), "models_theoretical/best_model.pth")
         print("Saved new best model")
 
     if epoch > config["patience"] and val_mse >= best_metrics["mse"]:
@@ -108,7 +108,7 @@ for epoch in range(config["epochs"]):
         break
 
 # Final test set evaluation
-model.load_state_dict(torch.load("models/best_model.pth"))
+model.load_state_dict(torch.load("models_theoretical/best_model.pth"))
 model.to(device)
 model.eval()
 
@@ -152,7 +152,7 @@ for i in range(10):
         plt.xlabel("Time Steps")
 
 plt.tight_layout()
-plt.savefig("results/all_couple_predictions.png", dpi=300)
+plt.savefig("results/all_couple_predictions_theoretical.png", dpi=300)
 plt.close()
 
 # Residuals
@@ -161,7 +161,7 @@ plt.figure(figsize=(12, 6))
 plt.hist(residuals.flatten(), bins=50, edgecolor='k')
 plt.title("Distribution of Prediction Errors")
 plt.xlabel("Error (°C)")
-plt.savefig("results/error_distribution.png")
+plt.savefig("results/error_distribution_theoretical.png")
 plt.close()
 print("Saved plots.")
 
@@ -170,8 +170,8 @@ print("\nEvaluating on individual CSVs...")
 from predicted_graph import process_file, load_model_and_scalers, print_numerical_results, plot_depth_profile
 
 all_results = []
-data_dir = "data/processed_H6"
-output_dir = "results/predicted_graph_plots"
+data_dir = "data/processed_theoretical_H6"
+output_dir = "results/predicted_graph_plots_theoretical"
 os.makedirs(output_dir, exist_ok=True)
 
 for filepath in dataset.test_files:
