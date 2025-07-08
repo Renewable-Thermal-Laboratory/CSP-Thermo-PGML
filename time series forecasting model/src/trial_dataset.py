@@ -15,7 +15,7 @@ np.random.seed(42)
 random.seed(42)
 
 class TempSequenceDataset(Dataset):
-    def __init__(self, data_dir, sequence_length=10, scaler_dir="models"):
+    def __init__(self, data_dir, sequence_length=10, scaler_dir="models_theoretical"):
         self.sequence_length = sequence_length
         self.scaler_dir = scaler_dir
         os.makedirs(self.scaler_dir, exist_ok=True)

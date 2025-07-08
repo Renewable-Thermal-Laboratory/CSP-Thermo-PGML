@@ -134,8 +134,8 @@ def plot_depth_profile(result, save_path=None):
 def main():
     model, thermal_scaler, param_scaler = load_model_and_scalers()
     sequence_length = 20
-    data_dir = "data/processed_H6"
-    output_dir = "results/profiles_graph" \
+    data_dir = "data/processed_theoretical_H6"
+    output_dir = "results/theoretical_profiles_graph (no training)" \
     ""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -151,10 +151,10 @@ def main():
 
     print("\nTop 5 Best Predictions:")
     print("Filename".ljust(45), "Avg Residual (°C)")
-    for r in results[:5]:
+    for r in results:
         print(f"{r['filename']:<45} {r['avg_residual']:.3f}")
 
-    for i, result in enumerate(results[:5]):
+    for i, result in enumerate(results):
         # Print numerical results
         print_numerical_results(result)
         
