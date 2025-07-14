@@ -32,7 +32,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Dataset
 dataset = TempSequenceDataset(
-    "data/processed_theoretical_H6",
+    "data/processed_theoretical",
     sequence_length=config["sequence_length"]
 )
 
@@ -170,7 +170,7 @@ print("\nEvaluating on individual CSVs...")
 from predicted_graph import process_file, load_model_and_scalers, print_numerical_results, plot_depth_profile
 
 all_results = []
-data_dir = "data/processed_theoretical_H6"
+data_dir = "data/processed_theoretical"
 output_dir = "results/predicted_graph_plots_theoretical"
 os.makedirs(output_dir, exist_ok=True)
 

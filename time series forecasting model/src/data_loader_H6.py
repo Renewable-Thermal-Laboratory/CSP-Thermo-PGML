@@ -3,8 +3,8 @@ import os
 import re
 import numpy as np
 
-RAW_DIR = "data/H6"
-PROCESSED_DIR = "data/processed_H6"
+RAW_DIR = "data/Raw"
+PROCESSED_DIR = "data/processed_theoretical"
 
 h_map = {2: 0.0375, 3: 0.084, 6: 0.1575}
 flux_map = {88: 25900, 78: 21250, 73: 19400}
