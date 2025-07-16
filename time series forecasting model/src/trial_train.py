@@ -10,6 +10,13 @@ import os
 import glob
 import random
 
+# Import physics loss
+from physics_loss import (
+    compute_energy_storage_loss,
+    compute_energy_storage_loss_debug_detailed,
+    compute_energy_storage_loss_raw_temps,
+)
+
 # Reproducibility
 torch.manual_seed(42)
 np.random.seed(42)
@@ -25,14 +32,15 @@ config = {
     "epochs": 200,
     "learning_rate": 0.0005,
     "weight_decay": 1e-5,
-    "patience": 15
+    "patience": 15,
+    "lambda_physics": 1.0,
 }
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Dataset
 dataset = TempSequenceDataset(
-    "data/processed_theoretical",
+    "data/processed_H6",
     sequence_length=config["sequence_length"]
 )
 
@@ -58,25 +66,86 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     patience=5
 )
 
+# PHYSICS CONSTANTS
+rho = 1836.31
+cp = 1512
+diameter = 0.1035
+radius = diameter / 2
+delta_t = 1.0
+
 best_metrics = {"mse": float('inf'), "mae": float('inf'), "r2": -float('inf')}
 
 for epoch in range(config["epochs"]):
     model.train()
     train_loss = 0
+    last_physics_loss = None
 
     for X, y in train_loader:
         X, y = X.to(device), y.to(device)
 
-        optimizer.zero_grad()
         outputs = model(X)
-        loss = criterion(outputs, y)
-        loss.backward()
 
+        # Data loss
+        loss_data = criterion(outputs, y)
+
+        # Previous true temperatures (timestep t)
+        prev_true = X[:, -1, :10]
+
+        # Extract scaled h_total
+        h_scaled = X[:, -1, 10]
+
+        # Inverse-transform h_total to get real height in meters
+        zeros_params = torch.zeros((h_scaled.shape[0], 4), device=h_scaled.device)
+        scaled_params = torch.cat([h_scaled.unsqueeze(1), zeros_params], dim=1)
+
+        # Inverse-transform using param_scaler
+        h_total_raw_np = dataset.param_scaler.inverse_transform(
+            scaled_params.detach().cpu().numpy()
+        )
+        h_total_raw = torch.tensor(
+            h_total_raw_np[:, 0], device=h_scaled.device, dtype=torch.float32
+        )
+
+        # Optional debug print for the first epoch
+        if epoch == 0:
+            print("Example raw h_total values (meters):", h_total_raw[:10])
+
+            # Debugging call
+            loss_physics = compute_energy_storage_loss_debug_detailed(
+                outputs,
+                y,
+                prev_true,
+                rho,
+                cp,
+                h_total_raw,
+                radius,
+                delta_t
+            )
+        else:
+            # Use raw temperatures for physics loss
+            loss_physics = compute_energy_storage_loss_raw_temps(
+                outputs,
+                y,
+                prev_true,
+                dataset.thermal_scaler,
+                rho,
+                cp,
+                h_total_raw,
+                radius,
+                delta_t
+            )
+
+        last_physics_loss = loss_physics.item()
+
+        loss = loss_data + config["lambda_physics"] * loss_physics
+
+        optimizer.zero_grad()
+        loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         train_loss += loss.item()
 
-    # Evaluate on validation set
+    # Validation
     model.eval()
     X_val, y_val = dataset.get_val_data()
     X_val, y_val = X_val.to(device), y_val.to(device)
@@ -94,13 +163,14 @@ for epoch in range(config["epochs"]):
 
     print(f"Epoch {epoch+1}/{config['epochs']}")
     print(f"Train Loss: {train_loss/len(train_loader):.4f}")
+    print(f"Physics Loss (last batch): {last_physics_loss:.6f}")
     print(f"Val MSE: {val_mse:.2f} | MAE: {val_mae:.2f} | R²: {val_r2:.4f}")
 
     scheduler.step(val_mse)
 
     if val_mse < best_metrics["mse"]:
         best_metrics = {"mse": val_mse, "mae": val_mae, "r2": val_r2}
-        torch.save(model.state_dict(), "models_theoretical/best_model.pth")
+        torch.save(model.state_dict(), "models/best_model.pth")
         print("Saved new best model")
 
     if epoch > config["patience"] and val_mse >= best_metrics["mse"]:
@@ -108,7 +178,7 @@ for epoch in range(config["epochs"]):
         break
 
 # Final test set evaluation
-model.load_state_dict(torch.load("models_theoretical/best_model.pth"))
+model.load_state_dict(torch.load("models/best_model.pth"))
 model.to(device)
 model.eval()
 
@@ -129,14 +199,45 @@ r2 = r2_score(test_targets_raw, test_preds_raw)
 print("\n===== FINAL TEST METRICS =====")
 print(f"Test MSE: {mse:.2f} | MAE: {mae:.2f} | R²: {r2:.4f}")
 
-# Plotting unchanged from your code
+# Compute physics loss on test set
+
+# Extract scaled h_total for test
+h_scaled_test = X_test[:, -1, 10]
+zeros_params_test = torch.zeros((h_scaled_test.shape[0], 4), device=h_scaled_test.device)
+scaled_params_test = torch.cat([h_scaled_test.unsqueeze(1), zeros_params_test], dim=1)
+
+# Inverse-transform h_total for test
+h_total_raw_np_test = dataset.param_scaler.inverse_transform(
+    scaled_params_test.detach().cpu().numpy()
+)
+h_total_raw_test = torch.tensor(
+    h_total_raw_np_test[:, 0], device=h_scaled_test.device, dtype=torch.float32
+)
+
+prev_true_test = X_test[:, -1, :10]
+test_outputs_tensor = torch.tensor(test_preds).to(device)
+test_targets_tensor = torch.tensor(test_targets).to(device)
+
+physics_loss_test = compute_energy_storage_loss_raw_temps(
+    test_outputs_tensor,
+    test_targets_tensor,
+    prev_true_test,
+    dataset.thermal_scaler,
+    rho,
+    cp,
+    h_total_raw_test,
+    radius,
+    delta_t
+)
+
+print(f"Physics Loss on TEST set: {physics_loss_test.item():.6f}")
+
+# Plotting unchanged
 os.makedirs("results", exist_ok=True)
 
-# Plot sensor errors
 from plot_residual_errors import plot_sensor_errors
 plot_sensor_errors(test_preds_raw, test_targets_raw, dataset.thermal_scaler, label_prefix="10seq_")
 
-# Plot all sensor predictions
 plt.figure(figsize=(16, 20))
 for i in range(10):
     plt.subplot(5, 2, i+1)
@@ -152,31 +253,35 @@ for i in range(10):
         plt.xlabel("Time Steps")
 
 plt.tight_layout()
-plt.savefig("results/all_couple_predictions_theoretical.png", dpi=300)
+plt.savefig("results/all_couple_predictions.png", dpi=300)
 plt.close()
 
-# Residuals
 residuals = test_targets_raw - test_preds_raw
 plt.figure(figsize=(12, 6))
 plt.hist(residuals.flatten(), bins=50, edgecolor='k')
 plt.title("Distribution of Prediction Errors")
 plt.xlabel("Error (°C)")
-plt.savefig("results/error_distribution_theoretical.png")
+plt.savefig("results/error_distribution.png")
 plt.close()
 print("Saved plots.")
 
-# Per-file evaluation unchanged
-print("\nEvaluating on individual CSVs...")
+print("\nEvaluating only on TEST set CSVs...")
+
 from predicted_graph import process_file, load_model_and_scalers, print_numerical_results, plot_depth_profile
 
 all_results = []
-data_dir = "data/processed_theoretical"
-output_dir = "results/predicted_graph_plots_theoretical"
+output_dir = "results/predicted_graph_plots"
 os.makedirs(output_dir, exist_ok=True)
 
 for filepath in dataset.test_files:
     try:
-        result = process_file(filepath, model, dataset.thermal_scaler, dataset.param_scaler, config["sequence_length"])
+        result = process_file(
+            filepath,
+            model,
+            dataset.thermal_scaler,
+            dataset.param_scaler,
+            config["sequence_length"]
+        )
         all_results.append(result)
     except Exception as e:
         print(f"Error in {filepath}: {e}")
