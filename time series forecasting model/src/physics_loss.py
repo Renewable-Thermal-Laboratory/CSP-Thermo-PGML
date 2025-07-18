@@ -1,31 +1,72 @@
 import torch
+import numpy as np
 
-def compute_energy_storage_loss(
+def get_adaptive_physics_weight(physics_loss_value, data_loss_value, epoch=0):
+    """
+    Adjust physics weight based on current loss balance and epoch
+    """
+    if data_loss_value < 1e-8:  # Avoid division by zero
+        return 2.0
+    
+    ratio = physics_loss_value / data_loss_value
+    
+    # Base weight based on loss ratio
+    if ratio > 10:    # Physics loss dominating
+        base_weight = 0.5
+    elif ratio > 5:   # Physics loss strong
+        base_weight = 1.0
+    elif ratio > 1:   # Balanced
+        base_weight = 2.0
+    else:             # Data loss dominating, boost physics
+        base_weight = 5.0
+    
+    # Slight epoch-based adjustment (gradual increase)
+    epoch_multiplier = min(1.5, 1.0 + epoch * 0.02)
+    
+    final_weight = base_weight * epoch_multiplier
+    
+    # Clamp to reasonable range
+    return max(0.1, min(10.0, final_weight))
+
+def compute_energy_storage_loss_20sec(
     predicted_temps,
     actual_temps,
-    prev_actual_temps,
+    initial_temps,  # T at t (20 seconds ago)
+    thermal_scaler,
     rho,
     cp,
     h_total,
     radius,
-    delta_t
+    delta_t=20.0,  # 20 seconds
+    debug=False
 ):
     """
-    Compute physics loss based on difference in total stored energy
-    between predicted and actual temperature profiles.
-
-    predicted_temps: [batch, 10]  → predicted T at t+1
-    actual_temps:    [batch, 10]  → actual T at t+1
-    prev_actual_temps: [batch, 10] → actual T at t
+    Compute physics loss using 20-second temperature changes
     
-    Formula: total_energy_stored = mass * cp * (T_final - T_initial) / (time_final - time_initial)
+    predicted_temps: [batch, 10]  → predicted T at t+20
+    actual_temps:    [batch, 10]  → actual T at t+20
+    initial_temps:   [batch, 10]  → actual T at t (20 seconds ago)
     """
     
-    batch_size = predicted_temps.shape[0]
+    # Convert scaled temperatures back to raw temperatures
+    predicted_temps_raw = torch.tensor(
+        thermal_scaler.inverse_transform(predicted_temps.detach().cpu().numpy()),
+        device=predicted_temps.device
+    )
+    actual_temps_raw = torch.tensor(
+        thermal_scaler.inverse_transform(actual_temps.detach().cpu().numpy()),
+        device=actual_temps.device
+    )
+    initial_temps_raw = torch.tensor(
+        thermal_scaler.inverse_transform(initial_temps.detach().cpu().numpy()),
+        device=initial_temps.device
+    )
+    
+    batch_size = predicted_temps_raw.shape[0]
     
     # Ensure h_total is a tensor
-    if isinstance(h_total, float) or isinstance(h_total, int):
-        h_total = torch.full((batch_size,), h_total, device=predicted_temps.device)
+    if isinstance(h_total, (float, int)):
+        h_total = torch.full((batch_size,), h_total, device=predicted_temps_raw.device)
     
     # Calculate bin height (9 bins from 10 temperature points)
     delta_h = h_total / 9  # [batch]
@@ -34,194 +75,167 @@ def compute_energy_storage_loss(
     A = torch.pi * radius ** 2
     mass_bin = rho * A * delta_h  # [batch]
     
-    def calculate_total_energy(temp_current, temp_previous):
-        """Calculate total energy stored across all bins"""
-        total_energy = torch.zeros(batch_size, device=predicted_temps.device)
+    def calculate_total_energy_with_debug(temp_final, temp_initial, label=""):
+        """Calculate total energy stored across all bins with detailed tracking"""
+        total_energy = torch.zeros(batch_size, device=predicted_temps_raw.device)
+        bin_energy_details = []
+        
+        if debug and label:
+            print(f"\n{label} Energy Calculation (20-second intervals):")
         
         # Loop through 9 bins (using adjacent temperature pairs)
         for i in range(9):
             # Get temperature at bin boundaries
-            # Assuming TC1 is at surface (index 0) and TC10 is at bottom (index 9)
-            temp_top_current = temp_current[:, i]      # Top of bin at current time
-            temp_bottom_current = temp_current[:, i+1]  # Bottom of bin at current time
-            temp_top_previous = temp_previous[:, i]     # Top of bin at previous time
-            temp_bottom_previous = temp_previous[:, i+1] # Bottom of bin at previous time
+            temp_top_final = temp_final[:, i]      # Top of bin at final time
+            temp_bottom_final = temp_final[:, i+1]  # Bottom of bin at final time
+            temp_top_initial = temp_initial[:, i]   # Top of bin at initial time
+            temp_bottom_initial = temp_initial[:, i+1] # Bottom of bin at initial time
             
             # Calculate average temperature in the bin
-            T_avg_current = (temp_top_current + temp_bottom_current) / 2
-            T_avg_previous = (temp_top_previous + temp_bottom_previous) / 2
+            T_avg_final = (temp_top_final + temp_bottom_final) / 2
+            T_avg_initial = (temp_top_initial + temp_bottom_initial) / 2
             
-            # Temperature change in this bin
-            delta_T = T_avg_current - T_avg_previous
+            # Temperature change in this bin over 20 seconds
+            delta_T = T_avg_final - T_avg_initial
             
-            # Energy stored in this bin
-            # Using: energy = mass * cp * delta_T / delta_t
+            # Energy storage rate in this bin (J/s)
+            # Energy = mass * cp * delta_T / delta_t
             bin_energy = mass_bin * cp * delta_T / delta_t
+            
+            if debug and label:
+                print(f"  Bin {i+1}: T_avg_final={T_avg_final[0].item():.3f}°C, "
+                      f"T_avg_initial={T_avg_initial[0].item():.3f}°C, "
+                      f"delta_T={delta_T[0].item():.3f}°C, "
+                      f"bin_energy={bin_energy[0].item():.3e} J/s")
+            
+            bin_energy_details.append({
+                'bin': i+1,
+                'delta_T': delta_T[0].item() if batch_size > 0 else 0,
+                'energy': bin_energy[0].item() if batch_size > 0 else 0
+            })
             
             total_energy += bin_energy
         
-        return total_energy
+        if debug and label:
+            print(f"Total {label} Energy: {total_energy[0].item():.3e} J/s")
+        
+        return total_energy, bin_energy_details
     
     # Calculate total energy for predicted and actual temperatures
-    E_predicted = calculate_total_energy(predicted_temps, prev_actual_temps)
-    E_actual = calculate_total_energy(actual_temps, prev_actual_temps)
+    E_predicted, pred_bin_details = calculate_total_energy_with_debug(
+        predicted_temps_raw, initial_temps_raw, "Predicted" if debug else ""
+    )
+    E_actual, actual_bin_details = calculate_total_energy_with_debug(
+        actual_temps_raw, initial_temps_raw, "Actual" if debug else ""
+    )
     
     # Calculate physics loss as mean absolute difference
-    physics_loss = torch.mean(torch.abs(E_predicted - E_actual))
-    
-    return physics_loss
-
-def compute_energy_storage_loss_debug_detailed(
-    predicted_temps,
-    actual_temps,
-    prev_actual_temps,
-    rho,
-    cp,
-    h_total,
-    radius,
-    delta_t
-):
-    """
-    Detailed debug version that prints all intermediate values
-    """
-    
-    batch_size = predicted_temps.shape[0]
-    
-    # Ensure h_total is a tensor
-    if isinstance(h_total, float) or isinstance(h_total, int):
-        h_total = torch.full((batch_size,), h_total, device=predicted_temps.device)
-    
-    delta_h = h_total / 9
-    A = torch.pi * radius ** 2
-    mass_bin = rho * A * delta_h
-    
-    print(f"\n=== PHYSICS LOSS DEBUG ===")
-    print(f"Batch size: {batch_size}")
-    print(f"Device: {predicted_temps.device}")
-    print(f"h_total: {h_total[0].item():.6f}")
-    print(f"delta_h: {delta_h[0].item():.6f}")
-    print(f"Area: {A:.6f}")
-    print(f"Mass per bin: {mass_bin[0].item():.6f}")
-    print(f"rho: {rho}, cp: {cp}, radius: {radius}, delta_t: {delta_t}")
-    
-    # Print temperature ranges for first sample
-    print(f"\nTemperature ranges (first sample):")
-    print(f"  Previous actual: min={prev_actual_temps[0].min().item():.3f}, max={prev_actual_temps[0].max().item():.3f}")
-    print(f"  Current actual: min={actual_temps[0].min().item():.3f}, max={actual_temps[0].max().item():.3f}")
-    print(f"  Current predicted: min={predicted_temps[0].min().item():.3f}, max={predicted_temps[0].max().item():.3f}")
-    
-    # Check if temperatures are scaled
-    print(f"\nTemperature values (first sample):")
-    print(f"  Previous actual: {prev_actual_temps[0].tolist()}")
-    print(f"  Current actual: {actual_temps[0].tolist()}")
-    print(f"  Current predicted: {predicted_temps[0].tolist()}")
-    
-    def calculate_total_energy_debug(temp_current, temp_previous, label):
-        total_energy = torch.zeros(batch_size, device=predicted_temps.device)
-        
-        print(f"\n{label} Energy Calculation:")
-        for i in range(9):
-            temp_top_current = temp_current[:, i]
-            temp_bottom_current = temp_current[:, i+1]
-            temp_top_previous = temp_previous[:, i]
-            temp_bottom_previous = temp_previous[:, i+1]
-            
-            T_avg_current = (temp_top_current + temp_bottom_current) / 2
-            T_avg_previous = (temp_top_previous + temp_bottom_previous) / 2
-            
-            delta_T = T_avg_current - T_avg_previous
-            bin_energy = mass_bin * cp * delta_T / delta_t
-            
-            print(f"  Bin {i+1}: T_avg_curr={T_avg_current[0].item():.6f}, "
-                  f"T_avg_prev={T_avg_previous[0].item():.6f}, "
-                  f"delta_T={delta_T[0].item():.6f}, "
-                  f"bin_energy={bin_energy[0].item():.6e}")
-            
-            total_energy += bin_energy
-        
-        print(f"Total {label} Energy: {total_energy[0].item():.6e}")
-        return total_energy
-    
-    E_predicted = calculate_total_energy_debug(predicted_temps, prev_actual_temps, "Predicted")
-    E_actual = calculate_total_energy_debug(actual_temps, prev_actual_temps, "Actual")
-    
     energy_diff = torch.abs(E_predicted - E_actual)
     physics_loss = torch.mean(energy_diff)
     
-    print(f"\nEnergy Difference (first sample): {energy_diff[0].item():.6e}")
-    print(f"Physics Loss: {physics_loss.item():.6e}")
+    if debug:
+        print(f"\nEnergy Difference (first sample): {energy_diff[0].item():.3e} J/s")
+        print(f"Physics Loss: {physics_loss.item():.3e} J/s")
     
-    # Check if the difference is too small
-    if physics_loss.item() < 1e-10:
-        print("WARNING: Physics loss is very small! This might indicate:")
-        print("1. Temperatures are scaled (normalized)")
-        print("2. Temperature differences are too small")
-        print("3. Model predictions are too close to actual values")
-        print("4. Need to work with raw (unscaled) temperatures")
-    
-    return physics_loss
+    return physics_loss, {
+        'predicted_energy': E_predicted[0].item() if batch_size > 0 else 0,
+        'actual_energy': E_actual[0].item() if batch_size > 0 else 0,
+        'energy_difference': energy_diff[0].item() if batch_size > 0 else 0,
+        'pred_bin_details': pred_bin_details,
+        'actual_bin_details': actual_bin_details
+    }
 
-def compute_energy_storage_loss_raw_temps(
-    predicted_temps_scaled,
-    actual_temps_scaled,
-    prev_actual_temps_scaled,
+def track_physics_metrics(predicted_temps, actual_temps, initial_temps, thermal_scaler, 
+                         rho, cp, h_total, radius, delta_t=20.0):
+    """
+    Track detailed physics metrics for monitoring
+    """
+    physics_loss, debug_info = compute_energy_storage_loss_20sec(
+        predicted_temps, actual_temps, initial_temps, thermal_scaler,
+        rho, cp, h_total, radius, delta_t, debug=False
+    )
+    
+    # Calculate bin-wise errors
+    bin_errors = []
+    for pred_bin, actual_bin in zip(debug_info['pred_bin_details'], debug_info['actual_bin_details']):
+        bin_error = abs(pred_bin['energy'] - actual_bin['energy'])
+        bin_errors.append(bin_error)
+    
+    # Energy balance ratio
+    if debug_info['actual_energy'] != 0:
+        energy_balance_ratio = debug_info['predicted_energy'] / debug_info['actual_energy']
+    else:
+        energy_balance_ratio = 1.0
+    
+    return {
+        'total_physics_loss': physics_loss.item(),
+        'max_bin_error': max(bin_errors) if bin_errors else 0,
+        'avg_bin_error': np.mean(bin_errors) if bin_errors else 0,
+        'energy_balance_ratio': energy_balance_ratio,
+        'predicted_total_energy': debug_info['predicted_energy'],
+        'actual_total_energy': debug_info['actual_energy'],
+        'bin_errors': bin_errors
+    }
+
+def compute_energy_storage_loss_debug_20sec(
+    predicted_temps,
+    actual_temps,
+    initial_temps,
     thermal_scaler,
     rho,
     cp,
     h_total,
     radius,
-    delta_t
+    delta_t=20.0
 ):
     """
-    Physics loss function that works with raw (unscaled) temperatures
+    Debug version with detailed prints for 20-second intervals
     """
     
-    # Convert scaled temperatures back to raw temperatures
+    batch_size = predicted_temps.shape[0]
+    
+    print(f"\n=== PHYSICS LOSS DEBUG (20-second intervals) ===")
+    print(f"Batch size: {batch_size}")
+    print(f"Device: {predicted_temps.device}")
+    print(f"Delta t: {delta_t} seconds")
+    print(f"Physical parameters: rho={rho}, cp={cp}, radius={radius}")
+    
+    if isinstance(h_total, (float, int)):
+        h_total_val = h_total
+    else:
+        h_total_val = h_total[0].item()
+    
+    print(f"h_total: {h_total_val:.6f} m")
+    print(f"Bin height: {h_total_val/9:.6f} m")
+    print(f"Cross-sectional area: {torch.pi * radius**2:.6f} m²")
+    print(f"Mass per bin: {rho * torch.pi * radius**2 * (h_total_val/9):.6f} kg")
+    
+    # Convert to raw temperatures for meaningful debug output
     predicted_temps_raw = torch.tensor(
-        thermal_scaler.inverse_transform(predicted_temps_scaled.detach().cpu().numpy()),
-        device=predicted_temps_scaled.device
+        thermal_scaler.inverse_transform(predicted_temps.detach().cpu().numpy()),
+        device=predicted_temps.device
     )
     actual_temps_raw = torch.tensor(
-        thermal_scaler.inverse_transform(actual_temps_scaled.detach().cpu().numpy()),
-        device=actual_temps_scaled.device
+        thermal_scaler.inverse_transform(actual_temps.detach().cpu().numpy()),
+        device=actual_temps.device
     )
-    prev_actual_temps_raw = torch.tensor(
-        thermal_scaler.inverse_transform(prev_actual_temps_scaled.detach().cpu().numpy()),
-        device=prev_actual_temps_scaled.device
+    initial_temps_raw = torch.tensor(
+        thermal_scaler.inverse_transform(initial_temps.detach().cpu().numpy()),
+        device=initial_temps.device
     )
     
-    batch_size = predicted_temps_raw.shape[0]
+    print(f"\nTemperature ranges (first sample, raw °C):")
+    print(f"  Initial (t=0): min={initial_temps_raw[0].min().item():.1f}°C, max={initial_temps_raw[0].max().item():.1f}°C")
+    print(f"  Actual (t=20): min={actual_temps_raw[0].min().item():.1f}°C, max={actual_temps_raw[0].max().item():.1f}°C")
+    print(f"  Predicted (t=20): min={predicted_temps_raw[0].min().item():.1f}°C, max={predicted_temps_raw[0].max().item():.1f}°C")
     
-    # Ensure h_total is a tensor
-    if isinstance(h_total, float) or isinstance(h_total, int):
-        h_total = torch.full((batch_size,), h_total, device=predicted_temps_raw.device)
+    # Calculate physics loss with debug
+    physics_loss, debug_info = compute_energy_storage_loss_20sec(
+        predicted_temps, actual_temps, initial_temps, thermal_scaler,
+        rho, cp, h_total, radius, delta_t, debug=True
+    )
     
-    delta_h = h_total / 9
-    A = torch.pi * radius ** 2
-    mass_bin = rho * A * delta_h
-    
-    def calculate_total_energy(temp_current, temp_previous):
-        total_energy = torch.zeros(batch_size, device=predicted_temps_raw.device)
-        
-        for i in range(9):
-            temp_top_current = temp_current[:, i]
-            temp_bottom_current = temp_current[:, i+1]
-            temp_top_previous = temp_previous[:, i]
-            temp_bottom_previous = temp_previous[:, i+1]
-            
-            T_avg_current = (temp_top_current + temp_bottom_current) / 2
-            T_avg_previous = (temp_top_previous + temp_bottom_previous) / 2
-            
-            delta_T = T_avg_current - T_avg_previous
-            bin_energy = mass_bin * cp * delta_T / delta_t
-            
-            total_energy += bin_energy
-        
-        return total_energy
-    
-    E_predicted = calculate_total_energy(predicted_temps_raw, prev_actual_temps_raw)
-    E_actual = calculate_total_energy(actual_temps_raw, prev_actual_temps_raw)
-    
-    physics_loss = torch.mean(torch.abs(E_predicted - E_actual))
+    print(f"\nFinal Physics Loss: {physics_loss.item():.3e} J/s")
+    print(f"Energy Balance Ratio: {debug_info['predicted_energy'] / debug_info['actual_energy']:.3f}")
     
     return physics_loss
