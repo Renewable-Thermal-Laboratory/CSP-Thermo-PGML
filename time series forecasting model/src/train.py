@@ -48,7 +48,7 @@ print(f"Using device: {device}")
 
 # Dataset
 dataset = TempSequenceDataset(
-    "data/processed_H6",
+    "data/processed_New_theoretical_data",
     sequence_length=config["sequence_length"]
 )
 
@@ -367,7 +367,7 @@ for epoch in range(config["epochs"]):
             'val_metrics': best_metrics,
             'physics_loss': best_physics_loss,
             'config': config
-        }, "models/best_model.pth")
+        }, "models_new_theoretical/best_model.pth")
         print("*** SAVED NEW BEST MODEL ***")
     
     # Early stopping check
@@ -382,8 +382,8 @@ print(f"Best validation metrics: MSE={best_metrics['mse']:.2f}, MAE={best_metric
 print(f"Best physics loss: {best_physics_loss:.4f}")
 
 # Save enhanced training metrics
-os.makedirs("results", exist_ok=True)
-with open("results/training_metrics.json", "w") as f:
+os.makedirs("results_new_theoretical", exist_ok=True)
+with open("results_new_theoretical/training_metrics.json", "w") as f:
     # Convert any numpy types to native Python types for JSON serialization
     serializable_metrics = {}
     for key, value in training_metrics.items():
@@ -395,7 +395,7 @@ with open("results/training_metrics.json", "w") as f:
 
 # FINAL TEST EVALUATION with enhanced metrics
 print("\n=== FINAL TEST EVALUATION ===")
-checkpoint = torch.load("models/best_model.pth")
+checkpoint = torch.load("models_new_theoretical/best_model.pth")
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(device)
 model.eval()
@@ -661,7 +661,7 @@ plt.legend()
 plt.grid(True)
 
 plt.tight_layout()
-plt.savefig('results/enhanced_training_metrics.png', dpi=300, bbox_inches='tight')
+plt.savefig('results_new_theoretical/enhanced_training_metrics.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 # Generate test predictions and plots
@@ -670,7 +670,7 @@ print("\nGenerating enhanced test predictions...")
 from predicted_graph import process_file, print_numerical_results, plot_depth_profile
 
 all_results = []
-output_dir = "results/predicted_graph_plots"
+output_dir = "results_new_theoretical/predicted_graph_plots"
 os.makedirs(output_dir, exist_ok=True)
 
 for filepath in dataset.test_files:
