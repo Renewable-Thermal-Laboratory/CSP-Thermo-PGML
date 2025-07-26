@@ -174,15 +174,18 @@ class PhysicsInformedLoss(nn.Module):
 # POWER METADATA PROCESSING FUNCTIONS (MOVED FROM train.py)
 # =====================
 def process_power_data_batch(power_data_list):
-    """Convert power data dictionaries to proper format for physics loss - NO TENSORS VERSION."""
+    """Convert power data dictionaries to proper format for physics loss - FIXED BATCH SIZE VERSION."""
     if not power_data_list:
         return None
     
     batch_size = len(power_data_list)
     processed_metadata = []
     
-    for power_data in power_data_list:
+    print(f"Processing power data batch with {batch_size} samples")
+    
+    for i, power_data in enumerate(power_data_list):
         if power_data is None or not isinstance(power_data, dict):
+            print(f"Warning: Invalid power_data at index {i}, using dummy values")
             # Use dummy values for None entries
             processed_metadata.append({
                 'temps_row1': [300.0] * 10,  # Plain Python list
@@ -196,7 +199,10 @@ def process_power_data_batch(power_data_list):
         try:
             # Check if required keys exist
             required_keys = ['temps_row1', 'temps_row21', 'time_row1', 'time_row21', 'h', 'q0']
-            if not all(key in power_data for key in required_keys):
+            missing_keys = [key for key in required_keys if key not in power_data]
+            
+            if missing_keys:
+                print(f"Warning: Missing keys {missing_keys} at index {i}, using dummy values")
                 # Use dummy values if keys are missing
                 processed_metadata.append({
                     'temps_row1': [300.0] * 10,
@@ -214,12 +220,20 @@ def process_power_data_batch(power_data_list):
             # Ensure temperature lists are plain Python floats
             if isinstance(temps_row1, (list, tuple)):
                 temps_row1 = [float(x) for x in temps_row1]
+                if len(temps_row1) != 10:
+                    print(f"Warning: temps_row1 has {len(temps_row1)} elements, expected 10 at index {i}")
+                    temps_row1 = (temps_row1 + [300.0] * 10)[:10]  # Pad or truncate to 10
             else:
+                print(f"Warning: temps_row1 is not a list/tuple at index {i}")
                 temps_row1 = [300.0] * 10  # fallback
                 
             if isinstance(temps_row21, (list, tuple)):
                 temps_row21 = [float(x) for x in temps_row21]
+                if len(temps_row21) != 10:
+                    print(f"Warning: temps_row21 has {len(temps_row21)} elements, expected 10 at index {i}")
+                    temps_row21 = (temps_row21 + [301.0] * 10)[:10]  # Pad or truncate to 10
             else:
+                print(f"Warning: temps_row21 is not a list/tuple at index {i}")
                 temps_row21 = [301.0] * 10  # fallback
             
             # Calculate time difference as plain Python float
@@ -239,6 +253,7 @@ def process_power_data_batch(power_data_list):
             })
             
         except (KeyError, TypeError, ValueError) as e:
+            print(f"Error processing power_data at index {i}: {e}")
             # Skip invalid data, use dummy values
             processed_metadata.append({
                 'temps_row1': [300.0] * 10,
@@ -248,6 +263,7 @@ def process_power_data_batch(power_data_list):
                 'q0': 1000.0
             })
     
+    print(f"Successfully processed {len(processed_metadata)} power metadata entries")
     return processed_metadata
 
 
@@ -349,13 +365,20 @@ class PhysicsInformedTrainer:
         return h_unscaled, q0_unscaled
         
     def compute_nine_bin_physics_loss(self, y_true, y_pred, power_metadata_list):
-        """Compute physics-based loss using 9 spatial bins - NO TENSORS VERSION."""
+        """Compute physics-based loss using 9 spatial bins - FIXED INDEXING VERSION."""
         try:
             if not power_metadata_list or len(power_metadata_list) == 0:
                 zero_loss = torch.tensor(0.0, dtype=torch.float32, device=self.device)
                 return zero_loss, zero_loss, zero_loss, {}
             
-            batch_size = len(power_metadata_list)
+            # CRITICAL FIX: Ensure batch size consistency
+            actual_batch_size = min(len(power_metadata_list), y_true.shape[0], y_pred.shape[0])
+            
+            # Validate batch size consistency
+            if len(power_metadata_list) != y_true.shape[0] or len(power_metadata_list) != y_pred.shape[0]:
+                print(f"Warning: Batch size mismatch - power_metadata: {len(power_metadata_list)}, "
+                    f"y_true: {y_true.shape[0]}, y_pred: {y_pred.shape[0]}")
+                print(f"Using minimum batch size: {actual_batch_size}")
             
             # Initialize lists to collect physics losses
             bin_physics_losses = []
@@ -369,8 +392,8 @@ class PhysicsInformedTrainer:
             radius = 0.05175  # m
             pi = 3.14159265359
             
-            # Process each sample in the batch
-            for sample_idx in range(batch_size):
+            # Process each sample in the batch - FIXED INDEXING
+            for sample_idx in range(actual_batch_size):
                 power_data = power_metadata_list[sample_idx]
                 
                 # Extract plain Python values - NO TENSORS
@@ -397,15 +420,32 @@ class PhysicsInformedTrainer:
                 sample_bin_predicted_powers = []
                 
                 for bin_idx, (sensor1_idx, sensor2_idx) in enumerate(self.bin_sensor_pairs):
+                    # VALIDATION: Ensure sensor indices are within bounds
+                    if (sensor1_idx >= len(temps_row1) or sensor2_idx >= len(temps_row1) or
+                        sensor1_idx >= len(temps_row21) or sensor2_idx >= len(temps_row21)):
+                        print(f"Warning: Sensor index out of bounds for sample {sample_idx}, bin {bin_idx}")
+                        continue
+                    
+                    # VALIDATION: Ensure sample index is within tensor bounds
+                    if sample_idx >= y_pred.shape[0] or sensor1_idx >= y_pred.shape[1] or sensor2_idx >= y_pred.shape[1]:
+                        print(f"Warning: Tensor index out of bounds - sample: {sample_idx}, sensors: {sensor1_idx}, {sensor2_idx}")
+                        print(f"y_pred shape: {y_pred.shape}")
+                        continue
+                    
                     # Get actual and predicted temperatures for this sample and sensors
                     actual_temp1_t1 = temps_row1[sensor1_idx]
                     actual_temp2_t1 = temps_row1[sensor2_idx]
                     actual_temp1_t21 = temps_row21[sensor1_idx]
                     actual_temp2_t21 = temps_row21[sensor2_idx]
                     
-                    # Get predictions as plain Python floats
-                    pred_temp1_t21 = float(y_pred[sample_idx, sensor1_idx].item())
-                    pred_temp2_t21 = float(y_pred[sample_idx, sensor2_idx].item())
+                    # Get predictions as plain Python floats - SAFE INDEXING
+                    try:
+                        pred_temp1_t21 = float(y_pred[sample_idx, sensor1_idx].item())
+                        pred_temp2_t21 = float(y_pred[sample_idx, sensor2_idx].item())
+                    except IndexError as e:
+                        print(f"IndexError in sample {sample_idx}, sensors {sensor1_idx}, {sensor2_idx}: {e}")
+                        print(f"y_pred shape: {y_pred.shape}, sample_idx: {sample_idx}")
+                        continue
                     
                     # Calculate temperature changes (average of two sensors for this bin)
                     actual_temp1_change = actual_temp1_t21 - actual_temp1_t1
@@ -427,6 +467,11 @@ class PhysicsInformedTrainer:
                     bin_physics_loss = abs(actual_bin_power - pred_bin_power)
                     sample_bin_physics_losses.append(bin_physics_loss)
                 
+                # Only proceed if we have valid bin calculations
+                if len(sample_bin_physics_losses) == 0:
+                    print(f"Warning: No valid bins calculated for sample {sample_idx}")
+                    continue
+                
                 # Calculate total powers for this sample
                 total_actual_power = sum(sample_bin_actual_powers)
                 total_predicted_power = sum(sample_bin_predicted_powers)
@@ -438,6 +483,12 @@ class PhysicsInformedTrainer:
                 avg_sample_physics_loss = sum(sample_bin_physics_losses) / len(sample_bin_physics_losses)
                 bin_physics_losses.append(avg_sample_physics_loss)
             
+            # Ensure we have valid results
+            if len(bin_physics_losses) == 0:
+                print("Warning: No valid physics losses calculated")
+                zero_loss = torch.tensor(0.0, dtype=torch.float32, device=self.device)
+                return zero_loss, zero_loss, zero_loss, {}
+            
             # Convert final results to tensors for PyTorch loss computation
             physics_loss = torch.tensor(sum(bin_physics_losses) / len(bin_physics_losses), 
                                     dtype=torch.float32, device=self.device)
@@ -446,7 +497,7 @@ class PhysicsInformedTrainer:
             constraint_penalties = []
             power_balance_losses = []
             
-            for i in range(batch_size):
+            for i in range(len(total_actual_powers)):
                 # Individual bin constraint: no bin should exceed total incoming power
                 bin_excess = max(0.0, total_predicted_powers[i] - incoming_powers[i])
                 constraint_penalties.append(bin_excess ** 2)
@@ -466,8 +517,8 @@ class PhysicsInformedTrainer:
                 'total_predicted_power': total_predicted_powers,  # Plain Python list
                 'incoming_power': incoming_powers,  # Plain Python list
                 'power_imbalance': power_balance_losses,  # Plain Python list
-                'h_unscaled': [pm['h'] for pm in power_metadata_list],  # Plain Python list
-                'q0_unscaled': [pm['q0'] for pm in power_metadata_list]  # Plain Python list
+                'h_unscaled': [power_metadata_list[i]['h'] for i in range(len(total_actual_powers))],  # Plain Python list
+                'q0_unscaled': [power_metadata_list[i]['q0'] for i in range(len(total_actual_powers))]  # Plain Python list
             }
             
             return physics_loss, constraint_penalty, power_balance_loss, power_info
