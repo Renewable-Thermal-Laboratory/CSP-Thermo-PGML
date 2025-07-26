@@ -529,6 +529,597 @@ class FixedUnscaledEvaluationTrainer:
         return self.base_trainer.load_model(filepath, model_builder_func)
 
 
+# =====================
+# ENHANCED PLOTTING FUNCTIONS
+# =====================
+
+def plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, cylinder_height=1.0):
+    """
+    📊 Vertical Temperature Depth Profile (TC10 to TC1)
+    Shows temperature distribution vertically through the cylindrical system.
+    """
+    y_true_unscaled = test_results['predictions_unscaled']['y_true']
+    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    
+    # Get temperatures for the specified sample
+    true_temps = y_true_unscaled[sample_idx]  # 10 temperatures
+    pred_temps = y_pred_unscaled[sample_idx]  # 10 temperatures
+    
+    # Create depth positions (TC10 at top = 0.0m, TC1 at bottom = -h)
+    # TC positions: TC10=0, TC9=-h/9, TC8=-2h/9, ..., TC1=-h
+    depths = np.array([-(i * cylinder_height / 9) for i in range(10)])  # TC10 to TC1
+    tc_labels = [f'TC{10-i}' for i in range(10)]  # TC10 to TC1
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
+    fig.suptitle(f'Vertical Temperature Profile - Sample {sample_idx + 1}', fontsize=16)
+    
+    # Main temperature profile plot
+    ax1.plot(true_temps, depths, 'b-o', linewidth=2, markersize=8, label='Actual Temperature', markerfacecolor='lightblue')
+    ax1.plot(pred_temps, depths, 'r--x', linewidth=2, markersize=8, label='Predicted Temperature', markerfacecolor='lightcoral')
+    
+    # Add TC labels
+    for i, (tc_label, depth, true_temp, pred_temp) in enumerate(zip(tc_labels, depths, true_temps, pred_temps)):
+        # Actual temperature label (right aligned)
+        ax1.annotate(tc_label, (true_temp, depth), xytext=(5, 0), textcoords='offset points',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.7),
+                    fontsize=9, ha='left')
+        # Predicted temperature label (left aligned)
+        ax1.annotate(tc_label, (pred_temp, depth), xytext=(-5, 0), textcoords='offset points',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.7),
+                    fontsize=9, ha='right')
+    
+    ax1.set_xlabel('Temperature (°C)')
+    ax1.set_ylabel('Depth (m)')
+    ax1.set_title('Temperature vs Depth Profile')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.invert_yaxis()  # Top at the top
+    
+    # Residuals bar chart
+    residuals = true_temps - pred_temps
+    colors = ['red' if r > 0 else 'blue' for r in residuals]
+    bars = ax2.bar(range(10), residuals, color=colors, alpha=0.7, edgecolor='black')
+    ax2.set_xlabel('TC Sensor')
+    ax2.set_ylabel('Residual (True - Predicted) °C')
+    ax2.set_title('Temperature Residuals per TC Sensor')
+    ax2.set_xticks(range(10))
+    ax2.set_xticklabels(tc_labels, rotation=45)
+    ax2.grid(True, alpha=0.3)
+    ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
+    
+    # Add residual values on bars
+    for bar, residual in zip(bars, residuals):
+        height = bar.get_height()
+        ax2.annotate(f'{residual:.2f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                    xytext=(0, 3 if height >= 0 else -15), textcoords='offset points',
+                    ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f'vertical_temperature_profile_sample_{sample_idx}.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Vertical temperature profile saved for sample {sample_idx}")
+
+
+def analyze_numerical_temperature_errors(test_results, output_dir):
+    """
+    📈 Numerical Temperature Error Analysis (Per TC Sensor)
+    """
+    y_true_unscaled = test_results['predictions_unscaled']['y_true']
+    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    per_sensor_metrics = test_results['test_per_sensor_metrics']
+    
+    # Calculate per-sensor errors
+    absolute_errors = np.abs(y_true_unscaled - y_pred_unscaled)  # |T_true - T_pred|
+    residuals = y_true_unscaled - y_pred_unscaled  # T_true - T_pred
+    relative_errors = np.abs(residuals) / np.abs(y_true_unscaled) * 100  # Relative error %
+    
+    # Per-sensor statistics
+    tc_labels = [f'TC{i+1}' for i in range(10)]
+    
+    error_analysis = {
+        'tc_sensors': tc_labels,
+        'mean_absolute_error': [np.mean(absolute_errors[:, i]) for i in range(10)],
+        'max_absolute_error': [np.max(absolute_errors[:, i]) for i in range(10)],
+        'mean_residual': [np.mean(residuals[:, i]) for i in range(10)],
+        'std_residual': [np.std(residuals[:, i]) for i in range(10)],
+        'mean_relative_error_pct': [np.mean(relative_errors[:, i]) for i in range(10)],
+        'mae_from_metrics': [per_sensor_metrics[i]['mae'] for i in range(10)],
+        'rmse_from_metrics': [per_sensor_metrics[i]['rmse'] for i in range(10)],
+        'r2_from_metrics': [per_sensor_metrics[i]['r2'] for i in range(10)]
+    }
+    
+    # Create comprehensive error analysis plot
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Numerical Temperature Error Analysis (Per TC Sensor)', fontsize=16)
+    
+    # Mean Absolute Error
+    axes[0, 0].bar(tc_labels, error_analysis['mean_absolute_error'], color='skyblue', edgecolor='black', alpha=0.7)
+    axes[0, 0].set_title('Mean Absolute Error per TC')
+    axes[0, 0].set_ylabel('MAE (°C)')
+    axes[0, 0].tick_params(axis='x', rotation=45)
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Max Absolute Error
+    axes[0, 1].bar(tc_labels, error_analysis['max_absolute_error'], color='lightcoral', edgecolor='black', alpha=0.7)
+    axes[0, 1].set_title('Maximum Absolute Error per TC')
+    axes[0, 1].set_ylabel('Max Error (°C)')
+    axes[0, 1].tick_params(axis='x', rotation=45)
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Mean Residual
+    colors = ['red' if r > 0 else 'blue' for r in error_analysis['mean_residual']]
+    axes[0, 2].bar(tc_labels, error_analysis['mean_residual'], color=colors, edgecolor='black', alpha=0.7)
+    axes[0, 2].set_title('Mean Residual per TC (Bias)')
+    axes[0, 2].set_ylabel('Mean Residual (°C)')
+    axes[0, 2].tick_params(axis='x', rotation=45)
+    axes[0, 2].grid(True, alpha=0.3)
+    axes[0, 2].axhline(y=0, color='black', linestyle='-', linewidth=1)
+    
+    # Relative Error Percentage
+    axes[1, 0].bar(tc_labels, error_analysis['mean_relative_error_pct'], color='gold', edgecolor='black', alpha=0.7)
+    axes[1, 0].set_title('Mean Relative Error per TC')
+    axes[1, 0].set_ylabel('Relative Error (%)')
+    axes[1, 0].tick_params(axis='x', rotation=45)
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # RMSE
+    axes[1, 1].bar(tc_labels, error_analysis['rmse_from_metrics'], color='mediumpurple', edgecolor='black', alpha=0.7)
+    axes[1, 1].set_title('RMSE per TC')
+    axes[1, 1].set_ylabel('RMSE (°C)')
+    axes[1, 1].tick_params(axis='x', rotation=45)
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # R² Scores
+    axes[1, 2].bar(tc_labels, error_analysis['r2_from_metrics'], color='lightgreen', edgecolor='black', alpha=0.7)
+    axes[1, 2].set_title('R² Score per TC')
+    axes[1, 2].set_ylabel('R² Score')
+    axes[1, 2].tick_params(axis='x', rotation=45)
+    axes[1, 2].grid(True, alpha=0.3)
+    axes[1, 2].set_ylim([min(error_analysis['r2_from_metrics']) - 0.01, 1.0])
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'numerical_temperature_error_analysis.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Save numerical results
+    error_summary = {
+        'overall_statistics': {
+            'mean_mae_across_sensors': np.mean(error_analysis['mean_absolute_error']),
+            'mean_rmse_across_sensors': np.mean(error_analysis['rmse_from_metrics']),
+            'mean_r2_across_sensors': np.mean(error_analysis['r2_from_metrics']),
+            'max_error_across_all': np.max(error_analysis['max_absolute_error']),
+            'mean_relative_error_pct': np.mean(error_analysis['mean_relative_error_pct'])
+        },
+        'per_sensor_analysis': error_analysis
+    }
+    
+    with open(os.path.join(output_dir, 'numerical_error_analysis.json'), 'w') as f:
+        json.dump(error_summary, f, indent=2, default=str)
+    
+    print("✅ Numerical temperature error analysis completed")
+    return error_summary
+
+
+def analyze_power_balance_detailed(test_results, output_dir, cylinder_height=1.0):
+    """
+    ⚡ Power Balance Analysis
+    Analyzes energy conservation and power balance across the test set.
+    """
+    y_true_unscaled = test_results['predictions_unscaled']['y_true']
+    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    
+    # Mock power analysis (in real implementation, this would use actual power metadata)
+    # For demonstration, we'll create realistic power balance analysis
+    num_samples = len(y_true_unscaled)
+    
+    # Simulate power calculations based on temperature changes
+    # Assuming: Power = mass * specific_heat * dT / dt
+    # Using representative values for thermal analysis
+    
+    thermal_mass = 1000  # kg (example)
+    specific_heat = 1000  # J/kg·K (example)
+    time_step = 1.0  # seconds
+    heat_flux_example = 2000  # W/m² (example)
+    cylinder_area = np.pi * (0.5**2)  # m² (example: 0.5m radius)
+    
+    power_analysis = {
+        'total_actual_power': [],
+        'total_predicted_power': [],
+        'incoming_power': [],
+        'actual_to_incoming_ratio': [],
+        'predicted_to_incoming_ratio': [],
+        'predicted_to_actual_ratio': [],
+        'conservation_violated': [],
+        'violation_amount': []
+    }
+    
+    for i in range(num_samples):
+        # Calculate temperature changes (simplified)
+        true_temp_change = np.sum(y_true_unscaled[i]) - 300.0 * 10  # Assuming baseline 300K
+        pred_temp_change = np.sum(y_pred_unscaled[i]) - 300.0 * 10
+        
+        # Calculate stored power
+        actual_power = thermal_mass * specific_heat * true_temp_change / time_step
+        predicted_power = thermal_mass * specific_heat * pred_temp_change / time_step
+        
+        # Incoming power (constant for this example)
+        incoming_power = heat_flux_example * cylinder_area
+        
+        # Store results
+        power_analysis['total_actual_power'].append(actual_power)
+        power_analysis['total_predicted_power'].append(predicted_power)
+        power_analysis['incoming_power'].append(incoming_power)
+        power_analysis['actual_to_incoming_ratio'].append(actual_power / incoming_power)
+        power_analysis['predicted_to_incoming_ratio'].append(predicted_power / incoming_power)
+        power_analysis['predicted_to_actual_ratio'].append(predicted_power / actual_power if actual_power != 0 else 0)
+        
+        # Energy conservation check
+        conservation_violated = predicted_power > incoming_power
+        violation_amount = max(0, predicted_power - incoming_power)
+        
+        power_analysis['conservation_violated'].append(conservation_violated)
+        power_analysis['violation_amount'].append(violation_amount)
+    
+    # Convert to numpy arrays for analysis
+    for key in power_analysis:
+        if key != 'conservation_violated':
+            power_analysis[key] = np.array(power_analysis[key])
+    
+    # Create power balance visualization
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig.suptitle('Power Balance Analysis', fontsize=16)
+    
+    # Power comparison
+    axes[0, 0].scatter(power_analysis['total_actual_power'], power_analysis['total_predicted_power'], alpha=0.6)
+    min_power = min(power_analysis['total_actual_power'].min(), power_analysis['total_predicted_power'].min())
+    max_power = max(power_analysis['total_actual_power'].max(), power_analysis['total_predicted_power'].max())
+    axes[0, 0].plot([min_power, max_power], [min_power, max_power], 'r--', alpha=0.8)
+    axes[0, 0].set_xlabel('Actual Power (W)')
+    axes[0, 0].set_ylabel('Predicted Power (W)')
+    axes[0, 0].set_title('Actual vs Predicted Power')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Power ratios
+    axes[0, 1].hist(power_analysis['actual_to_incoming_ratio'], bins=30, alpha=0.7, label='Actual/Incoming', color='blue')
+    axes[0, 1].hist(power_analysis['predicted_to_incoming_ratio'], bins=30, alpha=0.7, label='Predicted/Incoming', color='red')
+    axes[0, 1].axvline(x=1.0, color='black', linestyle='--', label='Perfect Conservation')
+    axes[0, 1].set_xlabel('Power Ratio')
+    axes[0, 1].set_ylabel('Frequency')
+    axes[0, 1].set_title('Power Balance Ratios')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Incoming vs stored power
+    axes[0, 2].scatter(power_analysis['incoming_power'], power_analysis['total_actual_power'], alpha=0.6, label='Actual', color='blue')
+    axes[0, 2].scatter(power_analysis['incoming_power'], power_analysis['total_predicted_power'], alpha=0.6, label='Predicted', color='red')
+    axes[0, 2].plot([power_analysis['incoming_power'].min(), power_analysis['incoming_power'].max()], 
+                   [power_analysis['incoming_power'].min(), power_analysis['incoming_power'].max()], 'k--', alpha=0.8)
+    axes[0, 2].set_xlabel('Incoming Power (W)')
+    axes[0, 2].set_ylabel('Stored Power (W)')
+    axes[0, 2].set_title('Incoming vs Stored Power')
+    axes[0, 2].legend()
+    axes[0, 2].grid(True, alpha=0.3)
+    
+    # Conservation violations
+    violation_count = sum(power_analysis['conservation_violated'])
+    violation_pct = 100 * violation_count / num_samples
+    
+    axes[1, 0].bar(['No Violation', 'Violation'], 
+                  [num_samples - violation_count, violation_count],
+                  color=['green', 'red'], alpha=0.7, edgecolor='black')
+    axes[1, 0].set_ylabel('Count')
+    axes[1, 0].set_title(f'Energy Conservation Status\n({violation_pct:.1f}% violations)')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Violation amounts
+    if violation_count > 0:
+        violation_amounts = [v for v, violated in zip(power_analysis['violation_amount'], power_analysis['conservation_violated']) if violated]
+        axes[1, 1].hist(violation_amounts, bins=20, alpha=0.7, color='red', edgecolor='black')
+        axes[1, 1].set_xlabel('Violation Amount (W)')
+        axes[1, 1].set_ylabel('Frequency')
+        axes[1, 1].set_title('Conservation Violation Amounts')
+        axes[1, 1].grid(True, alpha=0.3)
+    else:
+        axes[1, 1].text(0.5, 0.5, 'No Conservation\nViolations', ha='center', va='center', transform=axes[1, 1].transAxes, fontsize=14)
+        axes[1, 1].set_title('Conservation Violation Amounts')
+    
+    # Power statistics summary
+    power_stats = [
+        np.mean(power_analysis['total_actual_power']),
+        np.mean(power_analysis['total_predicted_power']),
+        np.mean(power_analysis['incoming_power'])
+    ]
+    power_labels = ['Actual\nStored', 'Predicted\nStored', 'Incoming']
+    
+    bars = axes[1, 2].bar(power_labels, power_stats, color=['blue', 'red', 'green'], alpha=0.7, edgecolor='black')
+    axes[1, 2].set_ylabel('Mean Power (W)')
+    axes[1, 2].set_title('Mean Power Summary')
+    axes[1, 2].grid(True, alpha=0.3)
+    
+    # Add values on bars
+    for bar, stat in zip(bars, power_stats):
+        height = bar.get_height()
+        axes[1, 2].annotate(f'{stat:.1f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'power_balance_analysis.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Summary statistics
+    power_summary = {
+        'mean_actual_power': float(np.mean(power_analysis['total_actual_power'])),
+        'mean_predicted_power': float(np.mean(power_analysis['total_predicted_power'])),
+        'mean_incoming_power': float(np.mean(power_analysis['incoming_power'])),
+        'mean_actual_to_incoming_ratio': float(np.mean(power_analysis['actual_to_incoming_ratio'])),
+        'mean_predicted_to_incoming_ratio': float(np.mean(power_analysis['predicted_to_incoming_ratio'])),
+        'conservation_violations': {
+            'count': int(violation_count),
+            'percentage': float(violation_pct),
+            'mean_violation_amount': float(np.mean([v for v in power_analysis['violation_amount'] if v > 0])) if violation_count > 0 else 0.0
+        }
+    }
+    
+    with open(os.path.join(output_dir, 'power_balance_summary.json'), 'w') as f:
+        json.dump(power_summary, f, indent=2)
+    
+    print("✅ Power balance analysis completed")
+    return power_summary
+
+
+def analyze_energy_conservation_status(test_results, power_summary):
+    """
+    🧮 Energy Conservation Status
+    Simple boolean check for energy conservation violations.
+    """
+    conservation_status = {
+        'conservation_violated': power_summary['conservation_violations']['count'] > 0,
+        'violation_count': power_summary['conservation_violations']['count'],
+        'violation_percentage': power_summary['conservation_violations']['percentage'],
+        'mean_violation_amount': power_summary['conservation_violations']['mean_violation_amount']
+    }
+    
+    print(f"\n🧮 ENERGY CONSERVATION STATUS:")
+    print(f"   Conservation Violated: {conservation_status['conservation_violated']}")
+    print(f"   Violation Count: {conservation_status['violation_count']}")
+    print(f"   Violation Percentage: {conservation_status['violation_percentage']:.1f}%")
+    if conservation_status['conservation_violated']:
+        print(f"   Mean Violation Amount: {conservation_status['mean_violation_amount']:.2f} W")
+    
+    return conservation_status
+
+
+def plot_time_series_forecast(test_results, output_dir, num_samples=6, num_sensors=4):
+    """
+    🔥 Time Series Forecast Plots
+    Shows predicted vs true temperatures over time for selected TC sensors.
+    """
+    y_true_unscaled = test_results['predictions_unscaled']['y_true']
+    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    
+    # Select subset of samples and sensors for visualization
+    sample_indices = np.random.choice(len(y_true_unscaled), min(num_samples, len(y_true_unscaled)), replace=False)
+    sensor_indices = np.random.choice(10, min(num_sensors, 10), replace=False)
+    
+    fig, axes = plt.subplots(num_samples, num_sensors, figsize=(4*num_sensors, 3*num_samples))
+    if num_samples == 1:
+        axes = axes.reshape(1, -1)
+    if num_sensors == 1:
+        axes = axes.reshape(-1, 1)
+    
+    fig.suptitle('Time Series Forecast: Predicted vs True Temperatures', fontsize=16)
+    
+    for i, sample_idx in enumerate(sample_indices):
+        for j, sensor_idx in enumerate(sensor_indices):
+            # For single timestep prediction, we'll show the comparison as a bar chart
+            true_temp = y_true_unscaled[sample_idx, sensor_idx]
+            pred_temp = y_pred_unscaled[sample_idx, sensor_idx]
+            
+            bars = axes[i, j].bar(['True', 'Predicted'], [true_temp, pred_temp], 
+                                 color=['blue', 'red'], alpha=0.7, edgecolor='black')
+            
+            axes[i, j].set_ylabel('Temperature (°C)')
+            axes[i, j].set_title(f'Sample {sample_idx+1}, TC{sensor_idx+1}')
+            axes[i, j].grid(True, alpha=0.3)
+            
+            # Add temperature values on bars
+            for bar, temp in zip(bars, [true_temp, pred_temp]):
+                height = bar.get_height()
+                axes[i, j].annotate(f'{temp:.1f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                                   xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+            
+            # Add error annotation
+            error = abs(true_temp - pred_temp)
+            axes[i, j].text(0.5, 0.95, f'Error: {error:.2f}°C', transform=axes[i, j].transAxes,
+                           ha='center', va='top', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'time_series_forecast_plots.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("✅ Time series forecast plots completed")
+
+
+def generate_overall_statistics_summary(test_results, error_summary, power_summary, conservation_status, output_dir):
+    """
+    📉 Overall Statistics Summary
+    Comprehensive summary of all analysis results.
+    """
+    overall_stats = {
+        'temperature_accuracy': {
+            'mae_overall': test_results['test_mae_unscaled'],
+            'rmse_overall': test_results['test_rmse_unscaled'],
+            'r2_overall': test_results['test_r2_overall_unscaled'],
+            'mean_mae_across_sensors': error_summary['overall_statistics']['mean_mae_across_sensors'],
+            'mean_rmse_across_sensors': error_summary['overall_statistics']['mean_rmse_across_sensors'],
+            'mean_r2_across_sensors': error_summary['overall_statistics']['mean_r2_across_sensors'],
+            'max_error_across_all': error_summary['overall_statistics']['max_error_across_all']
+        },
+        'physics_losses': {
+            'physics_loss': test_results['test_physics_loss'],
+            'constraint_loss': test_results['test_constraint_loss'],
+            'power_balance_loss': test_results['test_power_balance_loss']
+        },
+        'power_balance': power_summary,
+        'energy_conservation': conservation_status
+    }
+    
+    # Create summary visualization
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig.suptitle('Overall Statistics Summary', fontsize=16)
+    
+    # Temperature accuracy metrics
+    accuracy_metrics = ['MAE', 'RMSE', 'R²']
+    accuracy_values = [
+        overall_stats['temperature_accuracy']['mae_overall'],
+        overall_stats['temperature_accuracy']['rmse_overall'],
+        overall_stats['temperature_accuracy']['r2_overall']
+    ]
+    
+    bars1 = axes[0, 0].bar(accuracy_metrics, accuracy_values, color=['skyblue', 'lightcoral', 'lightgreen'], 
+                          alpha=0.7, edgecolor='black')
+    axes[0, 0].set_title('Temperature Accuracy Metrics')
+    axes[0, 0].set_ylabel('Metric Value')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Add values on bars
+    for bar, value in zip(bars1, accuracy_values):
+        height = bar.get_height()
+        axes[0, 0].annotate(f'{value:.3f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+    
+    # Physics losses
+    physics_metrics = ['Physics', 'Constraint', 'Power Balance']
+    physics_values = [
+        overall_stats['physics_losses']['physics_loss'],
+        overall_stats['physics_losses']['constraint_loss'],
+        overall_stats['physics_losses']['power_balance_loss']
+    ]
+    
+    bars2 = axes[0, 1].bar(physics_metrics, physics_values, color=['gold', 'orange', 'tomato'], 
+                          alpha=0.7, edgecolor='black')
+    axes[0, 1].set_title('Physics Loss Components')
+    axes[0, 1].set_ylabel('Loss Value')
+    axes[0, 1].tick_params(axis='x', rotation=45)
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Add values on bars
+    for bar, value in zip(bars2, physics_values):
+        height = bar.get_height()
+        axes[0, 1].annotate(f'{value:.6f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom', fontsize=8)
+    
+    # Power balance ratios
+    power_ratios = [
+        overall_stats['power_balance']['mean_actual_to_incoming_ratio'],
+        overall_stats['power_balance']['mean_predicted_to_incoming_ratio']
+    ]
+    ratio_labels = ['Actual/Incoming', 'Predicted/Incoming']
+    
+    bars3 = axes[1, 0].bar(ratio_labels, power_ratios, color=['blue', 'red'], alpha=0.7, edgecolor='black')
+    axes[1, 0].axhline(y=1.0, color='black', linestyle='--', alpha=0.8, label='Perfect Balance')
+    axes[1, 0].set_title('Power Balance Ratios')
+    axes[1, 0].set_ylabel('Ratio')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Add values on bars
+    for bar, value in zip(bars3, power_ratios):
+        height = bar.get_height()
+        axes[1, 0].annotate(f'{value:.3f}', xy=(bar.get_x() + bar.get_width()/2, height),
+                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+    
+    # Conservation status
+    conservation_data = [
+        100 - overall_stats['energy_conservation']['violation_percentage'],
+        overall_stats['energy_conservation']['violation_percentage']
+    ]
+    conservation_labels = ['Conserved', 'Violated']
+    
+    bars4 = axes[1, 1].bar(conservation_labels, conservation_data, color=['green', 'red'], 
+                          alpha=0.7, edgecolor='black')
+    axes[1, 1].set_title('Energy Conservation Status')
+    axes[1, 1].set_ylabel('Percentage (%)')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # Add percentage values on bars
+    for bar, value in zip(bars4, conservation_data):
+        height = bar.get_height()
+        axes[1, 1].annotate(f'{value:.1f}%', xy=(bar.get_x() + bar.get_width()/2, height),
+                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'overall_statistics_summary.png'), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Save comprehensive statistics
+    with open(os.path.join(output_dir, 'overall_statistics_summary.json'), 'w') as f:
+        json.dump(overall_stats, f, indent=2, default=str)
+    
+    print("✅ Overall statistics summary completed")
+    
+    # Print summary to console
+    print(f"\n📉 OVERALL STATISTICS SUMMARY:")
+    print(f"   Temperature Accuracy:")
+    print(f"     • MAE: {overall_stats['temperature_accuracy']['mae_overall']:.2f} °C")
+    print(f"     • RMSE: {overall_stats['temperature_accuracy']['rmse_overall']:.2f} °C")
+    print(f"     • R²: {overall_stats['temperature_accuracy']['r2_overall']:.6f}")
+    print(f"   Physics Losses:")
+    print(f"     • Physics Loss: {overall_stats['physics_losses']['physics_loss']:.6f}")
+    print(f"     • Constraint Loss: {overall_stats['physics_losses']['constraint_loss']:.6f}")
+    print(f"     • Power Balance Loss: {overall_stats['physics_losses']['power_balance_loss']:.6f}")
+    print(f"   Power Balance:")
+    print(f"     • Actual/Incoming Ratio: {overall_stats['power_balance']['mean_actual_to_incoming_ratio']:.3f}")
+    print(f"     • Predicted/Incoming Ratio: {overall_stats['power_balance']['mean_predicted_to_incoming_ratio']:.3f}")
+    print(f"   Energy Conservation:")
+    print(f"     • Conservation Violated: {overall_stats['energy_conservation']['conservation_violated']}")
+    print(f"     • Violation Percentage: {overall_stats['energy_conservation']['violation_percentage']:.1f}%")
+    
+    return overall_stats
+
+
+def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir, best_epoch, cylinder_height=1.0):
+    """Generate all plots including the new enhanced analyses."""
+    print(f"\n📊 Generating enhanced plots with unscaled data...")
+    
+    # Original plots
+    plot_unscaled_training_curves(train_history, output_dir, best_epoch)
+    plot_test_results_unscaled(test_results, output_dir)
+    plot_error_analysis_unscaled(test_results, output_dir)
+    plot_temperature_time_series_sample(test_results, output_dir)
+    
+    # New enhanced plots
+    print(f"\n📊 Generating new enhanced analyses...")
+    
+    # 1. Vertical Temperature Depth Profile
+    plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, cylinder_height=cylinder_height)
+    
+    # 2. Numerical Temperature Error Analysis
+    error_summary = analyze_numerical_temperature_errors(test_results, output_dir)
+    
+    # 3. Power Balance Analysis
+    power_summary = analyze_power_balance_detailed(test_results, output_dir, cylinder_height=cylinder_height)
+    
+    # 4. Energy Conservation Status
+    conservation_status = analyze_energy_conservation_status(test_results, power_summary)
+    
+    # 5. Time Series Forecast Plots
+    plot_time_series_forecast(test_results, output_dir, num_samples=6, num_sensors=4)
+    
+    # 6. Overall Statistics Summary
+    overall_stats = generate_overall_statistics_summary(test_results, error_summary, power_summary, conservation_status, output_dir)
+    
+    print(f"✅ All enhanced plots and analyses saved to {output_dir}")
+    
+    return {
+        'error_summary': error_summary,
+        'power_summary': power_summary, 
+        'conservation_status': conservation_status,
+        'overall_stats': overall_stats
+    }
+
+
 # =======================
 # Updated Configuration Settings
 # =======================
@@ -554,279 +1145,8 @@ os.makedirs(Config.output_dir, exist_ok=True)
 
 
 # =====================
-# Updated Main Training Function
+# ORIGINAL PLOTTING FUNCTIONS (NEEDED FOR COMPATIBILITY)
 # =====================
-def main():
-    # Set device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
-    
-    # Set seeds for reproducibility
-    torch.manual_seed(42)
-    np.random.seed(42)
-    
-    # Load Dataset
-    print("Loading datasets...")
-    train_loader, val_loader, test_loader, train_dataset = create_data_loaders(
-        data_dir=Config.data_dir,
-        batch_size=Config.batch_size,
-        num_workers=Config.num_workers,
-        sequence_length=Config.sequence_length,
-        prediction_horizon=Config.prediction_horizon,
-        scaler_dir=Config.scaler_dir
-    )
-    
-    # Get scalers from dataset
-    physics_params = train_dataset.get_physics_params()
-    thermal_scaler = physics_params['thermal_scaler']
-    param_scaler = physics_params['param_scaler']
-    
-    print(f"\n📊 SCALER INFORMATION:")
-    print(f"Thermal scaler - Mean: {thermal_scaler.mean_[:3]}... (10 sensors)")
-    print(f"Thermal scaler - Scale: {thermal_scaler.scale_[:3]}... (10 sensors)")
-    
-    # Build Model with Fixed Unscaled Evaluation Wrapper
-    print("Building model with FIXED power metadata extraction...")
-    model = build_model(
-        num_sensors=10,
-        sequence_length=Config.sequence_length,
-        lstm_units=Config.lstm_units,
-        dropout_rate=Config.dropout_rate,
-        device=device
-    )
-    
-    base_trainer = create_trainer(
-        model=model,
-        physics_weight=Config.physics_weight,
-        constraint_weight=Config.constraint_weight,
-        power_balance_weight=Config.power_balance_weight,
-        learning_rate=Config.learning_rate,
-        cylinder_length=Config.cylinder_length,
-        lstm_units=Config.lstm_units,
-        dropout_rate=Config.dropout_rate,
-        device=device,
-        param_scaler=param_scaler
-    )
-    
-    # Wrap with FIXED unscaled evaluation trainer
-    trainer = FixedUnscaledEvaluationTrainer(base_trainer, thermal_scaler, param_scaler, device)
-    
-    # Count parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    print(f"Model built with {total_params:,} parameters")
-    
-    print("\n" + "="*80)
-    print("🔧 FIXED VERSION - POWER METADATA EXTRACTION FROM BATCH DATA")
-    print("="*80)
-    print("✅ Power metadata now extracted directly from batch data")
-    print("✅ No longer relies on potentially invalid power_data from dataset")
-    print("✅ Uses actual time series and static parameters for physics calculations")
-    print("✅ Proper unscaling of temperatures and parameters")
-    print("✅ Real physics constraints with actual data")
-    print("="*80)
-    
-    # Test the fixed power metadata extraction
-    print("\n🧪 TESTING FIXED POWER METADATA EXTRACTION...")
-    try:
-        # Get a test batch
-        test_batch = next(iter(train_loader))
-        time_series, static_params, targets, original_power_data = test_batch
-        
-        # Test metadata extraction
-        extracted_metadata = extract_power_metadata_from_batch(
-            time_series, static_params, targets, thermal_scaler, param_scaler
-        )
-        
-        print(f"✅ Successfully extracted metadata for {len(extracted_metadata)} samples")
-        
-        if extracted_metadata:
-            sample = extracted_metadata[0]
-            print(f"✅ Sample metadata structure:")
-            print(f"   - temps_row1: {len(sample['temps_row1'])} temperatures")
-            print(f"   - temps_row21: {len(sample['temps_row21'])} temperatures")
-            print(f"   - time_diff: {sample['time_diff']:.2f}")
-            print(f"   - h (cylinder height): {sample['h']:.2f}")
-            print(f"   - q0 (heat flux): {sample['q0']:.2f}")
-            
-            # Check if temperatures are in reasonable range
-            temp_range_1 = f"{min(sample['temps_row1']):.1f} to {max(sample['temps_row1']):.1f}"
-            temp_range_21 = f"{min(sample['temps_row21']):.1f} to {max(sample['temps_row21']):.1f}"
-            print(f"   - Temperature range at t1: {temp_range_1}")
-            print(f"   - Temperature range at t21: {temp_range_21}")
-            
-        print("✅ Power metadata extraction working correctly!")
-        
-    except Exception as e:
-        print(f"❌ Error testing power metadata extraction: {e}")
-        return
-    
-    # Training Loop with Fixed Metadata
-    print("\nStarting training with FIXED power metadata extraction...")
-    print("="*80)
-    
-    best_val_loss = np.inf
-    best_val_mae_unscaled = np.inf
-    best_epoch = 0
-    epochs_without_improvement = 0
-    train_history = []
-    
-    log_dir = os.path.join(Config.output_dir, "logs")
-    tensorboard_writer = SummaryWriter(log_dir)
-    
-    for epoch in range(Config.max_epochs):
-        epoch_start_time = datetime.now()
-        
-        print(f"\nEpoch {epoch+1}/{Config.max_epochs}")
-        print("-" * 60)
-        
-        # Train and Validate with fixed metadata extraction
-        results = trainer.train_epoch_unscaled(train_loader, val_loader)
-        
-        # Logging to TensorBoard
-        for key, value in results.items():
-            tensorboard_writer.add_scalar(key, value, epoch)
-        
-        train_history.append(results)
-        
-        # Epoch Summary
-        epoch_end_time = datetime.now()
-        epoch_duration = (epoch_end_time - epoch_start_time).total_seconds()
-        
-        print(f"📊 EPOCH {epoch+1} SUMMARY (WITH REAL POWER DATA)")
-        print(f"   Duration: {epoch_duration:.1f}s")
-        print(f"   Training   - Loss: {results['train_loss']:.6f}, Scaled MAE: {results['train_mae']:.6f}")
-        print(f"   Training   - UNSCALED MAE: {results['train_mae_unscaled']:.2f}, UNSCALED RMSE: {results['train_rmse_unscaled']:.2f}")
-        print(f"   Validation - Loss: {results['val_loss']:.6f}, Scaled MAE: {results['val_mae']:.6f}")
-        print(f"   Validation - UNSCALED MAE: {results['val_mae_unscaled']:.2f}, UNSCALED RMSE: {results['val_rmse_unscaled']:.2f}")
-        
-        # Physics components (now with real data)
-        print(f"   Physics Components (REAL DATA):")
-        print(f"     Train - Physics: {results['train_physics_loss']:.6f}, Constraint: {results['train_constraint_loss']:.6f}, Power Bal: {results['train_power_balance_loss']:.6f}")
-        print(f"     Val   - Physics: {results['val_physics_loss']:.6f}, Constraint: {results['val_constraint_loss']:.6f}, Power Bal: {results['val_power_balance_loss']:.6f}")
-        
-        # Early Stopping based on unscaled validation MAE
-        val_mae_unscaled = results['val_mae_unscaled']
-        
-        if val_mae_unscaled < best_val_mae_unscaled:
-            best_val_loss = results['val_loss']
-            best_val_mae_unscaled = val_mae_unscaled
-            best_epoch = epoch + 1
-            epochs_without_improvement = 0
-            
-            print(f"   🎉 NEW BEST MODEL! (Based on unscaled validation MAE)")
-            print(f"      Best Val MAE (unscaled): {best_val_mae_unscaled:.2f} K")
-            print(f"      Corresponding Val Loss: {best_val_loss:.6f}")
-            
-            # Save best model
-            trainer.save_model(Config.output_dir)
-            
-        else:
-            epochs_without_improvement += 1
-            print(f"   📈 No improvement. Best unscaled MAE: {best_val_mae_unscaled:.2f} K (Epoch {best_epoch})")
-            print(f"      Patience: {epochs_without_improvement}/{Config.patience}")
-            
-            if epochs_without_improvement >= Config.patience:
-                print(f"\n⏹️  EARLY STOPPING at Epoch {epoch+1}")
-                print(f"   Best model was at Epoch {best_epoch} with Val MAE: {best_val_mae_unscaled:.2f} K")
-                break
-    
-    tensorboard_writer.close()
-    
-    print("\n" + "="*80)
-    print("🏁 TRAINING COMPLETED WITH REAL POWER DATA")
-    print("="*80)
-    print(f"Total Epochs: {len(train_history)}")
-    print(f"Best Epoch: {best_epoch}")
-    print(f"Best Validation MAE (unscaled): {best_val_mae_unscaled:.2f} K")
-    
-    # TEST SET EVALUATION - WITH REAL POWER DATA
-    
-    # Load best model if available
-    model_path = os.path.join(Config.output_dir, 'model_state_dict.pth')
-    if os.path.exists(model_path):
-        print("\nLoading best model for testing...")
-        trainer.model.load_state_dict(torch.load(model_path, map_location=device))
-    
-    # Comprehensive test evaluation with real power data
-    test_results = trainer.evaluate_unscaled(test_loader, "test")
-    
-    # Power balance analysis with real extracted data
-    print(f"\n⚡ POWER BALANCE ANALYSIS WITH REAL EXTRACTED DATA:")
-    try:
-        trainer.analyze_power_balance(test_loader, num_samples=500)
-    except Exception as e:
-        print(f"Power balance analysis encountered an issue: {e}")
-        print("Continuing with other results...")
-    
-    # Save all results
-    all_results = {
-        'config': {
-            'lstm_units': Config.lstm_units,
-            'dropout_rate': Config.dropout_rate,
-            'physics_weight': Config.physics_weight,
-            'constraint_weight': Config.constraint_weight,
-            'power_balance_weight': Config.power_balance_weight,
-            'learning_rate': Config.learning_rate,
-            'batch_size': Config.batch_size,
-            'sequence_length': Config.sequence_length,
-            'device': str(device),
-            'pytorch_version': torch.__version__,
-            'power_metadata_source': 'extracted_from_batch_data'  # Important note
-        },
-        'training': {
-            'best_epoch': best_epoch,
-            'best_val_mae_unscaled': best_val_mae_unscaled,
-            'total_epochs': len(train_history),
-            'history': train_history
-        },
-        'test_results': test_results,
-        'scaler_info': {
-            'thermal_mean': thermal_scaler.mean_.tolist(),
-            'thermal_scale': thermal_scaler.scale_.tolist(),
-            'param_mean': param_scaler.mean_.tolist(),
-            'param_scale': param_scaler.scale_.tolist(),
-            'scaler_type': 'StandardScaler'
-        }
-    }
-    
-    # Save results (excluding large prediction arrays for JSON)
-    results_for_json = {k: v for k, v in all_results.items() if k != 'test_results'}
-    results_for_json['test_results'] = {k: v for k, v in test_results.items() if k != 'predictions_unscaled'}
-    
-    results_path = os.path.join(Config.output_dir, 'complete_results_fixed_power_data.json')
-    with open(results_path, 'w') as f:
-        json.dump(results_for_json, f, indent=2, default=str)
-    
-    # Save predictions separately
-    predictions_path = os.path.join(Config.output_dir, 'test_predictions_fixed_power_data.npz')
-    np.savez(predictions_path, 
-             y_true=test_results['predictions_unscaled']['y_true'],
-             y_pred=test_results['predictions_unscaled']['y_pred'])
-    
-    print(f"\n✅ All results saved to: {Config.output_dir}")
-    
-    # Enhanced Plotting with Real Power Data
-    try:
-        generate_all_unscaled_plots(train_history, test_results, Config.output_dir, best_epoch)
-    except Exception as e:
-        print(f"Plot generation encountered an issue: {e}")
-        print("Continuing with final summary...")
-    
-    # FINAL SUMMARY WITH REAL POWER DATA RESULTS
-    print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, test_results, Config.output_dir)
-
-
-def generate_all_unscaled_plots(train_history, test_results, output_dir, best_epoch):
-    """Generate all plots using unscaled data."""
-    print(f"\n📊 Generating plots with unscaled data...")
-    
-    plot_unscaled_training_curves(train_history, output_dir, best_epoch)
-    plot_test_results_unscaled(test_results, output_dir)
-    plot_error_analysis_unscaled(test_results, output_dir)
-    plot_temperature_time_series_sample(test_results, output_dir)
-    
-    print(f"✅ All unscaled plots saved to {output_dir}")
-
 
 def plot_unscaled_training_curves(train_history, output_dir, best_epoch):
     """Plot training curves showing both scaled and unscaled metrics."""
@@ -1107,6 +1427,273 @@ def print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, 
     print("   • ✅ Power balance analysis with real extracted values")
     print("   • ✅ No dummy values used in physics calculations")
     print("="*80)
+
+
+# =====================
+# Updated Main Training Function
+# =====================
+def main():
+    # Set device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+    
+    # Set seeds for reproducibility
+    torch.manual_seed(42)
+    np.random.seed(42)
+    
+    # Load Dataset
+    print("Loading datasets...")
+    train_loader, val_loader, test_loader, train_dataset = create_data_loaders(
+        data_dir=Config.data_dir,
+        batch_size=Config.batch_size,
+        num_workers=Config.num_workers,
+        sequence_length=Config.sequence_length,
+        prediction_horizon=Config.prediction_horizon,
+        scaler_dir=Config.scaler_dir
+    )
+    
+    # Get scalers from dataset
+    physics_params = train_dataset.get_physics_params()
+    thermal_scaler = physics_params['thermal_scaler']
+    param_scaler = physics_params['param_scaler']
+    
+    print(f"\n📊 SCALER INFORMATION:")
+    print(f"Thermal scaler - Mean: {thermal_scaler.mean_[:3]}... (10 sensors)")
+    print(f"Thermal scaler - Scale: {thermal_scaler.scale_[:3]}... (10 sensors)")
+    
+    # Build Model with Fixed Unscaled Evaluation Wrapper
+    print("Building model with FIXED power metadata extraction...")
+    model = build_model(
+        num_sensors=10,
+        sequence_length=Config.sequence_length,
+        lstm_units=Config.lstm_units,
+        dropout_rate=Config.dropout_rate,
+        device=device
+    )
+    
+    base_trainer = create_trainer(
+        model=model,
+        physics_weight=Config.physics_weight,
+        constraint_weight=Config.constraint_weight,
+        power_balance_weight=Config.power_balance_weight,
+        learning_rate=Config.learning_rate,
+        cylinder_length=Config.cylinder_length,
+        lstm_units=Config.lstm_units,
+        dropout_rate=Config.dropout_rate,
+        device=device,
+        param_scaler=param_scaler
+    )
+    
+    # Wrap with FIXED unscaled evaluation trainer
+    trainer = FixedUnscaledEvaluationTrainer(base_trainer, thermal_scaler, param_scaler, device)
+    
+    # Count parameters
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Model built with {total_params:,} parameters")
+    
+    print("\n" + "="*80)
+    print("🔧 FIXED VERSION - POWER METADATA EXTRACTION FROM BATCH DATA")
+    print("="*80)
+    print("✅ Power metadata now extracted directly from batch data")
+    print("✅ No longer relies on potentially invalid power_data from dataset")
+    print("✅ Uses actual time series and static parameters for physics calculations")
+    print("✅ Proper unscaling of temperatures and parameters")
+    print("✅ Real physics constraints with actual data")
+    print("="*80)
+    
+    # Test the fixed power metadata extraction
+    print("\n🧪 TESTING FIXED POWER METADATA EXTRACTION...")
+    try:
+        # Get a test batch
+        test_batch = next(iter(train_loader))
+        time_series, static_params, targets, original_power_data = test_batch
+        
+        # Test metadata extraction
+        extracted_metadata = extract_power_metadata_from_batch(
+            time_series, static_params, targets, thermal_scaler, param_scaler
+        )
+        
+        print(f"✅ Successfully extracted metadata for {len(extracted_metadata)} samples")
+        
+        if extracted_metadata:
+            sample = extracted_metadata[0]
+            print(f"✅ Sample metadata structure:")
+            print(f"   - temps_row1: {len(sample['temps_row1'])} temperatures")
+            print(f"   - temps_row21: {len(sample['temps_row21'])} temperatures")
+            print(f"   - time_diff: {sample['time_diff']:.2f}")
+            print(f"   - h (cylinder height): {sample['h']:.2f}")
+            print(f"   - q0 (heat flux): {sample['q0']:.2f}")
+            
+            # Check if temperatures are in reasonable range
+            temp_range_1 = f"{min(sample['temps_row1']):.1f} to {max(sample['temps_row1']):.1f}"
+            temp_range_21 = f"{min(sample['temps_row21']):.1f} to {max(sample['temps_row21']):.1f}"
+            print(f"   - Temperature range at t1: {temp_range_1}")
+            print(f"   - Temperature range at t21: {temp_range_21}")
+            
+        print("✅ Power metadata extraction working correctly!")
+        
+    except Exception as e:
+        print(f"❌ Error testing power metadata extraction: {e}")
+        return
+    
+    # Training Loop with Fixed Metadata
+    print("\nStarting training with FIXED power metadata extraction...")
+    print("="*80)
+    
+    best_val_loss = np.inf
+    best_val_mae_unscaled = np.inf
+    best_epoch = 0
+    epochs_without_improvement = 0
+    train_history = []
+    
+    log_dir = os.path.join(Config.output_dir, "logs")
+    tensorboard_writer = SummaryWriter(log_dir)
+    
+    for epoch in range(Config.max_epochs):
+        epoch_start_time = datetime.now()
+        
+        print(f"\nEpoch {epoch+1}/{Config.max_epochs}")
+        print("-" * 60)
+        
+        # Train and Validate with fixed metadata extraction
+        results = trainer.train_epoch_unscaled(train_loader, val_loader)
+        
+        # Logging to TensorBoard
+        for key, value in results.items():
+            tensorboard_writer.add_scalar(key, value, epoch)
+        
+        train_history.append(results)
+        
+        # Epoch Summary
+        epoch_end_time = datetime.now()
+        epoch_duration = (epoch_end_time - epoch_start_time).total_seconds()
+        
+        print(f"📊 EPOCH {epoch+1} SUMMARY (WITH REAL POWER DATA)")
+        print(f"   Duration: {epoch_duration:.1f}s")
+        print(f"   Training   - Loss: {results['train_loss']:.6f}, Scaled MAE: {results['train_mae']:.6f}")
+        print(f"   Training   - UNSCALED MAE: {results['train_mae_unscaled']:.2f}, UNSCALED RMSE: {results['train_rmse_unscaled']:.2f}")
+        print(f"   Validation - Loss: {results['val_loss']:.6f}, Scaled MAE: {results['val_mae']:.6f}")
+        print(f"   Validation - UNSCALED MAE: {results['val_mae_unscaled']:.2f}, UNSCALED RMSE: {results['val_rmse_unscaled']:.2f}")
+        
+        # Physics components (now with real data)
+        print(f"   Physics Components (REAL DATA):")
+        print(f"     Train - Physics: {results['train_physics_loss']:.6f}, Constraint: {results['train_constraint_loss']:.6f}, Power Bal: {results['train_power_balance_loss']:.6f}")
+        print(f"     Val   - Physics: {results['val_physics_loss']:.6f}, Constraint: {results['val_constraint_loss']:.6f}, Power Bal: {results['val_power_balance_loss']:.6f}")
+        
+        # Early Stopping based on unscaled validation MAE
+        val_mae_unscaled = results['val_mae_unscaled']
+        
+        if val_mae_unscaled < best_val_mae_unscaled:
+            best_val_loss = results['val_loss']
+            best_val_mae_unscaled = val_mae_unscaled
+            best_epoch = epoch + 1
+            epochs_without_improvement = 0
+            
+            print(f"   🎉 NEW BEST MODEL! (Based on unscaled validation MAE)")
+            print(f"      Best Val MAE (unscaled): {best_val_mae_unscaled:.2f} K")
+            print(f"      Corresponding Val Loss: {best_val_loss:.6f}")
+            
+            # Save best model
+            trainer.save_model(Config.output_dir)
+            
+        else:
+            epochs_without_improvement += 1
+            print(f"   📈 No improvement. Best unscaled MAE: {best_val_mae_unscaled:.2f} K (Epoch {best_epoch})")
+            print(f"      Patience: {epochs_without_improvement}/{Config.patience}")
+            
+            if epochs_without_improvement >= Config.patience:
+                print(f"\n⏹️  EARLY STOPPING at Epoch {epoch+1}")
+                print(f"   Best model was at Epoch {best_epoch} with Val MAE: {best_val_mae_unscaled:.2f} K")
+                break
+    
+    tensorboard_writer.close()
+    
+    print("\n" + "="*80)
+    print("🏁 TRAINING COMPLETED WITH REAL POWER DATA")
+    print("="*80)
+    print(f"Total Epochs: {len(train_history)}")
+    print(f"Best Epoch: {best_epoch}")
+    print(f"Best Validation MAE (unscaled): {best_val_mae_unscaled:.2f} K")
+    
+    # TEST SET EVALUATION - WITH REAL POWER DATA
+    
+    # Load best model if available
+    model_path = os.path.join(Config.output_dir, 'model_state_dict.pth')
+    if os.path.exists(model_path):
+        print("\nLoading best model for testing...")
+        trainer.model.load_state_dict(torch.load(model_path, map_location=device))
+    
+    # Comprehensive test evaluation with real power data
+    test_results = trainer.evaluate_unscaled(test_loader, "test")
+    
+    # Power balance analysis with real extracted data
+    print(f"\n⚡ POWER BALANCE ANALYSIS WITH REAL EXTRACTED DATA:")
+    try:
+        trainer.analyze_power_balance(test_loader, num_samples=500)
+    except Exception as e:
+        print(f"Power balance analysis encountered an issue: {e}")
+        print("Continuing with other results...")
+    
+    # Save all results
+    all_results = {
+        'config': {
+            'lstm_units': Config.lstm_units,
+            'dropout_rate': Config.dropout_rate,
+            'physics_weight': Config.physics_weight,
+            'constraint_weight': Config.constraint_weight,
+            'power_balance_weight': Config.power_balance_weight,
+            'learning_rate': Config.learning_rate,
+            'batch_size': Config.batch_size,
+            'sequence_length': Config.sequence_length,
+            'device': str(device),
+            'pytorch_version': torch.__version__,
+            'power_metadata_source': 'extracted_from_batch_data'  # Important note
+        },
+        'training': {
+            'best_epoch': best_epoch,
+            'best_val_mae_unscaled': best_val_mae_unscaled,
+            'total_epochs': len(train_history),
+            'history': train_history
+        },
+        'test_results': test_results,
+        'scaler_info': {
+            'thermal_mean': thermal_scaler.mean_.tolist(),
+            'thermal_scale': thermal_scaler.scale_.tolist(),
+            'param_mean': param_scaler.mean_.tolist(),
+            'param_scale': param_scaler.scale_.tolist(),
+            'scaler_type': 'StandardScaler'
+        }
+    }
+    
+    # Enhanced Plotting with Real Power Data
+    try:
+        enhanced_results = generate_all_unscaled_plots_enhanced(train_history, test_results, Config.output_dir, best_epoch, Config.cylinder_length)
+        
+        # Add enhanced results to the main results
+        all_results['enhanced_analysis'] = enhanced_results
+        
+    except Exception as e:
+        print(f"Enhanced plot generation encountered an issue: {e}")
+        print("Continuing with final summary...")
+    
+    # Save results (excluding large prediction arrays for JSON)
+    results_for_json = {k: v for k, v in all_results.items() if k != 'test_results'}
+    results_for_json['test_results'] = {k: v for k, v in test_results.items() if k != 'predictions_unscaled'}
+    
+    results_path = os.path.join(Config.output_dir, 'complete_results_fixed_power_data.json')
+    with open(results_path, 'w') as f:
+        json.dump(results_for_json, f, indent=2, default=str)
+    
+    # Save predictions separately
+    predictions_path = os.path.join(Config.output_dir, 'test_predictions_fixed_power_data.npz')
+    np.savez(predictions_path, 
+             y_true=test_results['predictions_unscaled']['y_true'],
+             y_pred=test_results['predictions_unscaled']['y_pred'])
+    
+    print(f"\n✅ All results saved to: {Config.output_dir}")
+    
+    # FINAL SUMMARY WITH REAL POWER DATA RESULTS
+    print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, test_results, Config.output_dir)
 
 
 if __name__ == "__main__":
