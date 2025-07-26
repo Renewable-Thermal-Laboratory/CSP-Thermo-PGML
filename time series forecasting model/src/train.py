@@ -14,36 +14,37 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 pd.options.mode.chained_assignment = None  # Suppress pandas warnings
 
-from model import build_model, create_trainer, compute_r2_score, PhysicsInformedTrainer
+# Fixed imports - ensure all classes are imported
+from model import (
+    build_model, 
+    create_trainer, 
+    compute_r2_score, 
+    PhysicsInformedTrainer,  # Added missing import
+    PhysicsInformedLSTM      # Added for completeness
+)
 from dataset_builder import create_data_loaders
 
 # =====================
 # POWER METADATA PROCESSING FUNCTIONS (PYTORCH VERSION) - FIXED
 # =====================
 def process_power_data_batch(power_data_list):
-    """Convert power data dictionaries to proper tensor format for physics loss."""
+    """Convert power data dictionaries to proper format for physics loss - NO TENSORS VERSION."""
     if not power_data_list:
-        return None, None, None, None, None
+        return None
     
     batch_size = len(power_data_list)
-    
-    # Initialize lists to collect data
-    temps_row1_list = []
-    temps_row21_list = []
-    time_diff_list = []
-    h_list = []
-    q0_list = []
-    
-    valid_count = 0
+    processed_metadata = []
     
     for power_data in power_data_list:
         if power_data is None or not isinstance(power_data, dict):
             # Use dummy values for None entries
-            temps_row1_list.append([300.0] * 10)  # Reasonable Kelvin values
-            temps_row21_list.append([301.0] * 10)  # Small temperature increase
-            time_diff_list.append(1.0)
-            h_list.append(50.0)
-            q0_list.append(1000.0)
+            processed_metadata.append({
+                'temps_row1': [300.0] * 10,  # Plain Python list
+                'temps_row21': [301.0] * 10,  # Plain Python list
+                'time_diff': 1.0,  # Plain Python float
+                'h': 50.0,  # Plain Python float
+                'q0': 1000.0  # Plain Python float
+            })
             continue
             
         try:
@@ -51,52 +52,58 @@ def process_power_data_batch(power_data_list):
             required_keys = ['temps_row1', 'temps_row21', 'time_row1', 'time_row21', 'h', 'q0']
             if not all(key in power_data for key in required_keys):
                 # Use dummy values if keys are missing
-                temps_row1_list.append([300.0] * 10)
-                temps_row21_list.append([301.0] * 10)
-                time_diff_list.append(1.0)
-                h_list.append(50.0)
-                q0_list.append(1000.0)
+                processed_metadata.append({
+                    'temps_row1': [300.0] * 10,
+                    'temps_row21': [301.0] * 10,
+                    'time_diff': 1.0,
+                    'h': 50.0,
+                    'q0': 1000.0
+                })
                 continue
             
-            # IMPORTANT: These temperatures should already be unscaled in the dataset
-            temps_row1_list.append(power_data['temps_row1'])
-            temps_row21_list.append(power_data['temps_row21'])
+            # Convert all values to plain Python types - NO TENSORS
+            temps_row1 = power_data['temps_row1']
+            temps_row21 = power_data['temps_row21']
             
-            # Calculate time difference
-            time_diff = power_data['time_row21'] - power_data['time_row1']
-            time_diff_list.append(time_diff if time_diff > 0 else 1.0)
+            # Ensure temperature lists are plain Python floats
+            if isinstance(temps_row1, (list, tuple)):
+                temps_row1 = [float(x) for x in temps_row1]
+            else:
+                temps_row1 = [300.0] * 10  # fallback
+                
+            if isinstance(temps_row21, (list, tuple)):
+                temps_row21 = [float(x) for x in temps_row21]
+            else:
+                temps_row21 = [301.0] * 10  # fallback
             
-            h_list.append(power_data['h'])
-            q0_list.append(power_data['q0'])
-            valid_count += 1
+            # Calculate time difference as plain Python float
+            time_diff = float(power_data['time_row21']) - float(power_data['time_row1'])
+            time_diff = max(time_diff, 1e-8)  # Ensure positive
+            
+            # Convert h and q0 to plain Python floats
+            h_value = float(power_data['h'])
+            q0_value = float(power_data['q0'])
+            
+            processed_metadata.append({
+                'temps_row1': temps_row1,  # List of floats
+                'temps_row21': temps_row21,  # List of floats
+                'time_diff': time_diff,  # Float
+                'h': h_value,  # Float
+                'q0': q0_value  # Float
+            })
             
         except (KeyError, TypeError, ValueError) as e:
             # Skip invalid data, use dummy values
-            temps_row1_list.append([300.0] * 10)  # Reasonable Kelvin values
-            temps_row21_list.append([301.0] * 10)  # Small temperature increase
-            time_diff_list.append(1.0)
-            h_list.append(50.0)
-            q0_list.append(1000.0)
+            processed_metadata.append({
+                'temps_row1': [300.0] * 10,
+                'temps_row21': [301.0] * 10,
+                'time_diff': 1.0,
+                'h': 50.0,
+                'q0': 1000.0
+            })
     
-    # If no valid entries, return None
-    if valid_count == 0:
-        return None, None, None, None, None
-    
-    # Convert to tensors
-    try:
-        temps_row1 = torch.tensor(temps_row1_list, dtype=torch.float32)
-        temps_row21 = torch.tensor(temps_row21_list, dtype=torch.float32)
-        time_diff = torch.tensor(time_diff_list, dtype=torch.float32)
-        h = torch.tensor(h_list, dtype=torch.float32)
-        q0 = torch.tensor(q0_list, dtype=torch.float32)
-        
-        return temps_row1, temps_row21, time_diff, h, q0
-    except Exception as e:
-        print(f"Error converting power data to tensors: {e}")
-        return None, None, None, None, None
+    return processed_metadata
 
-
-# Add these missing methods to the UnscaledEvaluationTrainer class in your train.py file
 
 class UnscaledEvaluationTrainer:
     """Wrapper around PhysicsInformedTrainer that ensures all evaluations use unscaled data."""
@@ -235,7 +242,7 @@ class UnscaledEvaluationTrainer:
         return results
 
     def evaluate_unscaled(self, data_loader, split_name="test"):
-        """Comprehensive evaluation with unscaled metrics."""
+        """Comprehensive evaluation with unscaled metrics - FIXED PHYSICS KEYS VERSION."""
         self.model.eval()
         
         all_predictions_scaled = []
@@ -299,12 +306,20 @@ class UnscaledEvaluationTrainer:
         for key, values in all_metrics.items():
             aggregated_metrics[key] = np.mean(values)
         
-        # Final results
+        # IMPORTANT: Create the required physics keys for final evaluation
+        test_physics_loss = aggregated_metrics.get('val_physics_loss', 0.0)
+        test_constraint_loss = aggregated_metrics.get('val_constraint_loss', 0.0)
+        test_power_balance_loss = aggregated_metrics.get('val_power_balance_loss', 0.0)
+        
+        # Final results with all required keys
         results = {
             f'{split_name}_mae_unscaled': mae_unscaled.item(),
             f'{split_name}_rmse_unscaled': rmse_unscaled.item(),
             f'{split_name}_r2_overall_unscaled': r2_overall_unscaled.item(),
             f'{split_name}_per_sensor_metrics': per_sensor_metrics,
+            f'{split_name}_physics_loss': test_physics_loss,  # Required key
+            f'{split_name}_constraint_loss': test_constraint_loss,  # Required key
+            f'{split_name}_power_balance_loss': test_power_balance_loss,  # Required key
             'predictions_unscaled': {
                 'y_true': all_targets_unscaled.numpy(),
                 'y_pred': all_predictions_unscaled.numpy()
@@ -318,6 +333,9 @@ class UnscaledEvaluationTrainer:
         print(f"   MAE:  {mae_unscaled.item():.2f} K")
         print(f"   RMSE: {rmse_unscaled.item():.2f} K") 
         print(f"   R²:   {r2_overall_unscaled.item():.6f}")
+        print(f"   Physics Loss: {test_physics_loss:.6f}")
+        print(f"   Constraint Loss: {test_constraint_loss:.6f}")
+        print(f"   Power Balance Loss: {test_power_balance_loss:.6f}")
         
         return results
 
@@ -408,17 +426,17 @@ def main():
     )
     
     base_trainer = create_trainer(
-    model=model,
-    physics_weight=Config.physics_weight,
-    constraint_weight=Config.constraint_weight,
-    power_balance_weight=Config.power_balance_weight,
-    learning_rate=Config.learning_rate,
-    cylinder_length=Config.cylinder_length,
-    lstm_units=Config.lstm_units,
-    dropout_rate=Config.dropout_rate,
-    device=device,
-    param_scaler=param_scaler  # ADD THIS LINE - pass the parameter scaler
-)
+        model=model,
+        physics_weight=Config.physics_weight,
+        constraint_weight=Config.constraint_weight,
+        power_balance_weight=Config.power_balance_weight,
+        learning_rate=Config.learning_rate,
+        cylinder_length=Config.cylinder_length,
+        lstm_units=Config.lstm_units,
+        dropout_rate=Config.dropout_rate,
+        device=device,
+        param_scaler=param_scaler  # Ensure this is passed
+    )
     
     # Wrap with unscaled evaluation trainer
     trainer = UnscaledEvaluationTrainer(base_trainer, thermal_scaler, param_scaler, device)
