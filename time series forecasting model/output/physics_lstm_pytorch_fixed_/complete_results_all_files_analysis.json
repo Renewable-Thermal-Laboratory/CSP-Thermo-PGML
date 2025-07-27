@@ -1,0 +1,4126 @@
+{
+  "config": {
+    "lstm_units": 64,
+    "dropout_rate": 0.2,
+    "physics_weight": 0.1,
+    "constraint_weight": 0.1,
+    "power_balance_weight": 0.05,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "sequence_length": 20,
+    "device": "cpu",
+    "pytorch_version": "2.7.0",
+    "power_metadata_source": "extracted_from_batch_data",
+    "all_files_analysis": true
+  },
+  "training": {
+    "best_epoch": 2,
+    "best_val_mae_unscaled": 0.3972645762617519,
+    "total_epochs": 12,
+    "history": [
+      {
+        "train_loss": 2413611.913161354,
+        "train_mae": 0.14022933311131178,
+        "train_mse": 0.06831981334161973,
+        "train_physics_loss": 4392429.793706868,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39487375.20538942,
+        "train_mae_unscaled": 1.2733472374721142,
+        "train_rmse_unscaled": 2.296626418721233,
+        "val_loss": 2439973.0191424196,
+        "val_mae": 0.043088456051021955,
+        "val_mse": 0.003625715649091306,
+        "val_physics_loss": 4440072.489663093,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39919313.60183767,
+        "val_mae_unscaled": 0.4203203624345442,
+        "val_rmse_unscaled": 0.6140656633727584
+      },
+      {
+        "train_loss": 2413560.1154288533,
+        "train_mae": 0.08713557771087241,
+        "train_mse": 0.020334723143098612,
+        "train_physics_loss": 4392335.729543214,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486528.37397305,
+        "train_mae_unscaled": 0.7998255621611269,
+        "train_rmse_unscaled": 1.4212075303425884,
+        "val_loss": 2440239.892611026,
+        "val_mae": 0.04235134793054683,
+        "val_mse": 0.004620466786035166,
+        "val_physics_loss": 4440557.72856049,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39923680.75038285,
+        "val_mae_unscaled": 0.3972645762617519,
+        "val_rmse_unscaled": 0.5924454150553137
+      },
+      {
+        "train_loss": 2413601.788120276,
+        "train_mae": 0.07601476113262672,
+        "train_mse": 0.016214716151501156,
+        "train_physics_loss": 4392411.626191258,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39487210.162997045,
+        "train_mae_unscaled": 0.7055491151736827,
+        "train_rmse_unscaled": 1.2789325209930074,
+        "val_loss": 2440543.187595712,
+        "val_mae": 0.0707118695396445,
+        "val_mse": 0.014282244057400804,
+        "val_physics_loss": 4441109.127488514,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39928643.24042879,
+        "val_mae_unscaled": 0.6018142974486212,
+        "val_rmse_unscaled": 0.8038636146834944
+      },
+      {
+        "train_loss": 2413558.0089960564,
+        "train_mae": 0.06916847380782247,
+        "train_mse": 0.013875867604029205,
+        "train_physics_loss": 4392332.0040256325,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486494.02826159,
+        "train_mae_unscaled": 0.6407497302603651,
+        "train_rmse_unscaled": 1.1766901056389647,
+        "val_loss": 2440533.019525268,
+        "val_mae": 0.07103150992926673,
+        "val_mse": 0.013124917575378708,
+        "val_physics_loss": 4441090.629402757,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39928476.8330781,
+        "val_mae_unscaled": 0.6313764826147881,
+        "val_rmse_unscaled": 0.8568999741973775
+      },
+      {
+        "train_loss": 2413583.2681975025,
+        "train_mae": 0.06512360475685618,
+        "train_mse": 0.0124796100481555,
+        "train_physics_loss": 4392377.963851462,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486907.29148866,
+        "train_mae_unscaled": 0.6074419122677746,
+        "train_rmse_unscaled": 1.1267178158324445,
+        "val_loss": 2440371.4282159265,
+        "val_mae": 0.0517360120812063,
+        "val_mse": 0.008995230151193063,
+        "val_physics_loss": 4440796.876722817,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39925833.06891271,
+        "val_mae_unscaled": 0.4546383506979274,
+        "val_rmse_unscaled": 0.6166728530678139
+      },
+      {
+        "train_loss": 2413588.13568025,
+        "train_mae": 0.060983459437966854,
+        "train_mse": 0.010998981997782056,
+        "train_physics_loss": 4392386.892786724,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486986.878080845,
+        "train_mae_unscaled": 0.5707424076281995,
+        "train_rmse_unscaled": 1.0592158804235983,
+        "val_loss": 2440243.202143951,
+        "val_mae": 0.045942760076214076,
+        "val_mse": 0.007126084068673039,
+        "val_physics_loss": 4440563.738514548,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39923734.81776416,
+        "val_mae_unscaled": 0.4025722466648812,
+        "val_rmse_unscaled": 0.5715566897853228
+      },
+      {
+        "train_loss": 2413625.581868222,
+        "train_mae": 0.05905346599331899,
+        "train_mse": 0.010433885674541702,
+        "train_physics_loss": 4392454.88120276,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39487599.88366743,
+        "train_mae_unscaled": 0.5530514689777543,
+        "train_rmse_unscaled": 1.0394218144078338,
+        "val_loss": 2440383.1927641653,
+        "val_mae": 0.04840377359230294,
+        "val_mse": 0.008251883942021662,
+        "val_physics_loss": 4440818.254594181,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39926025.451761104,
+        "val_mae_unscaled": 0.43899312051181405,
+        "val_rmse_unscaled": 0.610951467755195
+      },
+      {
+        "train_loss": 2413556.773250082,
+        "train_mae": 0.05737237481940862,
+        "train_mse": 0.009976767244553814,
+        "train_physics_loss": 4392329.726585606,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486474.094643444,
+        "train_mae_unscaled": 0.5347556688951655,
+        "train_rmse_unscaled": 1.004359985549631,
+        "val_loss": 2440385.484303216,
+        "val_mae": 0.06073605883467206,
+        "val_mse": 0.012704300195898226,
+        "val_physics_loss": 4440822.402756508,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39926062.732006125,
+        "val_mae_unscaled": 0.5606667140861018,
+        "val_rmse_unscaled": 0.77312862593538
+      },
+      {
+        "train_loss": 2413498.2141390075,
+        "train_mae": 0.056113124556038826,
+        "train_mse": 0.009693382443698577,
+        "train_physics_loss": 4392223.455389419,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39485515.42359514,
+        "train_mae_unscaled": 0.5231384602260558,
+        "train_rmse_unscaled": 0.9890152405564268,
+        "val_loss": 2440411.6889356812,
+        "val_mae": 0.05870339077017391,
+        "val_mse": 0.010305076966479,
+        "val_physics_loss": 4440870.053981624,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39926491.586523734,
+        "val_mae_unscaled": 0.5537998270568585,
+        "val_rmse_unscaled": 0.7864797441303091
+      },
+      {
+        "train_loss": 2413519.2639254024,
+        "train_mae": 0.0546060476796117,
+        "train_mse": 0.009022848821629844,
+        "train_physics_loss": 4392261.710729543,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39485859.95136379,
+        "train_mae_unscaled": 0.5104550648060747,
+        "train_rmse_unscaled": 0.9654459775747769,
+        "val_loss": 2440522.471860643,
+        "val_mae": 0.06997193048236061,
+        "val_mse": 0.015362541222350343,
+        "val_physics_loss": 4441071.460566616,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39928304.32771822,
+        "val_mae_unscaled": 0.6378152061590374,
+        "val_rmse_unscaled": 0.8643425605038771
+      },
+      {
+        "train_loss": 2413578.075870851,
+        "train_mae": 0.053720407900432594,
+        "train_mse": 0.008876443203894292,
+        "train_physics_loss": 4392368.450870851,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486822.79329609,
+        "train_mae_unscaled": 0.5019880127072374,
+        "train_rmse_unscaled": 0.9526717709821186,
+        "val_loss": 2440369.568147014,
+        "val_mae": 0.054817757685490485,
+        "val_mse": 0.011243803178299257,
+        "val_physics_loss": 4440793.487748851,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39925802.468606435,
+        "val_mae_unscaled": 0.4740368709036621,
+        "val_rmse_unscaled": 0.6422192049177098
+      },
+      {
+        "train_loss": 2413575.361238909,
+        "train_mae": 0.053036848184136315,
+        "train_mse": 0.00861305402136722,
+        "train_physics_loss": 4392363.523825172,
+        "train_constraint_loss": 0.0,
+        "train_power_balance_loss": 39486778.27604338,
+        "train_mae_unscaled": 0.4956554232108291,
+        "train_rmse_unscaled": 0.9426254436662626,
+        "val_loss": 2440442.8912710566,
+        "val_mae": 0.060713424944927825,
+        "val_mse": 0.014323129941790724,
+        "val_physics_loss": 4440926.781776416,
+        "val_constraint_loss": 0.0,
+        "val_power_balance_loss": 39927002.25727412,
+        "val_mae_unscaled": 0.5210988264913125,
+        "val_rmse_unscaled": 0.6792572629716458
+      }
+    ]
+  },
+  "scaler_info": {
+    "thermal_mean": [
+      298.74578927961767,
+      313.26719430544387,
+      309.5561360226437,
+      306.6525833245273,
+      304.7724529852954,
+      303.6755981783107,
+      303.0995467309298,
+      302.90492318129105,
+      302.8861237162708,
+      308.5493987668981
+    ],
+    "thermal_scale": [
+      16.028445671569248,
+      15.546360330291806,
+      10.743499007025912,
+      7.6707640248147735,
+      5.919827421922128,
+      5.1507449608668985,
+      4.92563049682714,
+      4.94748290003767,
+      4.956650085084544,
+      11.764397418119339
+    ],
+    "param_mean": [
+      0.35119047619047583,
+      22023.809523809523,
+      12.470238095238095,
+      0.7059523809523823
+    ],
+    "param_scale": [
+      0.11338309231795872,
+      12820.162868065245,
+      5.5634067963259595,
+      0.1609874222210501
+    ],
+    "scaler_type": "StandardScaler"
+  },
+  "enhanced_analysis": {
+    "error_summary": {
+      "overall_statistics": {
+        "mean_mae_across_sensors": "0.45846242",
+        "mean_rmse_across_sensors": 0.7434004589915275,
+        "mean_r2_across_sensors": 0.993835198879242,
+        "max_error_across_all": "18.386597",
+        "mean_relative_error_pct": "0.14410073"
+      },
+      "per_sensor_analysis": {
+        "tc_sensors": [
+          "TC1",
+          "TC2",
+          "TC3",
+          "TC4",
+          "TC5",
+          "TC6",
+          "TC7",
+          "TC8",
+          "TC9",
+          "TC10"
+        ],
+        "mean_absolute_error": [
+          "1.177641",
+          "0.91312414",
+          "0.6254148",
+          "0.3910837",
+          "0.21901976",
+          "0.16227424",
+          "0.13472743",
+          "0.15153126",
+          "0.14361237",
+          "0.6661955"
+        ],
+        "max_absolute_error": [
+          "18.386597",
+          "5.999817",
+          "3.1263733",
+          "3.171692",
+          "1.93219",
+          "2.052765",
+          "2.9035645",
+          "3.0934753",
+          "2.9704285",
+          "9.062988"
+        ],
+        "mean_residual": [
+          "0.8055018",
+          "0.6326055",
+          "0.3757692",
+          "0.25723457",
+          "0.117738135",
+          "0.07979925",
+          "0.07401603",
+          "0.06747347",
+          "0.06374301",
+          "0.36478385"
+        ],
+        "std_residual": [
+          "2.0446908",
+          "1.1010592",
+          "0.74216807",
+          "0.49257892",
+          "0.30982512",
+          "0.23807952",
+          "0.23194498",
+          "0.26476297",
+          "0.25682524",
+          "1.1590451"
+        ],
+        "mean_relative_error_pct": [
+          "0.36571038",
+          "0.279453",
+          "0.19854416",
+          "0.12587607",
+          "0.07094904",
+          "0.052842617",
+          "0.043765776",
+          "0.049210712",
+          "0.046624526",
+          "0.20803097"
+        ],
+        "mae_from_metrics": [
+          1.1776410341262817,
+          0.913124144077301,
+          0.6254147887229919,
+          0.39108365774154663,
+          0.21901975572109222,
+          0.16227424144744873,
+          0.13472743332386017,
+          0.15153126418590546,
+          0.1436123549938202,
+          0.6661955118179321
+        ],
+        "rmse_from_metrics": [
+          2.197633743286133,
+          1.269850730895996,
+          0.8318749666213989,
+          0.5557010173797607,
+          0.33144211769104004,
+          0.2510971426963806,
+          0.24346835911273956,
+          0.2732253670692444,
+          0.2646174132823944,
+          1.215093731880188
+        ],
+        "r2_from_metrics": [
+          0.9857087731361389,
+          0.9936913251876831,
+          0.9920201301574707,
+          0.9928212761878967,
+          0.9961478114128113,
+          0.9973337650299072,
+          0.9973759651184082,
+          0.9967491030693054,
+          0.9969651699066162,
+          0.9895386695861816
+        ]
+      }
+    },
+    "power_summary": {
+      "mean_actual_power": 59142309.835771725,
+      "mean_predicted_power": 56303645.25096024,
+      "mean_incoming_power": 1570.796326794897,
+      "mean_actual_to_incoming_ratio": 37651.16382494196,
+      "mean_predicted_to_incoming_ratio": 35844.013823131354,
+      "conservation_violations": {
+        "count": 16993,
+        "percentage": 81.39579441490636,
+        "mean_violation_amount": 71035633.64596656
+      }
+    },
+    "conservation_status": {
+      "conservation_violated": true,
+      "violation_count": 16993,
+      "violation_percentage": 81.39579441490636,
+      "mean_violation_amount": 71035633.64596656
+    },
+    "overall_stats": {
+      "temperature_accuracy": {
+        "mae_overall": 0.4584623873233795,
+        "rmse_overall": 0.9641702175140381,
+        "r2_overall": 0.99208003282547,
+        "mean_mae_across_sensors": "0.45846242",
+        "mean_rmse_across_sensors": 0.7434004589915275,
+        "mean_r2_across_sensors": 0.993835198879242,
+        "max_error_across_all": "18.386597"
+      },
+      "physics_losses": {
+        "physics_loss": 4627662.955206738,
+        "constraint_loss": 0.0,
+        "power_balance_loss": 41597239.43950995
+      },
+      "power_balance": {
+        "mean_actual_power": 59142309.835771725,
+        "mean_predicted_power": 56303645.25096024,
+        "mean_incoming_power": 1570.796326794897,
+        "mean_actual_to_incoming_ratio": 37651.16382494196,
+        "mean_predicted_to_incoming_ratio": 35844.013823131354,
+        "conservation_violations": {
+          "count": 16993,
+          "percentage": 81.39579441490636,
+          "mean_violation_amount": 71035633.64596656
+        }
+      },
+      "energy_conservation": {
+        "conservation_violated": true,
+        "violation_count": 16993,
+        "violation_percentage": 81.39579441490636,
+        "mean_violation_amount": 71035633.64596656
+      }
+    },
+    "profile_summary": {
+      "total_files_processed": 72,
+      "total_unique_files": 72,
+      "total_samples_in_test_set": 20877,
+      "file_to_samples_mapping": {
+        "h0.4_flux40000_abs5_surf50_600s.csv": [
+          0
+        ],
+        "h0.4_flux40000_abs5_surf70_600s.csv": [
+          1
+        ],
+        "h0.4_flux40000_abs5_surf90_600s.csv": [
+          2
+        ],
+        "h0.4_flux40000_abs10_surf50_600s.csv": [
+          3
+        ],
+        "h0.4_flux40000_abs10_surf70_600s.csv": [
+          4
+        ],
+        "h0.4_flux40000_abs10_surf90_600s.csv": [
+          5
+        ],
+        "h0.4_flux40000_abs15_surf50_600s.csv": [
+          6
+        ],
+        "h0.4_flux40000_abs15_surf70_600s.csv": [
+          7
+        ],
+        "h0.4_flux40000_abs15_surf90_600s.csv": [
+          8
+        ],
+        "h0.4_flux40000_abs20_surf50_600s.csv": [
+          9
+        ],
+        "h0.4_flux40000_abs20_surf70_600s.csv": [
+          10
+        ],
+        "h0.4_flux40000_abs20_surf90_600s.csv": [
+          11
+        ],
+        "h0.4_flux50000_abs5_surf50_600s.csv": [
+          12
+        ],
+        "h0.4_flux50000_abs5_surf70_600s.csv": [
+          13
+        ],
+        "h0.4_flux50000_abs5_surf90_600s.csv": [
+          14
+        ],
+        "h0.4_flux50000_abs10_surf50_600s.csv": [
+          15
+        ],
+        "h0.4_flux50000_abs10_surf70_600s.csv": [
+          16
+        ],
+        "h0.4_flux50000_abs10_surf90_600s.csv": [
+          17
+        ],
+        "h0.4_flux50000_abs15_surf50_600s.csv": [
+          18
+        ],
+        "h0.4_flux50000_abs15_surf70_600s.csv": [
+          19
+        ],
+        "h0.4_flux50000_abs15_surf90_600s.csv": [
+          20
+        ],
+        "h0.4_flux50000_abs20_surf50_600s.csv": [
+          21
+        ],
+        "h0.4_flux50000_abs20_surf70_600s.csv": [
+          22
+        ],
+        "h0.4_flux50000_abs20_surf90_600s.csv": [
+          23
+        ],
+        "h0.4_flux100000_abs5_surf50_600s.csv": [
+          24
+        ],
+        "h0.4_flux100000_abs5_surf70_600s.csv": [
+          25
+        ],
+        "h0.4_flux100000_abs5_surf90_600s.csv": [
+          26
+        ],
+        "h0.4_flux100000_abs10_surf50_600s.csv": [
+          27
+        ],
+        "h0.4_flux100000_abs10_surf70_600s.csv": [
+          28
+        ],
+        "h0.4_flux100000_abs10_surf90_600s.csv": [
+          29
+        ],
+        "h0.4_flux100000_abs15_surf50_600s.csv": [
+          30
+        ],
+        "h0.4_flux100000_abs15_surf70_600s.csv": [
+          31
+        ],
+        "h0.4_flux100000_abs15_surf90_600s.csv": [
+          32
+        ],
+        "h0.4_flux100000_abs20_surf50_600s.csv": [
+          33
+        ],
+        "h0.4_flux100000_abs20_surf70_600s.csv": [
+          34
+        ],
+        "h0.4_flux100000_abs20_surf90_600s.csv": [
+          35
+        ],
+        "h0.5_flux40000_abs5_surf50_600s.csv": [
+          36
+        ],
+        "h0.5_flux40000_abs5_surf70_600s.csv": [
+          37
+        ],
+        "h0.5_flux40000_abs5_surf90_600s.csv": [
+          38
+        ],
+        "h0.5_flux40000_abs10_surf50_600s.csv": [
+          39
+        ],
+        "h0.5_flux40000_abs10_surf70_600s.csv": [
+          40
+        ],
+        "h0.5_flux40000_abs10_surf90_600s.csv": [
+          41
+        ],
+        "h0.5_flux40000_abs15_surf50_600s.csv": [
+          42
+        ],
+        "h0.5_flux40000_abs15_surf70_600s.csv": [
+          43
+        ],
+        "h0.5_flux40000_abs15_surf90_600s.csv": [
+          44
+        ],
+        "h0.5_flux40000_abs20_surf50_600s.csv": [
+          45
+        ],
+        "h0.5_flux40000_abs20_surf70_600s.csv": [
+          46
+        ],
+        "h0.5_flux40000_abs20_surf90_600s.csv": [
+          47
+        ],
+        "h0.5_flux50000_abs5_surf50_600s.csv": [
+          48
+        ],
+        "h0.5_flux50000_abs5_surf70_600s.csv": [
+          49
+        ],
+        "h0.5_flux50000_abs5_surf90_600s.csv": [
+          50
+        ],
+        "h0.5_flux50000_abs10_surf50_600s.csv": [
+          51
+        ],
+        "h0.5_flux50000_abs10_surf70_600s.csv": [
+          52
+        ],
+        "h0.5_flux50000_abs10_surf90_600s.csv": [
+          53
+        ],
+        "h0.5_flux50000_abs15_surf50_600s.csv": [
+          54
+        ],
+        "h0.5_flux50000_abs15_surf70_600s.csv": [
+          55
+        ],
+        "h0.5_flux50000_abs15_surf90_600s.csv": [
+          56
+        ],
+        "h0.5_flux50000_abs20_surf50_600s.csv": [
+          57
+        ],
+        "h0.5_flux50000_abs20_surf70_600s.csv": [
+          58
+        ],
+        "h0.5_flux50000_abs20_surf90_600s.csv": [
+          59
+        ],
+        "h0.5_flux100000_abs5_surf50_600s.csv": [
+          60
+        ],
+        "h0.5_flux100000_abs5_surf70_600s.csv": [
+          61
+        ],
+        "h0.5_flux100000_abs5_surf90_600s.csv": [
+          62
+        ],
+        "h0.5_flux100000_abs10_surf50_600s.csv": [
+          63
+        ],
+        "h0.5_flux100000_abs10_surf70_600s.csv": [
+          64
+        ],
+        "h0.5_flux100000_abs10_surf90_600s.csv": [
+          65
+        ],
+        "h0.5_flux100000_abs15_surf50_600s.csv": [
+          66
+        ],
+        "h0.5_flux100000_abs15_surf70_600s.csv": [
+          67
+        ],
+        "h0.5_flux100000_abs15_surf90_600s.csv": [
+          68
+        ],
+        "h0.5_flux100000_abs20_surf50_600s.csv": [
+          69
+        ],
+        "h0.5_flux100000_abs20_surf70_600s.csv": [
+          70
+        ],
+        "h0.5_flux100000_abs20_surf90_600s.csv": [
+          71
+        ]
+      },
+      "profiles": [
+        {
+          "sample_idx": 0,
+          "filename": "h0.4_flux40000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.23380128",
+          "rmse": "0.37311807",
+          "residuals": [
+            -0.6165771484375,
+            -0.28594970703125,
+            -0.190399169921875,
+            0.009002685546875,
+            -0.042236328125,
+            -0.03216552734375,
+            -0.077178955078125,
+            -0.0394287109375,
+            -0.11175537109375,
+            0.933319091796875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            0
+          ]
+        },
+        {
+          "sample_idx": 1,
+          "filename": "h0.4_flux40000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.22902222",
+          "rmse": "0.36912027",
+          "residuals": [
+            -0.60308837890625,
+            -0.26556396484375,
+            -0.185150146484375,
+            0.011383056640625,
+            -0.038848876953125,
+            -0.029205322265625,
+            -0.074981689453125,
+            -0.03814697265625,
+            -0.10986328125,
+            0.933990478515625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            1
+          ]
+        },
+        {
+          "sample_idx": 2,
+          "filename": "h0.4_flux40000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.22441101",
+          "rmse": "0.36543158",
+          "residuals": [
+            -0.589874267578125,
+            -0.24591064453125,
+            -0.180694580078125,
+            0.01312255859375,
+            -0.03570556640625,
+            -0.0263671875,
+            -0.07281494140625,
+            -0.036895751953125,
+            -0.10791015625,
+            0.934814453125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            2
+          ]
+        },
+        {
+          "sample_idx": 3,
+          "filename": "h0.4_flux40000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.21994019",
+          "rmse": "0.36200526",
+          "residuals": [
+            -0.576995849609375,
+            -0.226776123046875,
+            -0.1767578125,
+            0.014434814453125,
+            -0.03271484375,
+            -0.023590087890625,
+            -0.070709228515625,
+            -0.03570556640625,
+            -0.10601806640625,
+            0.935699462890625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            3
+          ]
+        },
+        {
+          "sample_idx": 4,
+          "filename": "h0.4_flux40000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.2155304",
+          "rmse": "0.35876092",
+          "residuals": [
+            -0.564483642578125,
+            -0.2080078125,
+            -0.17303466796875,
+            0.015716552734375,
+            -0.02972412109375,
+            -0.020751953125,
+            -0.068572998046875,
+            -0.03448486328125,
+            -0.10406494140625,
+            0.93646240234375
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            4
+          ]
+        },
+        {
+          "sample_idx": 5,
+          "filename": "h0.4_flux40000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.21121216",
+          "rmse": "0.3557032",
+          "residuals": [
+            -0.5523681640625,
+            -0.189605712890625,
+            -0.169525146484375,
+            0.01690673828125,
+            -0.0267333984375,
+            -0.017974853515625,
+            -0.066436767578125,
+            -0.033294677734375,
+            -0.1021728515625,
+            0.937103271484375
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            5
+          ]
+        },
+        {
+          "sample_idx": 6,
+          "filename": "h0.4_flux40000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.20697327",
+          "rmse": "0.35283747",
+          "residuals": [
+            -0.540679931640625,
+            -0.171661376953125,
+            -0.16619873046875,
+            0.018096923828125,
+            -0.023712158203125,
+            -0.01513671875,
+            -0.064300537109375,
+            -0.032073974609375,
+            -0.1002197265625,
+            0.937652587890625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            6
+          ]
+        },
+        {
+          "sample_idx": 7,
+          "filename": "h0.4_flux40000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.20274048",
+          "rmse": "0.35007253",
+          "residuals": [
+            -0.529083251953125,
+            -0.15380859375,
+            -0.162994384765625,
+            0.01922607421875,
+            -0.02069091796875,
+            -0.012298583984375,
+            -0.0621337890625,
+            -0.030853271484375,
+            -0.0982666015625,
+            0.93804931640625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            7
+          ]
+        },
+        {
+          "sample_idx": 8,
+          "filename": "h0.4_flux40000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.19854431",
+          "rmse": "0.34743914",
+          "residuals": [
+            -0.5177001953125,
+            -0.136199951171875,
+            -0.159881591796875,
+            0.02032470703125,
+            -0.0177001953125,
+            -0.009429931640625,
+            -0.05999755859375,
+            -0.02960205078125,
+            -0.096282958984375,
+            0.938323974609375
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            8
+          ]
+        },
+        {
+          "sample_idx": 9,
+          "filename": "h0.4_flux40000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.19439086",
+          "rmse": "0.3449318",
+          "residuals": [
+            -0.506500244140625,
+            -0.1187744140625,
+            -0.15692138671875,
+            0.021484375,
+            -0.0146484375,
+            -0.006561279296875,
+            -0.057830810546875,
+            -0.02838134765625,
+            -0.094329833984375,
+            0.9384765625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            9
+          ]
+        },
+        {
+          "sample_idx": 10,
+          "filename": "h0.4_flux40000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.19024047",
+          "rmse": "0.34251973",
+          "residuals": [
+            -0.495452880859375,
+            -0.101531982421875,
+            -0.15399169921875,
+            0.022613525390625,
+            -0.011566162109375,
+            -0.003662109375,
+            -0.0556640625,
+            -0.027130126953125,
+            -0.09234619140625,
+            0.938446044921875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            10
+          ]
+        },
+        {
+          "sample_idx": 11,
+          "filename": "h0.4_flux40000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.1861084",
+          "rmse": "0.34021437",
+          "residuals": [
+            -0.484466552734375,
+            -0.08447265625,
+            -0.151092529296875,
+            0.0238037109375,
+            -0.008453369140625,
+            -0.000732421875,
+            -0.053466796875,
+            -0.025909423828125,
+            -0.090362548828125,
+            0.938323974609375
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            11
+          ]
+        },
+        {
+          "sample_idx": 12,
+          "filename": "h0.4_flux50000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.18243714",
+          "rmse": "0.3380082",
+          "residuals": [
+            -0.473602294921875,
+            -0.06756591796875,
+            -0.14825439453125,
+            0.024993896484375,
+            -0.00531005859375,
+            0.002197265625,
+            -0.051300048828125,
+            -0.024688720703125,
+            -0.088409423828125,
+            0.93804931640625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            12
+          ]
+        },
+        {
+          "sample_idx": 13,
+          "filename": "h0.4_flux50000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.1789093",
+          "rmse": "0.33588532",
+          "residuals": [
+            -0.462799072265625,
+            -0.050750732421875,
+            -0.145416259765625,
+            0.0262451171875,
+            -0.00213623046875,
+            0.005157470703125,
+            -0.049102783203125,
+            -0.0234375,
+            -0.08642578125,
+            0.9376220703125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            13
+          ]
+        },
+        {
+          "sample_idx": 14,
+          "filename": "h0.4_flux50000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.175589",
+          "rmse": "0.33383316",
+          "residuals": [
+            -0.45196533203125,
+            -0.034027099609375,
+            -0.142547607421875,
+            0.02752685546875,
+            0.001068115234375,
+            0.008148193359375,
+            -0.04693603515625,
+            -0.022216796875,
+            -0.08441162109375,
+            0.937042236328125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            14
+          ]
+        },
+        {
+          "sample_idx": 15,
+          "filename": "h0.4_flux50000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17285767",
+          "rmse": "0.3319649",
+          "residuals": [
+            -0.44189453125,
+            -0.018218994140625,
+            -0.13970947265625,
+            0.02886962890625,
+            0.004302978515625,
+            0.01116943359375,
+            -0.044708251953125,
+            -0.020965576171875,
+            -0.082427978515625,
+            0.936309814453125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            15
+          ]
+        },
+        {
+          "sample_idx": 16,
+          "filename": "h0.4_flux50000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.16994628",
+          "rmse": "0.33004645",
+          "residuals": [
+            -0.43096923828125,
+            -0.0015869140625,
+            -0.13677978515625,
+            0.030242919921875,
+            0.007598876953125,
+            0.01416015625,
+            -0.042510986328125,
+            -0.019744873046875,
+            -0.0804443359375,
+            0.9354248046875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            16
+          ]
+        },
+        {
+          "sample_idx": 17,
+          "filename": "h0.4_flux50000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.1700348",
+          "rmse": "0.32819507",
+          "residuals": [
+            -0.419952392578125,
+            0.014984130859375,
+            -0.133819580078125,
+            0.03173828125,
+            0.01092529296875,
+            0.017242431640625,
+            -0.040313720703125,
+            -0.018524169921875,
+            -0.078460693359375,
+            0.93438720703125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            17
+          ]
+        },
+        {
+          "sample_idx": 18,
+          "filename": "h0.4_flux50000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.170401",
+          "rmse": "0.32639045",
+          "residuals": [
+            -0.408843994140625,
+            0.03155517578125,
+            -0.1307373046875,
+            0.033294677734375,
+            0.0142822265625,
+            0.020294189453125,
+            -0.0380859375,
+            -0.017303466796875,
+            -0.07647705078125,
+            0.933135986328125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            18
+          ]
+        },
+        {
+          "sample_idx": 19,
+          "filename": "h0.4_flux50000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17076722",
+          "rmse": "0.3246635",
+          "residuals": [
+            -0.397613525390625,
+            0.048126220703125,
+            -0.12762451171875,
+            0.034912109375,
+            0.0177001953125,
+            0.023406982421875,
+            -0.035888671875,
+            -0.01611328125,
+            -0.07452392578125,
+            0.9317626953125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            19
+          ]
+        },
+        {
+          "sample_idx": 20,
+          "filename": "h0.4_flux50000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17109375",
+          "rmse": "0.32298478",
+          "residuals": [
+            -0.386260986328125,
+            0.064666748046875,
+            -0.1243896484375,
+            0.036651611328125,
+            0.02117919921875,
+            0.0264892578125,
+            -0.03369140625,
+            -0.014892578125,
+            -0.072540283203125,
+            0.93017578125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            20
+          ]
+        },
+        {
+          "sample_idx": 21,
+          "filename": "h0.4_flux50000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17140198",
+          "rmse": "0.3213725",
+          "residuals": [
+            -0.374725341796875,
+            0.08123779296875,
+            -0.12109375,
+            0.0384521484375,
+            0.024688720703125,
+            0.02960205078125,
+            -0.031494140625,
+            -0.013702392578125,
+            -0.070587158203125,
+            0.928436279296875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            21
+          ]
+        },
+        {
+          "sample_idx": 22,
+          "filename": "h0.4_flux50000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17168579",
+          "rmse": "0.31981516",
+          "residuals": [
+            -0.363037109375,
+            0.09783935546875,
+            -0.117706298828125,
+            0.04034423828125,
+            0.028228759765625,
+            0.032745361328125,
+            -0.029296875,
+            -0.012542724609375,
+            -0.068634033203125,
+            0.926483154296875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            22
+          ]
+        },
+        {
+          "sample_idx": 23,
+          "filename": "h0.4_flux50000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17193604",
+          "rmse": "0.31832933",
+          "residuals": [
+            -0.351165771484375,
+            0.11444091796875,
+            -0.114227294921875,
+            0.042266845703125,
+            0.03179931640625,
+            0.035888671875,
+            -0.027099609375,
+            -0.011383056640625,
+            -0.06671142578125,
+            0.92437744140625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            23
+          ]
+        },
+        {
+          "sample_idx": 24,
+          "filename": "h0.4_flux100000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17215881",
+          "rmse": "0.31690833",
+          "residuals": [
+            -0.339080810546875,
+            0.131072998046875,
+            -0.11065673828125,
+            0.0443115234375,
+            0.035400390625,
+            0.039031982421875,
+            -0.024932861328125,
+            -0.01025390625,
+            -0.06475830078125,
+            0.922088623046875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            24
+          ]
+        },
+        {
+          "sample_idx": 25,
+          "filename": "h0.4_flux100000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.1723114",
+          "rmse": "0.31542012",
+          "residuals": [
+            -0.32672119140625,
+            0.147857666015625,
+            -0.106842041015625,
+            0.04644775390625,
+            0.0390625,
+            0.04217529296875,
+            -0.022796630859375,
+            -0.0091552734375,
+            -0.062896728515625,
+            0.919158935546875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            25
+          ]
+        },
+        {
+          "sample_idx": 26,
+          "filename": "h0.4_flux100000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17227478",
+          "rmse": "0.31344923",
+          "residuals": [
+            -0.313751220703125,
+            0.165374755859375,
+            -0.10235595703125,
+            0.048797607421875,
+            0.042724609375,
+            0.045318603515625,
+            -0.02081298828125,
+            -0.00823974609375,
+            -0.061187744140625,
+            0.9141845703125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            26
+          ]
+        },
+        {
+          "sample_idx": 27,
+          "filename": "h0.4_flux100000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17220458",
+          "rmse": "0.31157798",
+          "residuals": [
+            -0.300567626953125,
+            0.182891845703125,
+            -0.0977783203125,
+            0.05120849609375,
+            0.04644775390625,
+            0.048431396484375,
+            -0.018829345703125,
+            -0.007354736328125,
+            -0.059478759765625,
+            0.9090576171875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            27
+          ]
+        },
+        {
+          "sample_idx": 28,
+          "filename": "h0.4_flux100000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17176208",
+          "rmse": "0.30976406",
+          "residuals": [
+            -0.287506103515625,
+            0.197540283203125,
+            -0.095550537109375,
+            0.051422119140625,
+            0.048736572265625,
+            0.050628662109375,
+            -0.017333984375,
+            -0.006683349609375,
+            -0.05810546875,
+            0.90411376953125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            28
+          ]
+        },
+        {
+          "sample_idx": 29,
+          "filename": "h0.4_flux100000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17104188",
+          "rmse": "0.30797997",
+          "residuals": [
+            -0.276214599609375,
+            0.208343505859375,
+            -0.09490966796875,
+            0.05023193359375,
+            0.0501708984375,
+            0.05218505859375,
+            -0.01611328125,
+            -0.00616455078125,
+            -0.056915283203125,
+            0.899169921875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            29
+          ]
+        },
+        {
+          "sample_idx": 30,
+          "filename": "h0.4_flux100000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.17027894",
+          "rmse": "0.3062093",
+          "residuals": [
+            -0.26275634765625,
+            0.221099853515625,
+            -0.094207763671875,
+            0.04901123046875,
+            0.051544189453125,
+            0.053741455078125,
+            -0.014892578125,
+            -0.005615234375,
+            -0.055755615234375,
+            0.8941650390625
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            30
+          ]
+        },
+        {
+          "sample_idx": 31,
+          "filename": "h0.4_flux100000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.16957092",
+          "rmse": "0.30455098",
+          "residuals": [
+            -0.249176025390625,
+            0.234161376953125,
+            -0.09332275390625,
+            0.048065185546875,
+            0.053070068359375,
+            0.05535888671875,
+            -0.013702392578125,
+            -0.005157470703125,
+            -0.054595947265625,
+            0.88909912109375
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            31
+          ]
+        },
+        {
+          "sample_idx": 32,
+          "filename": "h0.4_flux100000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.16895142",
+          "rmse": "0.30302492",
+          "residuals": [
+            -0.235687255859375,
+            0.247650146484375,
+            -0.09234619140625,
+            0.04742431640625,
+            0.0548095703125,
+            0.05706787109375,
+            -0.012542724609375,
+            -0.004730224609375,
+            -0.0533447265625,
+            0.8839111328125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            32
+          ]
+        },
+        {
+          "sample_idx": 33,
+          "filename": "h0.4_flux100000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.16829833",
+          "rmse": "0.30156803",
+          "residuals": [
+            -0.221923828125,
+            0.26116943359375,
+            -0.091217041015625,
+            0.04681396484375,
+            0.056549072265625,
+            0.058746337890625,
+            -0.011383056640625,
+            -0.00439453125,
+            -0.05218505859375,
+            0.87860107421875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            33
+          ]
+        },
+        {
+          "sample_idx": 34,
+          "filename": "h0.4_flux100000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.16759339",
+          "rmse": "0.30015656",
+          "residuals": [
+            -0.207855224609375,
+            0.274688720703125,
+            -0.090057373046875,
+            0.0462646484375,
+            0.05828857421875,
+            0.06036376953125,
+            -0.010284423828125,
+            -0.0040283203125,
+            -0.051025390625,
+            0.873077392578125
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            34
+          ]
+        },
+        {
+          "sample_idx": 35,
+          "filename": "h0.4_flux100000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.4,
+          "mae": "0.1668396",
+          "rmse": "0.29881194",
+          "residuals": [
+            -0.193511962890625,
+            0.288177490234375,
+            -0.08880615234375,
+            0.045745849609375,
+            0.05999755859375,
+            0.061981201171875,
+            -0.0091552734375,
+            -0.00372314453125,
+            -0.049896240234375,
+            0.867401123046875
+          ],
+          "depths": [
+            -0.0,
+            -0.04,
+            -0.08,
+            -0.12,
+            -0.16,
+            -0.2,
+            -0.24,
+            -0.28,
+            -0.32,
+            -0.36
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            35
+          ]
+        },
+        {
+          "sample_idx": 36,
+          "filename": "h0.5_flux40000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.1660492",
+          "rmse": "0.29754007",
+          "residuals": [
+            -0.1788330078125,
+            0.301666259765625,
+            -0.087493896484375,
+            0.045257568359375,
+            0.06170654296875,
+            0.06353759765625,
+            -0.00811767578125,
+            -0.00347900390625,
+            -0.048828125,
+            0.861572265625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            36
+          ]
+        },
+        {
+          "sample_idx": 37,
+          "filename": "h0.5_flux40000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16520996",
+          "rmse": "0.29634768",
+          "residuals": [
+            -0.163848876953125,
+            0.315155029296875,
+            -0.08612060546875,
+            0.044769287109375,
+            0.063385009765625,
+            0.0650634765625,
+            -0.00714111328125,
+            -0.003265380859375,
+            -0.047760009765625,
+            0.8555908203125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            37
+          ]
+        },
+        {
+          "sample_idx": 38,
+          "filename": "h0.5_flux40000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16431884",
+          "rmse": "0.29523474",
+          "residuals": [
+            -0.148529052734375,
+            0.32867431640625,
+            -0.08465576171875,
+            0.0443115234375,
+            0.065032958984375,
+            0.066558837890625,
+            -0.00616455078125,
+            -0.003082275390625,
+            -0.0467529296875,
+            0.84942626953125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            38
+          ]
+        },
+        {
+          "sample_idx": 39,
+          "filename": "h0.5_flux40000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16337585",
+          "rmse": "0.2942065",
+          "residuals": [
+            -0.132843017578125,
+            0.34222412109375,
+            -0.083099365234375,
+            0.04388427734375,
+            0.066650390625,
+            0.0679931640625,
+            -0.0052490234375,
+            -0.002960205078125,
+            -0.0457763671875,
+            0.84307861328125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            39
+          ]
+        },
+        {
+          "sample_idx": 40,
+          "filename": "h0.5_flux40000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16239929",
+          "rmse": "0.29328343",
+          "residuals": [
+            -0.116790771484375,
+            0.355804443359375,
+            -0.081451416015625,
+            0.043548583984375,
+            0.06829833984375,
+            0.06939697265625,
+            -0.004364013671875,
+            -0.002899169921875,
+            -0.04486083984375,
+            0.836578369140625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            40
+          ]
+        },
+        {
+          "sample_idx": 41,
+          "filename": "h0.5_flux40000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16135255",
+          "rmse": "0.29245389",
+          "residuals": [
+            -0.100341796875,
+            0.36944580078125,
+            -0.079681396484375,
+            0.043212890625,
+            0.06988525390625,
+            0.07073974609375,
+            -0.003509521484375,
+            -0.00286865234375,
+            -0.043975830078125,
+            0.829864501953125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            41
+          ]
+        },
+        {
+          "sample_idx": 42,
+          "filename": "h0.5_flux40000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16025086",
+          "rmse": "0.29173818",
+          "residuals": [
+            -0.083465576171875,
+            0.383148193359375,
+            -0.077789306640625,
+            0.042938232421875,
+            0.07147216796875,
+            0.072052001953125,
+            -0.002716064453125,
+            -0.00286865234375,
+            -0.0430908203125,
+            0.822967529296875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            42
+          ]
+        },
+        {
+          "sample_idx": 43,
+          "filename": "h0.5_flux40000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.15909728",
+          "rmse": "0.2911492",
+          "residuals": [
+            -0.066162109375,
+            0.396942138671875,
+            -0.07574462890625,
+            0.04266357421875,
+            0.073028564453125,
+            0.07330322265625,
+            -0.001983642578125,
+            -0.002960205078125,
+            -0.04229736328125,
+            0.815887451171875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            43
+          ]
+        },
+        {
+          "sample_idx": 44,
+          "filename": "h0.5_flux40000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.15788269",
+          "rmse": "0.29068995",
+          "residuals": [
+            -0.048431396484375,
+            0.41082763671875,
+            -0.07354736328125,
+            0.04248046875,
+            0.074554443359375,
+            0.074493408203125,
+            -0.00128173828125,
+            -0.003082275390625,
+            -0.041534423828125,
+            0.80859375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            44
+          ]
+        },
+        {
+          "sample_idx": 45,
+          "filename": "h0.5_flux40000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.1566101",
+          "rmse": "0.29037157",
+          "residuals": [
+            -0.0301513671875,
+            0.4248046875,
+            -0.071197509765625,
+            0.0423583984375,
+            0.0760498046875,
+            0.075653076171875,
+            -0.00067138671875,
+            -0.0032958984375,
+            -0.04083251953125,
+            0.80108642578125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            45
+          ]
+        },
+        {
+          "sample_idx": 46,
+          "filename": "h0.5_flux40000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.15526733",
+          "rmse": "0.29021853",
+          "residuals": [
+            -0.01141357421875,
+            0.43890380859375,
+            -0.06866455078125,
+            0.04229736328125,
+            0.0775146484375,
+            0.07672119140625,
+            -6.103515625e-05,
+            -0.0035400390625,
+            -0.0401611328125,
+            0.79339599609375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            46
+          ]
+        },
+        {
+          "sample_idx": 47,
+          "filename": "h0.5_flux40000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.15553284",
+          "rmse": "0.29023919",
+          "residuals": [
+            0.007843017578125,
+            0.45318603515625,
+            -0.065948486328125,
+            0.042266845703125,
+            0.0789794921875,
+            0.0777587890625,
+            0.00048828125,
+            -0.00384521484375,
+            -0.03955078125,
+            0.78546142578125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            47
+          ]
+        },
+        {
+          "sample_idx": 48,
+          "filename": "h0.5_flux50000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.15812989",
+          "rmse": "0.29045895",
+          "residuals": [
+            0.0277099609375,
+            0.467620849609375,
+            -0.063018798828125,
+            0.042327880859375,
+            0.080413818359375,
+            0.078704833984375,
+            0.000946044921875,
+            -0.00421142578125,
+            -0.03900146484375,
+            0.77734375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            48
+          ]
+        },
+        {
+          "sample_idx": 49,
+          "filename": "h0.5_flux50000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16075134",
+          "rmse": "0.29086936",
+          "residuals": [
+            0.048126220703125,
+            0.482208251953125,
+            -0.05987548828125,
+            0.04248046875,
+            0.081817626953125,
+            0.07958984375,
+            0.0013427734375,
+            -0.004638671875,
+            -0.038482666015625,
+            0.768951416015625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            49
+          ]
+        },
+        {
+          "sample_idx": 50,
+          "filename": "h0.5_flux50000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16343994",
+          "rmse": "0.2915338",
+          "residuals": [
+            0.069183349609375,
+            0.4970703125,
+            -0.05645751953125,
+            0.042724609375,
+            0.08319091796875,
+            0.0804443359375,
+            0.001739501953125,
+            -0.005157470703125,
+            -0.038055419921875,
+            0.7603759765625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            50
+          ]
+        },
+        {
+          "sample_idx": 51,
+          "filename": "h0.5_flux50000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16500244",
+          "rmse": "0.29133868",
+          "residuals": [
+            0.08642578125,
+            0.507293701171875,
+            -0.0535888671875,
+            0.0419921875,
+            0.0836181640625,
+            0.080535888671875,
+            0.001678466796875,
+            -0.005706787109375,
+            -0.037933349609375,
+            0.751251220703125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            51
+          ]
+        },
+        {
+          "sample_idx": 52,
+          "filename": "h0.5_flux50000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.16689149",
+          "rmse": "0.29164875",
+          "residuals": [
+            0.10687255859375,
+            0.519378662109375,
+            -0.051025390625,
+            0.04058837890625,
+            0.08343505859375,
+            0.080108642578125,
+            0.001373291015625,
+            -0.006317138671875,
+            -0.037994384765625,
+            0.7418212890625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            52
+          ]
+        },
+        {
+          "sample_idx": 53,
+          "filename": "h0.5_flux50000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.1688385",
+          "rmse": "0.292207",
+          "residuals": [
+            0.128021240234375,
+            0.5318603515625,
+            -0.0479736328125,
+            0.03936767578125,
+            0.083282470703125,
+            0.07965087890625,
+            0.00103759765625,
+            -0.006988525390625,
+            -0.038116455078125,
+            0.732086181640625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            53
+          ]
+        },
+        {
+          "sample_idx": 54,
+          "filename": "h0.5_flux50000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17086181",
+          "rmse": "0.29305223",
+          "residuals": [
+            0.1500244140625,
+            0.54473876953125,
+            -0.0445556640625,
+            0.038330078125,
+            0.083160400390625,
+            0.0791015625,
+            0.0006103515625,
+            -0.007720947265625,
+            -0.038299560546875,
+            0.722076416015625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            54
+          ]
+        },
+        {
+          "sample_idx": 55,
+          "filename": "h0.5_flux50000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17293397",
+          "rmse": "0.29418904",
+          "residuals": [
+            0.172760009765625,
+            0.557952880859375,
+            -0.04071044921875,
+            0.037445068359375,
+            0.082977294921875,
+            0.0784912109375,
+            9.1552734375e-05,
+            -0.008544921875,
+            -0.03857421875,
+            0.7117919921875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            55
+          ]
+        },
+        {
+          "sample_idx": 56,
+          "filename": "h0.5_flux50000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17509766",
+          "rmse": "0.29551265",
+          "residuals": [
+            0.196380615234375,
+            0.57086181640625,
+            -0.036468505859375,
+            0.036712646484375,
+            0.082763671875,
+            0.07781982421875,
+            -0.000457763671875,
+            -0.009429931640625,
+            -0.038909912109375,
+            0.701171875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            56
+          ]
+        },
+        {
+          "sample_idx": 57,
+          "filename": "h0.5_flux50000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17745666",
+          "rmse": "0.2973498",
+          "residuals": [
+            0.220947265625,
+            0.584930419921875,
+            -0.031768798828125,
+            0.036102294921875,
+            0.08258056640625,
+            0.0770263671875,
+            -0.001129150390625,
+            -0.01043701171875,
+            -0.03936767578125,
+            0.690277099609375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            57
+          ]
+        },
+        {
+          "sample_idx": 58,
+          "filename": "h0.5_flux50000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17989501",
+          "rmse": "0.29958376",
+          "residuals": [
+            0.246337890625,
+            0.5994873046875,
+            -0.026611328125,
+            0.03570556640625,
+            0.08233642578125,
+            0.076171875,
+            -0.0018310546875,
+            -0.011505126953125,
+            -0.039886474609375,
+            0.6790771484375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            58
+          ]
+        },
+        {
+          "sample_idx": 59,
+          "filename": "h0.5_flux50000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17991638",
+          "rmse": "0.3000506",
+          "residuals": [
+            0.254058837890625,
+            0.606231689453125,
+            -0.019439697265625,
+            0.041015625,
+            0.0823974609375,
+            0.07574462890625,
+            0.000640869140625,
+            -0.009735107421875,
+            -0.0374755859375,
+            0.67242431640625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            59
+          ]
+        },
+        {
+          "sample_idx": 60,
+          "filename": "h0.5_flux100000_abs5_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.17998657",
+          "rmse": "0.30026996",
+          "residuals": [
+            0.2589111328125,
+            0.611785888671875,
+            -0.011383056640625,
+            0.0477294921875,
+            0.082550048828125,
+            0.075286865234375,
+            0.003692626953125,
+            -0.007476806640625,
+            -0.03460693359375,
+            0.66644287109375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            60
+          ]
+        },
+        {
+          "sample_idx": 61,
+          "filename": "h0.5_flux100000_abs5_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18013611",
+          "rmse": "0.3006946",
+          "residuals": [
+            0.26470947265625,
+            0.617889404296875,
+            -0.00274658203125,
+            0.0546875,
+            0.082672119140625,
+            0.074798583984375,
+            0.0067138671875,
+            -0.0052490234375,
+            -0.03173828125,
+            0.66015625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            61
+          ]
+        },
+        {
+          "sample_idx": 62,
+          "filename": "h0.5_flux100000_abs5_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18169555",
+          "rmse": "0.3013705",
+          "residuals": [
+            0.271484375,
+            0.6246337890625,
+            0.006561279296875,
+            0.061920166015625,
+            0.08282470703125,
+            0.074188232421875,
+            0.0096435546875,
+            -0.00311279296875,
+            -0.02899169921875,
+            0.653594970703125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            62
+          ]
+        },
+        {
+          "sample_idx": 63,
+          "filename": "h0.5_flux100000_abs10_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18403625",
+          "rmse": "0.30230603",
+          "residuals": [
+            0.27923583984375,
+            0.63201904296875,
+            0.0164794921875,
+            0.0694580078125,
+            0.0830078125,
+            0.073577880859375,
+            0.012542724609375,
+            -0.00103759765625,
+            -0.02630615234375,
+            0.646697998046875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            63
+          ]
+        },
+        {
+          "sample_idx": 64,
+          "filename": "h0.5_flux100000_abs10_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18681946",
+          "rmse": "0.30355734",
+          "residuals": [
+            0.288116455078125,
+            0.640106201171875,
+            0.027191162109375,
+            0.0772705078125,
+            0.083160400390625,
+            0.072845458984375,
+            0.015350341796875,
+            0.000946044921875,
+            -0.023681640625,
+            0.6395263671875
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            64
+          ]
+        },
+        {
+          "sample_idx": 65,
+          "filename": "h0.5_flux100000_abs10_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18674012",
+          "rmse": "0.30173704",
+          "residuals": [
+            0.2891845703125,
+            0.6444091796875,
+            0.0347900390625,
+            0.08154296875,
+            0.080902099609375,
+            0.07086181640625,
+            0.01617431640625,
+            0.0010986328125,
+            -0.022857666015625,
+            0.625579833984375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            65
+          ]
+        },
+        {
+          "sample_idx": 66,
+          "filename": "h0.5_flux100000_abs15_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18624878",
+          "rmse": "0.2995345",
+          "residuals": [
+            0.289581298828125,
+            0.6485595703125,
+            0.04241943359375,
+            0.08538818359375,
+            0.078155517578125,
+            0.06854248046875,
+            0.016510009765625,
+            0.0008544921875,
+            -0.02252197265625,
+            0.609954833984375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            66
+          ]
+        },
+        {
+          "sample_idx": 67,
+          "filename": "h0.5_flux100000_abs15_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18609008",
+          "rmse": "0.29774824",
+          "residuals": [
+            0.291290283203125,
+            0.65362548828125,
+            0.05096435546875,
+            0.089630126953125,
+            0.075469970703125,
+            0.06622314453125,
+            0.016845703125,
+            0.000518798828125,
+            -0.022216796875,
+            0.5941162109375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            67
+          ]
+        },
+        {
+          "sample_idx": 68,
+          "filename": "h0.5_flux100000_abs15_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18627624",
+          "rmse": "0.29643315",
+          "residuals": [
+            0.29443359375,
+            0.659759521484375,
+            0.060394287109375,
+            0.09429931640625,
+            0.0728759765625,
+            0.063812255859375,
+            0.01708984375,
+            9.1552734375e-05,
+            -0.02203369140625,
+            0.577972412109375
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            68
+          ]
+        },
+        {
+          "sample_idx": 69,
+          "filename": "h0.5_flux100000_abs20_surf50_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.1868988",
+          "rmse": "0.29562616",
+          "residuals": [
+            0.2989501953125,
+            0.66693115234375,
+            0.07086181640625,
+            0.09942626953125,
+            0.07037353515625,
+            0.061370849609375,
+            0.017303466796875,
+            -0.000335693359375,
+            -0.0218505859375,
+            0.56158447265625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            69
+          ]
+        },
+        {
+          "sample_idx": 70,
+          "filename": "h0.5_flux100000_abs20_surf70_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.18795165",
+          "rmse": "0.29540417",
+          "residuals": [
+            0.30499267578125,
+            0.67523193359375,
+            0.08233642578125,
+            0.105010986328125,
+            0.067962646484375,
+            0.058868408203125,
+            0.0174560546875,
+            -0.000885009765625,
+            -0.02178955078125,
+            0.54498291015625
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            70
+          ]
+        },
+        {
+          "sample_idx": 71,
+          "filename": "h0.5_flux100000_abs20_surf90_600s.csv",
+          "cylinder_height": 0.5,
+          "mae": "0.1894104",
+          "rmse": "0.29580235",
+          "residuals": [
+            0.312530517578125,
+            0.6846923828125,
+            0.0948486328125,
+            0.111114501953125,
+            0.065643310546875,
+            0.056365966796875,
+            0.017578125,
+            -0.001434326171875,
+            -0.02178955078125,
+            0.528106689453125
+          ],
+          "depths": [
+            -0.0,
+            -0.05,
+            -0.1,
+            -0.15000000000000002,
+            -0.2,
+            -0.25,
+            -0.30000000000000004,
+            -0.35000000000000003,
+            -0.4,
+            -0.45
+          ],
+          "tc_labels": [
+            "TC10",
+            "TC9",
+            "TC8",
+            "TC7",
+            "TC6",
+            "TC5",
+            "TC4",
+            "TC3",
+            "TC2",
+            "TC1"
+          ],
+          "num_samples_in_file": 1,
+          "all_sample_indices": [
+            71
+          ]
+        }
+      ]
+    }
+  },
+  "test_results": {
+    "test_mae_unscaled": 0.4584623873233795,
+    "test_rmse_unscaled": 0.9641702175140381,
+    "test_r2_overall_unscaled": 0.99208003282547,
+    "test_per_sensor_metrics": [
+      {
+        "mae": 1.1776410341262817,
+        "rmse": 2.197633743286133,
+        "r2": 0.9857087731361389
+      },
+      {
+        "mae": 0.913124144077301,
+        "rmse": 1.269850730895996,
+        "r2": 0.9936913251876831
+      },
+      {
+        "mae": 0.6254147887229919,
+        "rmse": 0.8318749666213989,
+        "r2": 0.9920201301574707
+      },
+      {
+        "mae": 0.39108365774154663,
+        "rmse": 0.5557010173797607,
+        "r2": 0.9928212761878967
+      },
+      {
+        "mae": 0.21901975572109222,
+        "rmse": 0.33144211769104004,
+        "r2": 0.9961478114128113
+      },
+      {
+        "mae": 0.16227424144744873,
+        "rmse": 0.2510971426963806,
+        "r2": 0.9973337650299072
+      },
+      {
+        "mae": 0.13472743332386017,
+        "rmse": 0.24346835911273956,
+        "r2": 0.9973759651184082
+      },
+      {
+        "mae": 0.15153126418590546,
+        "rmse": 0.2732253670692444,
+        "r2": 0.9967491030693054
+      },
+      {
+        "mae": 0.1436123549938202,
+        "rmse": 0.2646174132823944,
+        "r2": 0.9969651699066162
+      },
+      {
+        "mae": 0.6661955118179321,
+        "rmse": 1.215093731880188,
+        "r2": 0.9895386695861816
+      }
+    ],
+    "test_physics_loss": 4627662.955206738,
+    "test_constraint_loss": 0.0,
+    "test_power_balance_loss": 41597239.43950995,
+    "val_loss": 2542628.35949464,
+    "val_mae": 0.04538906607662783,
+    "val_mse": 0.006127051610788786,
+    "val_physics_loss": 4627662.955206738,
+    "val_constraint_loss": 0.0,
+    "val_power_balance_loss": 41597239.43950995
+  }
+}
