@@ -1,0 +1,12 @@
+{
+  "mean_actual_power": 59142309.835771725,
+  "mean_predicted_power": 56303645.25096024,
+  "mean_incoming_power": 1570.796326794897,
+  "mean_actual_to_incoming_ratio": 37651.16382494196,
+  "mean_predicted_to_incoming_ratio": 35844.013823131354,
+  "conservation_violations": {
+    "count": 16993,
+    "percentage": 81.39579441490636,
+    "mean_violation_amount": 71035633.64596656
+  }
+}

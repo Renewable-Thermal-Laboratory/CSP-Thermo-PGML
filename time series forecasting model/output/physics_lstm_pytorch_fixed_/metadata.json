@@ -1,0 +1,69 @@
+{
+  "model_type": "PhysicsInformedLSTM",
+  "physics_approach": "9-bin_spatial_segmentation",
+  "num_sensors": 10,
+  "sequence_length": 20,
+  "lstm_units": 64,
+  "dropout_rate": 0.2,
+  "physics_weight": 0.1,
+  "constraint_weight": 0.1,
+  "power_balance_weight": 0.05,
+  "cylinder_length": 1.0,
+  "num_bins": 9,
+  "bin_sensor_pairs": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      9
+    ]
+  ],
+  "physics_constants": {
+    "density": 1836.31,
+    "specific_heat": 1512.0,
+    "radius": 0.05175
+  },
+  "optimizer_config": {
+    "type": "Adam",
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-07
+  },
+  "save_timestamp": "2025-07-26T19:52:12.278917",
+  "pytorch_version": "2.7.0",
+  "device": "cpu",
+  "saving_method": "state_dict_based"
+}

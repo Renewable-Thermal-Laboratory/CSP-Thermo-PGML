@@ -8,6 +8,7 @@ import json
 from torch.utils.tensorboard import SummaryWriter
 from collections import defaultdict
 import warnings
+import re
 
 # Suppress all warnings
 warnings.filterwarnings('ignore')
@@ -533,52 +534,84 @@ class FixedUnscaledEvaluationTrainer:
 # ENHANCED PLOTTING FUNCTIONS
 # =====================
 
-def plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, cylinder_height=1.0):
+def parse_height_from_filename(filename):
     """
-    📊 Vertical Temperature Depth Profile (TC10 to TC1)
+    Parse cylinder height from filename.
+    Expected format: contains patterns like "1.0m", "0.5m", etc.
+    """
+    # Look for patterns like "1.0m", "0.5m", "2.5m"
+    height_pattern = r'(\d+\.?\d*)m'
+    match = re.search(height_pattern, filename.lower())
+    
+    if match:
+        return float(match.group(1))
+    else:
+        # Default fallback
+        print(f"Warning: Could not parse height from filename '{filename}', using default 1.0m")
+        return 1.0
+
+
+def plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, filename="", cylinder_height=None):
+    """
+    📊 Enhanced Vertical Temperature Depth Profile (TC10 to TC1)
     Shows temperature distribution vertically through the cylindrical system.
+    Now parses height from filename and creates consistent depth assignments.
     """
     y_true_unscaled = test_results['predictions_unscaled']['y_true']
     y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    
+    # Parse height from filename if not provided
+    if cylinder_height is None:
+        cylinder_height = parse_height_from_filename(filename)
     
     # Get temperatures for the specified sample
     true_temps = y_true_unscaled[sample_idx]  # 10 temperatures
     pred_temps = y_pred_unscaled[sample_idx]  # 10 temperatures
     
-    # Create depth positions (TC10 at top = 0.0m, TC1 at bottom = -h)
-    # TC positions: TC10=0, TC9=-h/9, TC8=-2h/9, ..., TC1=-h
-    depths = np.array([-(i * cylinder_height / 9) for i in range(10)])  # TC10 to TC1
+    # Create depth positions: TC10 at top (0.0m), TC1 at bottom (-height)
+    # Divide height into 10 equal segments
+    segment_height = cylinder_height / 10
+    depths = np.array([-(i * segment_height) for i in range(10)])  # TC10 to TC1
     tc_labels = [f'TC{10-i}' for i in range(10)]  # TC10 to TC1
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
-    fig.suptitle(f'Vertical Temperature Profile - Sample {sample_idx + 1}', fontsize=16)
+    fig.suptitle(f'Vertical Temperature Profile - Sample {sample_idx + 1}\nHeight: {cylinder_height}m, Spacing: {segment_height:.2f}m', fontsize=16)
     
     # Main temperature profile plot
     ax1.plot(true_temps, depths, 'b-o', linewidth=2, markersize=8, label='Actual Temperature', markerfacecolor='lightblue')
     ax1.plot(pred_temps, depths, 'r--x', linewidth=2, markersize=8, label='Predicted Temperature', markerfacecolor='lightcoral')
     
-    # Add TC labels
+    # Add TC labels with better positioning
     for i, (tc_label, depth, true_temp, pred_temp) in enumerate(zip(tc_labels, depths, true_temps, pred_temps)):
-        # Actual temperature label (right aligned)
-        ax1.annotate(tc_label, (true_temp, depth), xytext=(5, 0), textcoords='offset points',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.7),
-                    fontsize=9, ha='left')
-        # Predicted temperature label (left aligned)
-        ax1.annotate(tc_label, (pred_temp, depth), xytext=(-5, 0), textcoords='offset points',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.7),
-                    fontsize=9, ha='right')
+        # Calculate offset to avoid overlap
+        temp_offset = 2.0  # Temperature offset for label positioning
+        
+        # Actual temperature label (right side)
+        ax1.annotate(tc_label, (true_temp + temp_offset, depth), 
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.8),
+                    fontsize=9, ha='left', va='center')
+        
+        # Predicted temperature label (left side) 
+        ax1.annotate(tc_label, (pred_temp - temp_offset, depth),
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.8),
+                    fontsize=9, ha='right', va='center')
     
     ax1.set_xlabel('Temperature (°C)')
     ax1.set_ylabel('Depth (m)')
     ax1.set_title('Temperature vs Depth Profile')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    ax1.invert_yaxis()  # Top at the top
+    
+    # Set y-axis limits to show full depth range with margin
+    ax1.set_ylim(depths.min() - 0.1 * cylinder_height, depths.max() + 0.1 * cylinder_height)
     
     # Residuals bar chart
     residuals = true_temps - pred_temps
-    colors = ['red' if r > 0 else 'blue' for r in residuals]
+    
+    # Color bars based on residual magnitude (threshold: ±0.5°C)
+    colors = ['red' if abs(r) > 0.5 else 'blue' for r in residuals]
     bars = ax2.bar(range(10), residuals, color=colors, alpha=0.7, edgecolor='black')
+    
     ax2.set_xlabel('TC Sensor')
     ax2.set_ylabel('Residual (True - Predicted) °C')
     ax2.set_title('Temperature Residuals per TC Sensor')
@@ -594,11 +627,137 @@ def plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, cy
                     xytext=(0, 3 if height >= 0 else -15), textcoords='offset points',
                     ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
     
+    # Add legend for residual color coding
+    ax2.legend(['> ±0.5°C Error', '< ±0.5°C Error'], 
+              handles=[plt.Rectangle((0,0),1,1, color='red', alpha=0.7),
+                      plt.Rectangle((0,0),1,1, color='blue', alpha=0.7)])
+    
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'vertical_temperature_profile_sample_{sample_idx}.png'), dpi=300, bbox_inches='tight')
+    
+    # Create filename
+    if filename:
+        save_filename = f'vertical_profile_sample{sample_idx}_{filename.replace(".csv", "").replace(" ", "_")}.png'
+    else:
+        save_filename = f'vertical_temperature_profile_sample_{sample_idx}.png'
+    
+    plt.savefig(os.path.join(output_dir, save_filename), dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"✅ Vertical temperature profile saved for sample {sample_idx}")
+    # Log detailed metrics
+    mae_sample = np.mean(np.abs(residuals))
+    rmse_sample = np.sqrt(np.mean(residuals**2))
+    
+    print(f"✅ Vertical temperature profile saved: {save_filename}")
+    print(f"   Sample {sample_idx} metrics - MAE: {mae_sample:.3f}°C, RMSE: {rmse_sample:.3f}°C")
+    print(f"   Residuals per sensor: {[f'{r:.2f}' for r in residuals]}")
+    
+    return {
+        'sample_idx': sample_idx,
+        'filename': filename,
+        'cylinder_height': cylinder_height,
+        'mae': mae_sample,
+        'rmse': rmse_sample,
+        'residuals': residuals.tolist(),
+        'depths': depths.tolist(),
+        'tc_labels': tc_labels
+    }
+
+
+def generate_vertical_profiles_for_all_samples(test_results, output_dir, filenames=None, max_samples=10):
+    """
+    Generate vertical temperature profiles for multiple representative samples.
+    
+    Args:
+        test_results: Test evaluation results
+        output_dir: Output directory
+        filenames: List of filenames corresponding to test samples
+        max_samples: Maximum number of samples to process
+    """
+    print(f"\n📊 Generating vertical temperature profiles for multiple samples...")
+    
+    y_true_unscaled = test_results['predictions_unscaled']['y_true']
+    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    
+    # Calculate residuals for all samples to find representative ones
+    all_residuals = y_true_unscaled - y_pred_unscaled
+    sample_mae = np.mean(np.abs(all_residuals), axis=1)  # MAE per sample
+    
+    # Select representative samples
+    num_samples = min(max_samples, len(y_true_unscaled))
+    
+    # Choose samples with different characteristics:
+    # - Best performing (lowest MAE)
+    # - Worst performing (highest MAE) 
+    # - Median performing
+    # - Random selections
+    
+    best_idx = np.argmin(sample_mae)
+    worst_idx = np.argmax(sample_mae)
+    median_idx = np.argsort(sample_mae)[len(sample_mae) // 2]
+    
+    # Add some random samples for variety
+    remaining_samples = min(num_samples - 3, 7)  # At most 7 additional
+    random_indices = np.random.choice(
+        [i for i in range(len(sample_mae)) if i not in [best_idx, worst_idx, median_idx]], 
+        size=remaining_samples, 
+        replace=False
+    )
+    
+    selected_indices = [best_idx, worst_idx, median_idx] + list(random_indices)
+    selected_indices = selected_indices[:num_samples]  # Ensure we don't exceed max
+    
+    profile_results = []
+    
+    for i, sample_idx in enumerate(selected_indices):
+        # Determine filename for this sample
+        if filenames and sample_idx < len(filenames):
+            filename = filenames[sample_idx]
+        else:
+            filename = f"sample_{sample_idx}"
+        
+        # Generate profile
+        try:
+            profile_result = plot_vertical_temperature_profile(
+                test_results, 
+                output_dir, 
+                sample_idx=sample_idx, 
+                filename=filename
+            )
+            profile_results.append(profile_result)
+            
+            # Add context information
+            if sample_idx == best_idx:
+                print(f"   📈 Sample {sample_idx}: BEST performing (MAE: {sample_mae[sample_idx]:.3f}°C)")
+            elif sample_idx == worst_idx:
+                print(f"   📉 Sample {sample_idx}: WORST performing (MAE: {sample_mae[sample_idx]:.3f}°C)")
+            elif sample_idx == median_idx:
+                print(f"   📊 Sample {sample_idx}: MEDIAN performing (MAE: {sample_mae[sample_idx]:.3f}°C)")
+            else:
+                print(f"   🎲 Sample {sample_idx}: Random selection (MAE: {sample_mae[sample_idx]:.3f}°C)")
+                
+        except Exception as e:
+            print(f"   ❌ Error generating profile for sample {sample_idx}: {e}")
+            continue
+    
+    # Save summary of all profiles
+    profile_summary = {
+        'total_samples_processed': len(profile_results),
+        'sample_selection_criteria': {
+            'best_performing_idx': int(best_idx),
+            'worst_performing_idx': int(worst_idx), 
+            'median_performing_idx': int(median_idx),
+            'random_indices': [int(idx) for idx in random_indices]
+        },
+        'profiles': profile_results
+    }
+    
+    with open(os.path.join(output_dir, 'vertical_profiles_summary.json'), 'w') as f:
+        json.dump(profile_summary, f, indent=2, default=str)
+    
+    print(f"✅ Generated {len(profile_results)} vertical temperature profiles")
+    print(f"✅ Profile summary saved to: vertical_profiles_summary.json")
+    
+    return profile_summary
 
 
 def analyze_numerical_temperature_errors(test_results, output_dir):
@@ -1079,7 +1238,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     return overall_stats
 
 
-def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir, best_epoch, cylinder_height=1.0):
+def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir, best_epoch, cylinder_height=1.0, filenames=None):
     """Generate all plots including the new enhanced analyses."""
     print(f"\n📊 Generating enhanced plots with unscaled data...")
     
@@ -1092,8 +1251,10 @@ def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir
     # New enhanced plots
     print(f"\n📊 Generating new enhanced analyses...")
     
-    # 1. Vertical Temperature Depth Profile
-    plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, cylinder_height=cylinder_height)
+    # 1. Multiple Vertical Temperature Depth Profiles
+    profile_summary = generate_vertical_profiles_for_all_samples(
+        test_results, output_dir, filenames=filenames, max_samples=10
+    )
     
     # 2. Numerical Temperature Error Analysis
     error_summary = analyze_numerical_temperature_errors(test_results, output_dir)
@@ -1116,7 +1277,8 @@ def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir
         'error_summary': error_summary,
         'power_summary': power_summary, 
         'conservation_status': conservation_status,
-        'overall_stats': overall_stats
+        'overall_stats': overall_stats,
+        'profile_summary': profile_summary
     }
 
 
@@ -1126,7 +1288,7 @@ def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir
 class Config:
     data_dir = "data/processed_New_theoretical_data"
     scaler_dir = "models_new_theoretical"
-    output_dir = "output/physics_lstm_pytorch_fixed_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = "output/physics_lstm_pytorch_fixed_"
     batch_size = 32
     learning_rate = 0.001
     max_epochs = 100
@@ -1426,6 +1588,9 @@ def print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, 
     print("   • ✅ All 9-bin physics constraints use real data")
     print("   • ✅ Power balance analysis with real extracted values")
     print("   • ✅ No dummy values used in physics calculations")
+    print("   • ✅ Enhanced vertical temperature profiles with height parsing")
+    print("   • ✅ Multiple representative sample analysis")
+    print("   • ✅ Consistent depth assignments for TC sensors")
     print("="*80)
 
 
@@ -1499,6 +1664,7 @@ def main():
     print("✅ Uses actual time series and static parameters for physics calculations")
     print("✅ Proper unscaling of temperatures and parameters")
     print("✅ Real physics constraints with actual data")
+    print("✅ Enhanced vertical temperature profiles with height parsing")
     print("="*80)
     
     # Test the fixed power metadata extraction
@@ -1634,6 +1800,16 @@ def main():
         print(f"Power balance analysis encountered an issue: {e}")
         print("Continuing with other results...")
     
+    # Get test filenames for enhanced plotting (if available)
+    test_filenames = None
+    try:
+        if hasattr(test_loader, 'dataset') and hasattr(test_loader.dataset, 'filenames'):
+            test_filenames = test_loader.dataset.filenames
+        elif hasattr(test_loader, 'dataset') and hasattr(test_loader.dataset, 'data_files'):
+            test_filenames = [os.path.basename(f) for f in test_loader.dataset.data_files]
+    except:
+        test_filenames = None
+    
     # Save all results
     all_results = {
         'config': {
@@ -1667,7 +1843,14 @@ def main():
     
     # Enhanced Plotting with Real Power Data
     try:
-        enhanced_results = generate_all_unscaled_plots_enhanced(train_history, test_results, Config.output_dir, best_epoch, Config.cylinder_length)
+        enhanced_results = generate_all_unscaled_plots_enhanced(
+            train_history, 
+            test_results, 
+            Config.output_dir, 
+            best_epoch, 
+            Config.cylinder_length,
+            filenames=test_filenames
+        )
         
         # Add enhanced results to the main results
         all_results['enhanced_analysis'] = enhanced_results
