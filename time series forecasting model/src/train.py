@@ -1303,7 +1303,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     axes[1, 1].set_title('Energy Conservation Status')
     axes[1, 1].set_ylabel('Percentage (%)')
     axes[1, 1].grid(True, alpha=0.3)
-    
+    f
     # Add percentage values on bars
     for bar, value in zip(bars4, conservation_data):
         height = bar.get_height()
@@ -1749,7 +1749,8 @@ def main():
         lstm_units=Config.lstm_units,
         dropout_rate=Config.dropout_rate,
         device=device,
-        param_scaler=param_scaler
+        param_scaler=param_scaler,
+        thermal_scaler=thermal_scaler
     )
     
     # Wrap with FIXED unscaled evaluation trainer

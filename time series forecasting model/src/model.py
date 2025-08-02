@@ -198,14 +198,17 @@ def unscale_time_values(time_scaled_list, time_mean=300.0, time_std=300.0):
 
 
 def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300.0, time_std=300.0):
-    """Convert power data dictionaries to proper format for physics loss with PROPER TIME UNSCALING."""
+    """Convert power data dictionaries to proper format for physics loss with PROPER TIME UNSCALING.
+    
+    CRITICAL FIX: Check if temperatures are already unscaled before applying thermal_scaler.
+    """
     if not power_data_list:
         return None
     
     batch_size = len(power_data_list)
     processed_metadata = []
     
-    print(f"Processing power data batch with {batch_size} samples (with time unscaling)")
+    print(f"Processing power data batch with {batch_size} samples (with temperature scaling check)")
     
     for i, power_data in enumerate(power_data_list):
         if power_data is None or not isinstance(power_data, dict):
@@ -237,7 +240,7 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
                 })
                 continue
             
-            # CRITICAL FIX: Handle temperature unscaling if thermal_scaler is provided
+            # Get temperature lists and ensure they're plain Python floats
             temps_row1 = power_data['temps_row1']
             temps_row21 = power_data['temps_row21']
             
@@ -260,8 +263,17 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
                 print(f"Warning: temps_row21 is not a list/tuple at index {i}")
                 temps_row21 = [301.0] * 10  # fallback
             
-            # CRITICAL FIX: Unscale temperatures if scaler is provided
-            if thermal_scaler is not None:
+            # CRITICAL FIX: Check if temperatures are already in physical units
+            # If temperatures are in reasonable physical range (200-500K), don't unscale them
+            temp_sample = temps_row1[0] if temps_row1 else 300.0
+            
+            if 200.0 <= temp_sample <= 500.0:
+                # Temperatures are already in physical units (Kelvin)
+                print(f"Sample {i}: Temperatures already in physical units ({temp_sample:.1f}K), skipping thermal unscaling")
+                # Keep original values
+            elif thermal_scaler is not None and (-10.0 <= temp_sample <= 10.0):
+                # Temperatures appear to be scaled (normalized values around -10 to 10)
+                print(f"Sample {i}: Temperatures appear scaled ({temp_sample:.3f}), applying thermal unscaling")
                 try:
                     # Unscale temps_row1
                     temps_row1_array = np.array(temps_row1).reshape(1, -1)  # Shape (1, 10)
@@ -273,10 +285,13 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
                     temps_row21_unscaled = thermal_scaler.inverse_transform(temps_row21_array)[0]
                     temps_row21 = temps_row21_unscaled.tolist()
                     
-                    print(f"Sample {i}: Unscaled temperatures using thermal_scaler")
+                    print(f"Sample {i}: Successfully unscaled temperatures: {temps_row1[0]:.1f}K -> {temps_row21[0]:.1f}K")
                 except Exception as e:
                     print(f"Warning: Failed to unscale temperatures for sample {i}: {e}")
-                    # Keep scaled values if unscaling fails
+                    # Keep original values if unscaling fails
+            else:
+                # Temperatures are in some other range, keep as-is
+                print(f"Sample {i}: Temperature value {temp_sample:.1f} in unexpected range, keeping as-is")
             
             # CRITICAL FIX: Get raw time values and ensure they're in proper physical units
             time_row1_raw = float(power_data['time_row1'])
@@ -303,8 +318,8 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
             q0_value = float(power_data['q0'])
             
             processed_metadata.append({
-                'temps_row1': temps_row1,  # List of floats (unscaled if scaler provided)
-                'temps_row21': temps_row21,  # List of floats (unscaled if scaler provided)
+                'temps_row1': temps_row1,  # List of floats (properly handled)
+                'temps_row21': temps_row21,  # List of floats (properly handled)
                 'time_diff': time_diff,  # Float in physical units (seconds)
                 'h': h_value,  # Float
                 'q0': q0_value,  # Float
@@ -323,7 +338,7 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
                 'q0': 1000.0
             })
     
-    print(f"Successfully processed {len(processed_metadata)} power metadata entries with proper time unscaling")
+    print(f"Successfully processed {len(processed_metadata)} power metadata entries with temperature scaling check")
     return processed_metadata
 
 
@@ -431,43 +446,51 @@ class PhysicsInformedTrainer:
         return h_unscaled, q0_unscaled
         
     def compute_nine_bin_physics_loss(self, y_true, y_pred, power_metadata_list):
-        """Compute physics-based loss using 9 spatial bins with PROPER TIME AND TEMPERATURE UNSCALING."""
+        """Compute physics-based loss using 9 spatial bins with PROPER UNSCALING.
+        
+        CRITICAL FIX: Only unscale y_pred tensors, not the power_metadata temperatures 
+        which are already properly unscaled in process_power_data_batch.
+        """
         try:
             if not power_metadata_list or len(power_metadata_list) == 0:
                 zero_loss = torch.tensor(0.0, dtype=torch.float32, device=self.device)
                 return zero_loss, zero_loss, zero_loss, {}
-            
+
             # CRITICAL FIX: Ensure batch size consistency
             actual_batch_size = min(len(power_metadata_list), y_true.shape[0], y_pred.shape[0])
-            
-            # Validate batch size consistency
-            if len(power_metadata_list) != y_true.shape[0] or len(power_metadata_list) != y_pred.shape[0]:
-                print(f"Warning: Batch size mismatch - power_metadata: {len(power_metadata_list)}, "
-                    f"y_true: {y_true.shape[0]}, y_pred: {y_pred.shape[0]}")
-                print(f"Using minimum batch size: {actual_batch_size}")
-            
-            # CRITICAL FIX: Unscale y_true and y_pred if thermal_scaler is available
-            y_true_unscaled = y_true.clone()
+
+            # CRITICAL FIX: Only unscale y_pred (model predictions), 
+            # power_metadata temperatures are already unscaled in process_power_data_batch
             y_pred_unscaled = y_pred.clone()
             
             if self.thermal_scaler is not None:
                 try:
-                    # Convert tensors to numpy for scaler
-                    y_true_np = y_true.detach().cpu().numpy()
-                    y_pred_np = y_pred.detach().cpu().numpy()
+                    # Only process the actual batch size to avoid shape mismatches
+                    y_pred_batch = y_pred[:actual_batch_size].detach().cpu().numpy()
                     
-                    # Unscale using thermal_scaler
-                    y_true_unscaled_np = self.thermal_scaler.inverse_transform(y_true_np)
-                    y_pred_unscaled_np = self.thermal_scaler.inverse_transform(y_pred_np)
+                    print(f"UNSCALING DEBUG: Processing batch of size {actual_batch_size}")
+                    print(f"UNSCALING DEBUG: y_pred_batch shape: {y_pred_batch.shape}")
+                    print(f"UNSCALING DEBUG: y_pred sample before unscaling: {y_pred_batch[0][:3]}")
                     
-                    # Convert back to tensors
-                    y_true_unscaled = torch.tensor(y_true_unscaled_np, dtype=torch.float32, device=self.device)
+                    # Unscale using thermal_scaler - SHAPE MUST BE (n_samples, n_features)
+                    y_pred_unscaled_np = self.thermal_scaler.inverse_transform(y_pred_batch)
+                    
+                    print(f"UNSCALING DEBUG: y_pred sample after unscaling: {y_pred_unscaled_np[0][:3]}")
+                    
+                    # Convert back to tensors with proper batch size
                     y_pred_unscaled = torch.tensor(y_pred_unscaled_np, dtype=torch.float32, device=self.device)
                     
-                    print(f"Physics loss: Unscaled y_true and y_pred using thermal_scaler")
+                    print(f"UNSCALING SUCCESS: Unscaled y_pred using thermal_scaler")
+                    
                 except Exception as e:
-                    print(f"Warning: Failed to unscale y_true/y_pred: {e}")
+                    print(f"UNSCALING ERROR: Failed to unscale y_pred: {e}")
+                    import traceback
+                    traceback.print_exc()
                     # Use original scaled values if unscaling fails
+                    y_pred_unscaled = y_pred[:actual_batch_size].clone()
+            else:
+                # If no thermal scaler, just trim to actual batch size
+                y_pred_unscaled = y_pred[:actual_batch_size].clone()
             
             # Initialize lists to collect physics losses
             bin_physics_losses = []
@@ -486,13 +509,14 @@ class PhysicsInformedTrainer:
                 power_data = power_metadata_list[sample_idx]
                 
                 # Extract plain Python values - ALREADY PROPERLY UNSCALED in process_power_data_batch
-                temps_row1 = power_data['temps_row1']  # List of 10 floats (unscaled)
-                temps_row21 = power_data['temps_row21']  # List of 10 floats (unscaled)
+                temps_row1 = power_data['temps_row1']  # List of 10 floats (already unscaled)
+                temps_row21 = power_data['temps_row21']  # List of 10 floats (already unscaled)
                 time_diff = power_data['time_diff']  # Float in seconds (unscaled)
                 h_unscaled = power_data['h']  # Float - cylinder height
                 q0_unscaled = power_data['q0']  # Float - heat flux
                 
-                print(f"Sample {sample_idx}: Using time_diff = {time_diff:.2f} seconds (unscaled)")
+                print(f"Sample {sample_idx}: Using time_diff = {time_diff:.2f} seconds")
+                print(f"Sample {sample_idx}: T1_sample = {temps_row1[0]:.1f}K, T21_sample = {temps_row21[0]:.1f}K (from metadata)")
                 
                 # IMPORTANT: Use dynamic cylinder height from h parameter
                 cylinder_length = h_unscaled
@@ -523,16 +547,19 @@ class PhysicsInformedTrainer:
                         print(f"y_pred_unscaled shape: {y_pred_unscaled.shape}")
                         continue
                     
-                    # Get actual and predicted temperatures for this sample and sensors (UNSCALED)
+                    # Get actual temperatures from metadata (ALREADY UNSCALED)
                     actual_temp1_t1 = temps_row1[sensor1_idx]  # Already unscaled
                     actual_temp2_t1 = temps_row1[sensor2_idx]  # Already unscaled
                     actual_temp1_t21 = temps_row21[sensor1_idx]  # Already unscaled
                     actual_temp2_t21 = temps_row21[sensor2_idx]  # Already unscaled
                     
-                    # Get predictions as plain Python floats (UNSCALED) - SAFE INDEXING
+                    # Get predictions as plain Python floats (UNSCALED)
                     try:
                         pred_temp1_t21 = float(y_pred_unscaled[sample_idx, sensor1_idx].item())
                         pred_temp2_t21 = float(y_pred_unscaled[sample_idx, sensor2_idx].item())
+                        
+                        print(f"Sample {sample_idx}, Bin {bin_idx}: T1=[{actual_temp1_t1:.1f}, {actual_temp2_t1:.1f}] K, Actual_T21=[{actual_temp1_t21:.1f}, {actual_temp2_t21:.1f}] K, Pred_T21=[{pred_temp1_t21:.1f}, {pred_temp2_t21:.1f}] K")
+                        
                     except IndexError as e:
                         print(f"IndexError in sample {sample_idx}, sensors {sensor1_idx}, {sensor2_idx}: {e}")
                         print(f"y_pred_unscaled shape: {y_pred_unscaled.shape}, sample_idx: {sample_idx}")
@@ -547,9 +574,13 @@ class PhysicsInformedTrainer:
                     pred_temp2_change = pred_temp2_t21 - actual_temp2_t1  # Use actual initial temp
                     pred_bin_temp_change = (pred_temp1_change + pred_temp2_change) / 2.0
                     
+                    print(f"  Bin {bin_idx}: ΔT_actual={actual_bin_temp_change:.2f}K, ΔT_pred={pred_bin_temp_change:.2f}K")
+                    
                     # Power calculations using plain Python arithmetic WITH PROPER TIME UNITS
                     actual_bin_power = bin_mass * cp * actual_bin_temp_change / time_diff  # time_diff in seconds
                     pred_bin_power = bin_mass * cp * pred_bin_temp_change / time_diff      # time_diff in seconds
+                    
+                    print(f"  Bin {bin_idx}: P_actual={actual_bin_power:.2f}W, P_pred={pred_bin_power:.2f}W")
                     
                     sample_bin_actual_powers.append(actual_bin_power)
                     sample_bin_predicted_powers.append(pred_bin_power)
@@ -569,6 +600,8 @@ class PhysicsInformedTrainer:
                 
                 total_actual_powers.append(total_actual_power)
                 total_predicted_powers.append(total_predicted_power)
+                
+                print(f"Sample {sample_idx} total: P_actual={total_actual_power:.2f}W, P_pred={total_predicted_power:.2f}W, P_incoming={incoming_power:.2f}W")
                 
                 # Average physics loss for this sample
                 avg_sample_physics_loss = sum(sample_bin_physics_losses) / len(sample_bin_physics_losses)
@@ -610,7 +643,7 @@ class PhysicsInformedTrainer:
                 'power_imbalance': power_balance_losses,  # Plain Python list
                 'h_unscaled': [power_metadata_list[i]['h'] for i in range(len(total_actual_powers))],  # Plain Python list
                 'q0_unscaled': [power_metadata_list[i]['q0'] for i in range(len(total_actual_powers))],  # Plain Python list
-                'time_diff_unscaled': [power_metadata_list[i]['time_diff'] for i in range(len(total_actual_powers))]  # NEW: Include time diffs
+                'time_diff_unscaled': [power_metadata_list[i]['time_diff'] for i in range(len(total_actual_powers))]  # Plain Python list
             }
             
             return physics_loss, constraint_penalty, power_balance_loss, power_info
@@ -1086,6 +1119,115 @@ def create_trainer(model, physics_weight=0.1, constraint_weight=0.1, power_balan
     return trainer
 
 
+# Additional utility functions for debugging unscaling
+def test_tensor_unscaling(thermal_scaler, sample_tensor, device=None):
+    """Test function to verify tensor unscaling works correctly."""
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    print("\n" + "="*50)
+    print("TENSOR UNSCALING VALIDATION TEST")
+    print("="*50)
+    
+    # Test with a sample tensor
+    print(f"Original tensor (scaled): {sample_tensor[0][:3].detach().cpu().numpy()}")
+    
+    try:
+        # Convert to numpy
+        sample_np = sample_tensor.detach().cpu().numpy()
+        print(f"Converted to numpy: {sample_np[0][:3]}")
+        
+        # Unscale
+        unscaled_np = thermal_scaler.inverse_transform(sample_np)
+        print(f"Unscaled numpy: {unscaled_np[0][:3]}")
+        
+        # Convert back to tensor
+        unscaled_tensor = torch.tensor(unscaled_np, dtype=torch.float32, device=device)
+        print(f"Final unscaled tensor: {unscaled_tensor[0][:3].detach().cpu().numpy()}")
+        
+        # Verify consistency by re-scaling
+        rescaled_np = thermal_scaler.transform(unscaled_np)
+        consistency_error = np.mean(np.abs(sample_np - rescaled_np))
+        print(f"Consistency error: {consistency_error:.8f}")
+        
+        if consistency_error < 1e-6:
+            print("✅ Tensor unscaling is working correctly!")
+        else:
+            print("❌ Tensor unscaling has consistency issues!")
+            
+    except Exception as e:
+        print(f"❌ Tensor unscaling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        
+    print("="*50)
+
+
+def debug_prediction_unscaling(model, thermal_scaler, sample_input, device=None):
+    """Debug function to trace prediction unscaling step by step."""
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+    print("\n" + "="*60)
+    print("PREDICTION UNSCALING DEBUG TRACE")
+    print("="*60)
+    
+    model.eval()
+    with torch.no_grad():
+        # Get model predictions (these will be scaled)
+        if isinstance(sample_input, (list, tuple)):
+            time_series, static_params = sample_input
+        else:
+            time_series, static_params = sample_input['time_series'], sample_input['static_params']
+            
+        time_series = time_series.to(device)
+        static_params = static_params.to(device)
+        
+        y_pred_scaled = model([time_series, static_params], training=False)
+        
+        print(f"Model output (scaled): shape={y_pred_scaled.shape}")
+        print(f"Sample scaled predictions: {y_pred_scaled[0][:5].detach().cpu().numpy()}")
+        
+        if thermal_scaler is not None:
+            try:
+                # Step-by-step unscaling
+                print(f"\nStep 1: Convert to numpy")
+                y_pred_np = y_pred_scaled.detach().cpu().numpy()
+                print(f"Numpy array shape: {y_pred_np.shape}")
+                print(f"Numpy sample: {y_pred_np[0][:5]}")
+                
+                print(f"\nStep 2: Apply thermal_scaler.inverse_transform")
+                y_pred_unscaled_np = thermal_scaler.inverse_transform(y_pred_np)
+                print(f"Unscaled numpy shape: {y_pred_unscaled_np.shape}")
+                print(f"Unscaled numpy sample: {y_pred_unscaled_np[0][:5]}")
+                
+                print(f"\nStep 3: Convert back to tensor")
+                y_pred_unscaled = torch.tensor(y_pred_unscaled_np, dtype=torch.float32, device=device)
+                print(f"Final tensor shape: {y_pred_unscaled.shape}")
+                print(f"Final tensor sample: {y_pred_unscaled[0][:5].detach().cpu().numpy()}")
+                
+                # Verify the values are in reasonable temperature range
+                temp_range = y_pred_unscaled.detach().cpu().numpy()
+                print(f"\nTemperature range check:")
+                print(f"Min temperature: {np.min(temp_range):.2f} K")
+                print(f"Max temperature: {np.max(temp_range):.2f} K")
+                print(f"Mean temperature: {np.mean(temp_range):.2f} K")
+                
+                if np.min(temp_range) > 250 and np.max(temp_range) < 400:
+                    print("✅ Unscaled temperatures are in reasonable range!")
+                else:
+                    print("❌ Unscaled temperatures are outside reasonable range!")
+                    
+            except Exception as e:
+                print(f"❌ Unscaling failed: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("❌ No thermal_scaler provided!")
+            
+    print("="*60)
+
+
 def model_summary(model):
     """Print detailed model summary with 9-bin configuration and unscaling info."""
     print("="*70)
@@ -1126,6 +1268,7 @@ def model_summary(model):
     print("  • Temperature values: Unscaled using thermal_scaler")
     print("  • Parameter values: Unscaled using param_scaler")
     print("  • All physics calculations use physical units")
+    print("  • Model predictions properly unscaled before physics loss")
     
     print("\nLoss Components:")
     print("  1. MAE Loss: Temperature prediction accuracy")
@@ -1317,7 +1460,7 @@ def test_unscaling_consistency(thermal_scaler, time_mean=300.0, time_std=300.0):
 # Example usage and validation with proper unscaling
 if __name__ == "__main__":
     print("="*70)
-    print("9-BIN PHYSICS-INFORMED LSTM WITH PROPER UNSCALING (PYTORCH)")
+    print("FIXED 9-BIN PHYSICS-INFORMED LSTM WITH PROPER UNSCALING (PYTORCH)")
     print("="*70)
     
     # Set device
@@ -1370,11 +1513,26 @@ if __name__ == "__main__":
     model_summary(model)
     
     # Validate input shapes with dummy data
-    print("\nValidating 9-bin model with dummy data and proper unscaling...")
+    print("\nValidating FIXED 9-bin model with dummy data and proper unscaling...")
     batch_size = 32
     dummy_time_series = torch.randn(batch_size, 20, 11, device=device)
     dummy_static_params = torch.randn(batch_size, 4, device=device)
-    dummy_target = torch.randn(batch_size, 10, device=device)
+    
+    # Create dummy target using thermal scaler (simulating real scaled targets)
+    dummy_target_raw = np.random.randn(batch_size, 10) * 50 + 300  # Raw temperatures ~300K
+    dummy_target_scaled = thermal_scaler.transform(dummy_target_raw)  # Scale them
+    dummy_target = torch.tensor(dummy_target_scaled, dtype=torch.float32, device=device)
+    
+    # Test tensor unscaling with sample predictions
+    print("\nTesting tensor unscaling functionality...")
+    model.eval()
+    with torch.no_grad():
+        sample_predictions = model([dummy_time_series[:5], dummy_static_params[:5]], training=False)
+        test_tensor_unscaling(thermal_scaler, sample_predictions, device)
+        
+        # Debug prediction unscaling step by step
+        debug_prediction_unscaling(model, thermal_scaler, 
+                                 [dummy_time_series[:2], dummy_static_params[:2]], device)
     
     # Create dummy power metadata for 9-bin testing WITH PROPER SCALING SIMULATION
     # Simulate scaled temperatures (what the model actually sees)
@@ -1404,6 +1562,7 @@ if __name__ == "__main__":
         print(f"   Input time_series: {dummy_time_series.shape}")
         print(f"   Input static_params: {dummy_static_params.shape}")
         print(f"   Output predictions: {dummy_output.shape}")
+        print(f"   Sample prediction (scaled): {dummy_output[0][:3].detach().cpu().numpy()}")
         
         # Test power data processing with proper unscaling
         power_metadata_list = process_power_data_batch(
@@ -1423,12 +1582,13 @@ if __name__ == "__main__":
             print(f"   Sample 0 temps_row1[0]: {sample_meta['temps_row1'][0]:.2f} K (unscaled)")
             print(f"   Sample 0 temps_row21[0]: {sample_meta['temps_row21'][0]:.2f} K (unscaled)")
         
-        # Test 9-bin physics loss computation with proper unscaling
+        # Test FIXED 9-bin physics loss computation with proper unscaling
+        print(f"\n🔧 TESTING FIXED PHYSICS LOSS WITH PROPER TENSOR UNSCALING...")
         physics_loss, constraint_loss, power_balance_loss, power_info = trainer.compute_nine_bin_physics_loss(
             dummy_target, dummy_output, power_metadata_list
         )
         
-        print(f"✅ 9-bin physics loss computation with proper unscaling successful")
+        print(f"✅ FIXED 9-bin physics loss computation with proper unscaling successful")
         print(f"   Physics loss: {physics_loss:.4f}")
         print(f"   Constraint loss: {constraint_loss:.4f}")
         print(f"   Power balance loss: {power_balance_loss:.4f}")
@@ -1443,12 +1603,19 @@ if __name__ == "__main__":
             print(f"   Total predicted power range: {min(predicted_powers):.2f} - {max(predicted_powers):.2f} W")
             print(f"   Incoming power range: {min(incoming_powers):.2f} - {max(incoming_powers):.2f} W")
             print(f"   Time differences range: {min(time_diffs):.2f} - {max(time_diffs):.2f} seconds")
+            
+            # Check if predicted powers are reasonable (not extremely negative)
+            reasonable_predictions = all(p > -10000 for p in predicted_powers)
+            if reasonable_predictions:
+                print(f"✅ Predicted powers are in reasonable range!")
+            else:
+                print(f"❌ Some predicted powers are extremely negative - check unscaling!")
         
         # Test training step with dummy batch
         dummy_batch = [dummy_time_series, dummy_static_params, dummy_target, dummy_power_data]
         train_result = trainer.train_step(dummy_batch)
         
-        print(f"✅ Training step with 9-bin physics and proper unscaling successful")
+        print(f"✅ Training step with FIXED physics loss and proper unscaling successful")
         print(f"   Total loss: {train_result['loss']:.4f}")
         print(f"   MAE: {train_result['mae']:.4f}")
         print(f"   Physics loss: {train_result['physics_loss']:.4f}")
@@ -1456,47 +1623,32 @@ if __name__ == "__main__":
         print(f"   Power balance loss: {train_result['power_balance_loss']:.4f}")
         
     except Exception as e:
-        print(f"❌ Error during 9-bin validation with unscaling: {e}")
+        print(f"❌ Error during FIXED 9-bin validation with unscaling: {e}")
         import traceback
         traceback.print_exc()
     
     print("\n" + "="*70)
-    print("9-BIN PHYSICS-INFORMED PYTORCH MODEL WITH PROPER UNSCALING READY!")
+    print("FIXED 9-BIN PHYSICS-INFORMED PYTORCH MODEL WITH PROPER UNSCALING READY!")
     print("="*70)
-    print("Key Features Implemented:")
-    print("✅ Converted from TensorFlow to PyTorch")
-    print("✅ Corrected input shape from (20,21) to (20,11)")
-    print("✅ 9-bin spatial segmentation (TC1-TC2, TC2-TC3, ..., TC9-TC10)")
-    print("✅ Individual bin power conservation constraints")
-    print("✅ Total system power balance validation")
-    print("✅ Energy conservation penalties (no bin exceeds incoming power)")
-    print("✅ Power imbalance detection (predicted vs incoming power)")
-    print("✅ CRITICAL FIX: Proper time unscaling to physical units (seconds)")
-    print("✅ CRITICAL FIX: Proper temperature unscaling using thermal_scaler")
-    print("✅ CRITICAL FIX: Proper parameter unscaling using param_scaler")
-    print("✅ All physics calculations now use physical units")
-    print("✅ Comprehensive physics loss with 3 components:")
-    print("    • 9-bin physics loss (bin-wise power differences in Watts)")
-    print("    • Constraint penalty (energy conservation violations)")
-    print("    • Power balance loss (total system power vs incoming in Watts)")
-    print("✅ PyTorch model saving/loading with state_dict")
-    print("✅ Power balance analysis tools for diagnostics")
-    print("✅ Gradient clipping and batch normalization")
-    print("✅ GPU/CPU device handling")
-    print("✅ Comprehensive metrics tracking")
-    print("✅ Unscaling consistency validation")
+    print("🔧 CRITICAL FIXES IMPLEMENTED:")
+    print("✅ Fixed tensor unscaling in compute_nine_bin_physics_loss method")
+    print("✅ Added proper batch size handling to prevent shape mismatches")
+    print("✅ Added detailed debug output to trace unscaling process")
+    print("✅ Added tensor unscaling validation functions")
+    print("✅ Added step-by-step prediction unscaling debug function")
+    print("✅ Model predictions are now properly unscaled before physics calculations")
+    print("✅ All temperature values in physics loss are in physical units (Kelvin)")
+    print("✅ Time values are properly unscaled to seconds")
+    print("✅ Physics calculations use proper physical units throughout")
     print("="*70)
     
-    print("\nUsage Notes:")
-    print("• IMPORTANT: Pass thermal_scaler to trainer for temperature unscaling")
-    print("• IMPORTANT: Pass param_scaler to trainer for h/q0 unscaling")
-    print("• IMPORTANT: Set correct time_mean and time_std for time unscaling")
-    print("• Power metadata temperatures will be automatically unscaled")
-    print("• Time differences will be automatically converted to physical seconds")
-    print("• All physics calculations now use proper physical units")
-    print("• Use trainer.analyze_power_balance() to diagnose power conservation")
-    print("• Adjust physics_weight, constraint_weight, power_balance_weight as needed")
-    print("• Model enforces energy conservation in physical units")
-    print("• Model automatically handles GPU/CPU device placement")
-    print("• Use test_unscaling_consistency() to verify scaler consistency")
+    print("\nUSAGE NOTES FOR THE FIXED VERSION:")
+    print("• The main fix is in compute_nine_bin_physics_loss method")
+    print("• y_pred tensors are now properly unscaled using thermal_scaler")
+    print("• Added extensive debug output to trace unscaling process")
+    print("• Use debug_prediction_unscaling() to verify unscaling works")
+    print("• Use test_tensor_unscaling() to validate tensor operations")
+    print("• Predicted temperatures should now be in 250-400K range")
+    print("• Physics calculations will use physical temperature units")
+    print("• Debug output will show proper temperature values during training")
     print("="*70)
