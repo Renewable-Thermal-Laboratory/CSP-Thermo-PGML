@@ -1,6 +1,6 @@
 {
   "model_type": "PhysicsInformedLSTM",
-  "physics_approach": "9-bin_spatial_segmentation",
+  "physics_approach": "9-bin_spatial_segmentation_with_proper_unscaling",
   "num_sensors": 10,
   "sequence_length": 20,
   "lstm_units": 64,
@@ -48,6 +48,12 @@
       9
     ]
   ],
+  "unscaling_parameters": {
+    "time_mean": 300.0,
+    "time_std": 300.0,
+    "thermal_scaler_available": true,
+    "param_scaler_available": true
+  },
   "physics_constants": {
     "density": 1836.31,
     "specific_heat": 1512.0,
@@ -62,8 +68,8 @@
     ],
     "eps": 1e-07
   },
-  "save_timestamp": "2025-07-27T02:06:25.728581",
+  "save_timestamp": "2025-08-02T13:06:18.527222",
   "pytorch_version": "2.7.0",
   "device": "cpu",
-  "saving_method": "state_dict_based"
+  "saving_method": "state_dict_based_with_proper_unscaling"
 }
