@@ -466,13 +466,24 @@ class FixedUnscaledEvaluationTrainer:
                         )
                         
                         if power_info:  # If analysis succeeded
-                            total_actual_powers.extend(power_info['total_actual_power'])
-                            total_predicted_powers.extend(power_info['total_predicted_power'])
-                            incoming_powers.extend(power_info['incoming_power'])
+                            # FIXED: Use correct plural key names that match compute_nine_bin_physics_loss
+                            if 'total_actual_powers' in power_info and power_info['total_actual_powers']:
+                                total_actual_powers.extend(power_info['total_actual_powers'])
                             
-                            sample_count += len(power_info['total_actual_power'])
+                            if 'total_predicted_powers' in power_info and power_info['total_predicted_powers']:
+                                total_predicted_powers.extend(power_info['total_predicted_powers'])
+                            
+                            if 'incoming_powers' in power_info and power_info['incoming_powers']:
+                                incoming_powers.extend(power_info['incoming_powers'])
+                            
+                            # Count samples processed
+                            sample_count += power_info.get('num_samples_processed', 0)
+                            
                 except Exception as e:
                     print(f"Warning: Error in power analysis: {e}")
+                    # Add debug info to help troubleshoot
+                    if 'power_info' in locals() and power_info:
+                        print(f"  Available power_info keys: {list(power_info.keys())}")
                     continue
         
         if len(total_actual_powers) > 0:
@@ -518,6 +529,9 @@ class FixedUnscaledEvaluationTrainer:
             print("\n✅ SUCCESS: Real power data extracted and analyzed!")
         else:
             print("❌ No valid power analysis results obtained")
+            print(f"  Total actual powers collected: {len(total_actual_powers)}")
+            print(f"  Total predicted powers collected: {len(total_predicted_powers)}")
+            print(f"  Incoming powers collected: {len(incoming_powers)}")
         
         print("="*60)
 
