@@ -554,6 +554,11 @@ def parse_height_from_filename(filename):
     Expected format from your files: "h{height}_flux{flux}_abs{abs}_surf{surf}_{time}s.csv"
     Example: "h0.4_flux40000_abs15_surf70_600s.csv" -> height = 0.4
     """
+
+    if filename.lower().startswith('h6'):
+        print(f"✅ Special case: filename starts with 'h6', using height 0.1575m for: {filename}")
+        return 0.1575
+    
     # Look for patterns like "h0.4", "h0.5", "h1.0", etc.
     height_pattern = r'h(\d+\.?\d*)'
     match = re.search(height_pattern, filename.lower())
