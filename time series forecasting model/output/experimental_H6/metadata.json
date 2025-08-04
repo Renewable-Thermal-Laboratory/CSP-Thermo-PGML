@@ -68,7 +68,7 @@
     ],
     "eps": 1e-07
   },
-  "save_timestamp": "2025-08-04T23:11:25.473926",
+  "save_timestamp": "2025-08-05T00:15:00.755008",
   "pytorch_version": "2.7.0",
   "device": "cpu",
   "saving_method": "state_dict_based_with_proper_unscaling"

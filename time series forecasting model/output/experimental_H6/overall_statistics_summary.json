@@ -1,0 +1,34 @@
+{
+  "temperature_accuracy": {
+    "mae_overall": 0.5843337774276733,
+    "rmse_overall": 0.9046410918235779,
+    "r2_overall": 0.9933940768241882,
+    "mean_mae_across_sensors": "0.5843338",
+    "mean_rmse_across_sensors": 0.8056586414575577,
+    "mean_r2_across_sensors": 0.9935159146785736,
+    "max_error_across_all": "7.1761475"
+  },
+  "physics_losses": {
+    "physics_loss": 171.91057684894804,
+    "constraint_loss": 6637470.229144162,
+    "power_balance_loss": 813.4846076643869
+  },
+  "power_balance": {
+    "mean_actual_power": 651764834.8586179,
+    "mean_predicted_power": 654444323.7347655,
+    "mean_incoming_power": 1570.796326794897,
+    "mean_actual_to_incoming_ratio": 414926.38080488757,
+    "mean_predicted_to_incoming_ratio": 416632.19640328217,
+    "conservation_violations": {
+      "count": 8523,
+      "percentage": 100.0,
+      "mean_violation_amount": 654442752.9384387
+    }
+  },
+  "energy_conservation": {
+    "conservation_violated": true,
+    "violation_count": 8523,
+    "violation_percentage": 100.0,
+    "mean_violation_amount": 654442752.9384387
+  }
+}
