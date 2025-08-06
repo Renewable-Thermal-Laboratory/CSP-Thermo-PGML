@@ -41,7 +41,7 @@ def process_dataset_by_h_value(input_dir, output_dir):
             # Process based on h value
             if h_value == 2:
                 # h2: Drop columns TC5-TC10 only, keep all others
-                columns_to_drop = ['TC5', 'TC6', 'TC7', 'TC8', 'TC9', 'TC10']
+                columns_to_drop = ['TC4','TC5', 'TC6', 'TC7', 'TC8', 'TC9','TC_9_5','TC10']
                 df_processed = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
                 print(f"h2 - Processed {filename}: Dropped TC5-TC10")
                 
@@ -62,7 +62,7 @@ def process_dataset_by_h_value(input_dir, output_dir):
                 df_reordered = df[existing_columns]
                 
                 # Remove specific columns for h3
-                columns_to_remove = ['TC8', 'TC9', 'TC10', 'TC_Bottom_rec_groove', 'TC_wall_ins_ext', 'TC_bottom_ins_groove']
+                columns_to_remove = ['TC6','TC7','TC8', 'TC9', 'TC10', 'TC_Bottom_rec_groove', 'TC_wall_ins_ext', 'TC_bottom_ins_groove']
                 df_processed = df_reordered.drop(columns=[col for col in columns_to_remove if col in df_reordered.columns])
                 print(f"h3 - Processed {filename}: Reordered columns and removed TC8,9,10 and specific columns")
                 
@@ -85,6 +85,6 @@ def process_dataset_by_h_value(input_dir, output_dir):
 
 # === Usage ===
 cleaned_input_dir = "PhysicsGuidedNeuralNetwork/data/new_processed_reset"
-time_reset_output_dir = r"D:\Research Assistant work\Github Organization\ml models\ml_models\PhysicsGuidedNeuralNetwork\data/new_processed_fix"
+time_reset_output_dir = "PhysicsGuidedNeuralNetwork/data/new_processed_fix_new"
 
 process_dataset_by_h_value(cleaned_input_dir, time_reset_output_dir)
