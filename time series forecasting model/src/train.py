@@ -1444,9 +1444,9 @@ class Config:
     patience = 10
     lstm_units = 64
     dropout_rate = 0.2
-    physics_weight = 0.1
-    constraint_weight = 0.1
-    power_balance_weight = 0.05
+    physics_weight = 0.001
+    constraint_weight = 0.001
+    power_balance_weight = 0.0005
     sequence_length = 20
     prediction_horizon = 1
     cylinder_length = 1.0

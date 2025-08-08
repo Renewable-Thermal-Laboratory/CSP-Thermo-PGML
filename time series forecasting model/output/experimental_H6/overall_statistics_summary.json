@@ -10,8 +10,8 @@
   },
   "physics_losses": {
     "physics_loss": 171.91057684894804,
-    "constraint_loss": 6637470.229144162,
-    "power_balance_loss": 813.4846076643869
+    "constraint_loss": 0.0003722949257685916,
+    "power_balance_loss": 676.8087348062894
   },
   "power_balance": {
     "mean_actual_power": 651764834.8586179,

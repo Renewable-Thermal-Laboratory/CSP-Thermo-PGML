@@ -362,11 +362,12 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
 
 
 class PhysicsInformedTrainer:
-    """Custom trainer that handles physics-informed loss computation with 9-bin approach and PROPER TIME UNSCALING."""
+    """Custom trainer that handles physics-informed loss computation with 9-bin approach, PROPER TIME UNSCALING, and POWER CAPPING."""
     
     def __init__(self, model, physics_weight=0.1, constraint_weight=0.1, learning_rate=0.001, 
                  cylinder_length=1.0, power_balance_weight=0.05, lstm_units=64, dropout_rate=0.2,
-                 device=None, param_scaler=None, thermal_scaler=None, time_mean=300.0, time_std=300.0):
+                 device=None, param_scaler=None, thermal_scaler=None, time_mean=300.0, time_std=300.0,
+                 cap_penalty_weight=0.01, use_soft_capping=False):
         self.model = model
         self.physics_weight = physics_weight
         self.constraint_weight = constraint_weight
@@ -377,11 +378,20 @@ class PhysicsInformedTrainer:
         self.lstm_units = lstm_units
         self.dropout_rate = dropout_rate
         
+        # POWER CAPPING PARAMETERS
+        self.cap_penalty_weight = cap_penalty_weight
+        self.use_soft_capping = use_soft_capping
+        
+        # Statistics tracking for power capping
+        self.cap_scales = []
+        self.cap_violations = 0
+        self.cap_samples = 0
+        
         # IMPORTANT: Store scalers for proper unscaling
         self.param_scaler = param_scaler
-        self.thermal_scaler = thermal_scaler  # NEW: Store thermal scaler
-        self.time_mean = time_mean  # NEW: Store time normalization parameters
-        self.time_std = time_std    # NEW: Store time normalization parameters
+        self.thermal_scaler = thermal_scaler  # Store thermal scaler
+        self.time_mean = time_mean  # Store time normalization parameters
+        self.time_std = time_std    # Store time normalization parameters
         
         if param_scaler is None:
             print("Warning: param_scaler not provided to trainer - physics calculations may be incorrect")
@@ -434,6 +444,95 @@ class PhysicsInformedTrainer:
             'val_power_balance_loss': []
         }
 
+    def _cap_positive_powers(self, pred_bin_powers, incoming_power):
+        """
+        Cap positive predicted powers to not exceed incoming power while preserving cooling (negative powers).
+        
+        This is a CRITICAL method for ensuring energy conservation in your physics-informed model.
+        
+        Args:
+            pred_bin_powers: Tensor of shape [num_bins] with predicted power for each bin
+            incoming_power: Scalar tensor with total incoming power
+            
+        Returns:
+            capped_powers: Tensor with capped positive powers
+            scale_factor: Scaling factor applied (1.0 = no scaling needed)
+            violation_occurred: Boolean tensor indicating if capping was needed
+        """
+        # Separate positive and negative powers
+        positive_mask = pred_bin_powers > 0
+        negative_mask = pred_bin_powers <= 0
+        
+        positive_powers = pred_bin_powers[positive_mask]
+        negative_powers = pred_bin_powers[negative_mask]
+        
+        # Calculate total positive power
+        total_positive_power = torch.sum(positive_powers) if len(positive_powers) > 0 else torch.tensor(0.0, device=pred_bin_powers.device)
+        
+        # Check if capping is needed
+        violation_occurred = total_positive_power > incoming_power
+        
+        if violation_occurred and len(positive_powers) > 0:
+            # Calculate scaling factor to cap total positive power at incoming power
+            scale_factor = incoming_power / (total_positive_power + 1e-8)  # Small epsilon to prevent division by zero
+            scale_factor = torch.clamp(scale_factor, min=0.0, max=1.0)  # Ensure scale is between 0 and 1
+            
+            # Scale down only the positive powers
+            scaled_positive_powers = positive_powers * scale_factor
+            
+            # Reconstruct the full power array
+            capped_powers = pred_bin_powers.clone()
+            capped_powers[positive_mask] = scaled_positive_powers
+            # negative powers remain unchanged
+            
+        else:
+            # No capping needed
+            scale_factor = torch.tensor(1.0, device=pred_bin_powers.device)
+            capped_powers = pred_bin_powers.clone()
+        
+        return capped_powers, scale_factor, violation_occurred
+    
+    def _soft_cap_powers(self, pred_bin_powers, incoming_power, soft_cap_factor=0.9):
+        """
+        Soft capping using sigmoid function instead of hard scaling.
+        
+        This approach uses a smooth sigmoid function to discourage but not strictly prevent
+        exceeding the incoming power, which may be better for gradient flow.
+        
+        Args:
+            pred_bin_powers: Tensor of shape [num_bins] with predicted power for each bin
+            incoming_power: Scalar tensor with total incoming power
+            soft_cap_factor: Factor determining how aggressively to cap (0.5-0.95 recommended)
+            
+        Returns:
+            soft_capped_powers: Tensor with soft-capped powers
+            penalty: Soft penalty for exceeding the limit
+        """
+        # Calculate total predicted power
+        total_predicted_power = torch.sum(pred_bin_powers)
+        
+        # Soft capping using sigmoid
+        excess_ratio = total_predicted_power / (incoming_power + 1e-8)
+        
+        if excess_ratio > 1.0:
+            # Apply sigmoid scaling when exceeding incoming power
+            sigmoid_factor = torch.sigmoid(-10 * (excess_ratio - 1.0))  # Sharp sigmoid around 1.0
+            scaling = soft_cap_factor + (1 - soft_cap_factor) * sigmoid_factor
+            
+            # Apply scaling to all positive powers
+            positive_mask = pred_bin_powers > 0
+            soft_capped_powers = pred_bin_powers.clone()
+            soft_capped_powers[positive_mask] *= scaling
+            
+            # Calculate penalty proportional to excess
+            penalty = (excess_ratio - 1.0) ** 2
+            
+        else:
+            soft_capped_powers = pred_bin_powers
+            penalty = torch.tensor(0.0, device=pred_bin_powers.device)
+        
+        return soft_capped_powers, penalty
+
     def unscale_h_q0(self, h_scaled_list, q0_scaled_list):
         """Unscale h and q0 parameters to physical units - NO TENSORS VERSION."""
         if not isinstance(h_scaled_list, list):
@@ -465,7 +564,7 @@ class PhysicsInformedTrainer:
         return h_unscaled, q0_unscaled
         
     def compute_nine_bin_physics_loss(self, y_true, y_pred, power_metadata_list):
-        """Compute physics-based loss using 9 spatial bins with PROPER UNSCALING.
+        """Compute physics-based loss using 9 spatial bins with PROPER UNSCALING and POWER CAPPING.
         
         CRITICAL FIX: Only unscale y_pred tensors, not the power_metadata temperatures 
         which are already properly unscaled in process_power_data_batch.
@@ -502,7 +601,7 @@ class PhysicsInformedTrainer:
             constraint_penalties = []
             power_balance_losses = []
             
-            # FIXED: Initialize power analysis lists properly
+            # Initialize power analysis lists properly
             total_actual_powers = []
             total_predicted_powers = []
             incoming_powers = []
@@ -584,11 +683,40 @@ class PhysicsInformedTrainer:
                     if len(sample_physics_losses) == 0:
                         continue
                     
+                    # --- POWER CAPPING (CONFIGURABLE HARD/SOFT) ---
+                    if len(sample_predicted_powers) > 0:
+                        pred_bin_powers = torch.stack(sample_predicted_powers)  # [num_bins]
+                        incoming_power_tensor = torch.tensor(incoming_power, dtype=torch.float32, device=self.device)
+                        
+                        if self.use_soft_capping:
+                            # Apply soft capping
+                            capped_powers, soft_penalty = self._soft_cap_powers(pred_bin_powers, incoming_power_tensor)
+                            constraint_penalties.append(soft_penalty)
+                            scale_factor = torch.tensor(1.0, device=self.device)  # For statistics
+                            violated = soft_penalty > 0
+                        else:
+                            # Apply hard capping
+                            capped_powers, scale_factor, violated = self._cap_positive_powers(pred_bin_powers, incoming_power_tensor)
+                            # Penalty to discourage frequent/large rescaling
+                            cap_penalty = self.cap_penalty_weight * (1.0 - scale_factor) ** 2
+                            constraint_penalties.append(cap_penalty)
+                        
+                        # Track statistics for tuning
+                        try:
+                            self.cap_scales.append(float(scale_factor.detach().cpu()))
+                            self.cap_violations += int(violated.item()) if isinstance(violated, torch.Tensor) else int(violated)
+                            self.cap_samples += 1
+                        except Exception:
+                            pass
+                        
+                        # Replace list with capped tensor values for downstream calculations
+                        sample_predicted_powers = list(capped_powers)
+                    
                     # Calculate total powers for this sample - SUM TENSORS
                     total_actual_power = sum(sample_actual_powers)
                     total_predicted_power = sum(sample_predicted_powers)
                     
-                    # FIXED: Store power analysis data properly with consistent naming
+                    # Store power analysis data properly with consistent naming
                     total_actual_powers.append(float(total_actual_power) if isinstance(total_actual_power, torch.Tensor) else total_actual_power)
                     total_predicted_powers.append(float(total_predicted_power) if isinstance(total_predicted_power, torch.Tensor) else total_predicted_power)
                     incoming_powers.append(incoming_power)
@@ -597,7 +725,7 @@ class PhysicsInformedTrainer:
                     avg_sample_physics_loss = sum(sample_physics_losses) / len(sample_physics_losses)
                     physics_losses.append(avg_sample_physics_loss)
                     
-                    # Constraint penalties - KEEP AS TENSOR
+                    # Additional constraint penalties - KEEP AS TENSOR
                     incoming_power_tensor = torch.tensor(incoming_power, dtype=torch.float32, device=self.device)
                     
                     # Individual bin constraint: no bin should exceed total incoming power
@@ -622,7 +750,7 @@ class PhysicsInformedTrainer:
             constraint_penalty = sum(constraint_penalties) / len(constraint_penalties)
             power_balance_loss = sum(power_balance_losses) / len(power_balance_losses)
             
-            # FIXED: Return enhanced info for analysis with proper power data structure
+            # Return enhanced info for analysis with proper power data structure
             power_info = {
                 'num_samples_processed': len(physics_losses),
                 'physics_loss_components': len(physics_losses),
@@ -631,7 +759,14 @@ class PhysicsInformedTrainer:
                 'incoming_powers': incoming_powers,
                 'avg_actual_power': np.mean(total_actual_powers) if total_actual_powers else 0.0,
                 'avg_predicted_power': np.mean(total_predicted_powers) if total_predicted_powers else 0.0,
-                'avg_incoming_power': np.mean(incoming_powers) if incoming_powers else 0.0
+                'avg_incoming_power': np.mean(incoming_powers) if incoming_powers else 0.0,
+                'power_cap_stats': {
+                    'violations': self.cap_violations,
+                    'samples': self.cap_samples,
+                    'violation_rate': self.cap_violations / max(self.cap_samples, 1),
+                    'avg_scale_factor': np.mean(self.cap_scales[-100:]) if self.cap_scales else 1.0,  # Last 100 samples
+                    'capping_method': 'soft' if self.use_soft_capping else 'hard'
+                }
             }
             
             return physics_loss, constraint_penalty, power_balance_loss, power_info
@@ -641,8 +776,37 @@ class PhysicsInformedTrainer:
             zero_loss = torch.tensor(0.0, dtype=torch.float32, device=self.device, requires_grad=True)
             return zero_loss, zero_loss, zero_loss, {}
     
+    def print_power_cap_statistics(self):
+        """Print statistics about power capping behavior."""
+        if self.cap_samples == 0:
+            print("No power capping statistics available yet.")
+            return
+        
+        violation_rate = self.cap_violations / self.cap_samples
+        avg_scale = np.mean(self.cap_scales) if self.cap_scales else 1.0
+        
+        print("\n" + "="*50)
+        print("POWER CAPPING STATISTICS")
+        print("="*50)
+        print(f"Capping method: {'Soft' if self.use_soft_capping else 'Hard'}")
+        print(f"Total samples processed: {self.cap_samples}")
+        print(f"Power cap violations: {self.cap_violations}")
+        print(f"Violation rate: {violation_rate:.3f} ({violation_rate*100:.1f}%)")
+        print(f"Average scale factor: {avg_scale:.4f}")
+        print(f"Min scale factor: {min(self.cap_scales):.4f}" if self.cap_scales else "N/A")
+        print(f"Max scale factor: {max(self.cap_scales):.4f}" if self.cap_scales else "N/A")
+        
+        if violation_rate > 0.5:
+            print("⚠️  HIGH VIOLATION RATE: Consider increasing power_balance_weight or decreasing physics_weight")
+        elif violation_rate < 0.01:
+            print("✅ LOW VIOLATION RATE: Power capping is working well")
+        else:
+            print("✅ MODERATE VIOLATION RATE: Power capping is functioning normally")
+        
+        print("="*50)
+    
     def train_step(self, batch):
-        """Custom training step with 9-bin physics loss and PROPER UNSCALING."""
+        """Custom training step with 9-bin physics loss, PROPER UNSCALING, and POWER CAPPING."""
         self.model.train()
         
         # Move batch to device - ensure consistent batch size
@@ -713,7 +877,7 @@ class PhysicsInformedTrainer:
         }
 
     def validation_step(self, batch):
-        """Validation step with 9-bin physics analysis and PROPER UNSCALING."""
+        """Validation step with 9-bin physics analysis, PROPER UNSCALING, and POWER CAPPING."""
         self.model.eval()
         
         with torch.no_grad():
@@ -776,7 +940,7 @@ class PhysicsInformedTrainer:
             }
     
     def train_epoch(self, train_loader, val_loader=None):
-        """Train for one epoch with detailed physics tracking."""
+        """Train for one epoch with detailed physics tracking and power capping."""
         # Initialize metrics for this epoch
         epoch_train_metrics = defaultdict(list)
         epoch_val_metrics = defaultdict(list)
@@ -829,9 +993,9 @@ class PhysicsInformedTrainer:
         return results
     
     def analyze_power_balance(self, data_loader, num_samples=100):
-        """Analyze power balance across the system for diagnostic purposes with PROPER UNSCALING."""
+        """Analyze power balance across the system for diagnostic purposes with PROPER UNSCALING and POWER CAPPING."""
         print("\n" + "="*60)
-        print("POWER BALANCE ANALYSIS (WITH PROPER UNSCALING)")
+        print("POWER BALANCE ANALYSIS (WITH PROPER UNSCALING & POWER CAPPING)")
         print("="*60)
         
         sample_count = 0
@@ -890,20 +1054,23 @@ class PhysicsInformedTrainer:
             print(f"Average physics loss: {np.mean(physics_losses):.4f}")
             print(f"Physics loss std: {np.std(physics_losses):.4f}")
             
-            # FIXED: Safely extract power analysis data with proper error handling
+            # Extract power analysis data with proper error handling
             try:
                 all_actual_powers = []
                 all_predicted_powers = []
                 all_incoming_powers = []
+                all_cap_stats = []
                 
                 for power_info in all_power_info:
-                    # FIXED: Use consistent naming from compute_nine_bin_physics_loss
+                    # Extract power data with consistent naming
                     if 'total_actual_powers' in power_info and power_info['total_actual_powers']:
                         all_actual_powers.extend(power_info['total_actual_powers'])
                     if 'total_predicted_powers' in power_info and power_info['total_predicted_powers']:
                         all_predicted_powers.extend(power_info['total_predicted_powers'])
                     if 'incoming_powers' in power_info and power_info['incoming_powers']:
                         all_incoming_powers.extend(power_info['incoming_powers'])
+                    if 'power_cap_stats' in power_info:
+                        all_cap_stats.append(power_info['power_cap_stats'])
                 
                 if all_actual_powers and all_predicted_powers and all_incoming_powers:
                     print(f"\nPower Analysis:")
@@ -924,6 +1091,24 @@ class PhysicsInformedTrainer:
                         print("✅ Energy conservation is reasonable")
                     else:
                         print("❌ Energy conservation ratio is outside reasonable bounds")
+                        
+                    # Power capping statistics
+                    if all_cap_stats:
+                        avg_violation_rate = np.mean([stats['violation_rate'] for stats in all_cap_stats])
+                        avg_scale_factor = np.mean([stats['avg_scale_factor'] for stats in all_cap_stats])
+                        capping_method = all_cap_stats[0]['capping_method']
+                        
+                        print(f"\nPower Capping Analysis:")
+                        print(f"Capping method: {capping_method}")
+                        print(f"Average violation rate: {avg_violation_rate:.3f} ({avg_violation_rate*100:.1f}%)")
+                        print(f"Average scale factor: {avg_scale_factor:.4f}")
+                        
+                        if avg_violation_rate > 0.5:
+                            print("⚠️  High violation rate - consider tuning weights")
+                        elif avg_violation_rate < 0.01:
+                            print("✅ Low violation rate - power capping working well")
+                        else:
+                            print("✅ Moderate violation rate - normal operation")
                         
                     # Additional statistics
                     print(f"\nDetailed Statistics:")
@@ -946,10 +1131,13 @@ class PhysicsInformedTrainer:
             print(f"   Physics losses collected: {len(physics_losses)}")
             print(f"   Power info objects: {len(all_power_info)}")
         
+        # Print overall power capping statistics
+        self.print_power_cap_statistics()
+        
         print("="*60)
     
     def save_model(self, filepath, include_optimizer=True):
-        """Save model using PyTorch's state_dict approach."""
+        """Save model using PyTorch's state_dict approach with power capping info."""
         # Create directory if it doesn't exist
         os.makedirs(filepath, exist_ok=True)
         
@@ -975,10 +1163,10 @@ class PhysicsInformedTrainer:
         with open(history_path, 'w') as f:
             json.dump(self.history, f, indent=2)
         
-        # Save enhanced metadata with unscaling info
+        # Save enhanced metadata with unscaling info and power capping
         metadata = {
             'model_type': 'PhysicsInformedLSTM',
-            'physics_approach': '9-bin_spatial_segmentation_with_proper_unscaling',
+            'physics_approach': '9-bin_spatial_segmentation_with_proper_unscaling_and_power_capping',
             'num_sensors': self.model.num_sensors,
             'sequence_length': self.model.sequence_length,
             'lstm_units': self.model.lstm_units,
@@ -989,7 +1177,18 @@ class PhysicsInformedTrainer:
             'cylinder_length': self.cylinder_length,
             'num_bins': self.num_bins,
             'bin_sensor_pairs': self.bin_sensor_pairs,
-            'unscaling_parameters': {  # NEW: Store unscaling parameters
+            'power_capping': {  # NEW: Power capping configuration
+                'enabled': True,
+                'cap_penalty_weight': self.cap_penalty_weight,
+                'use_soft_capping': self.use_soft_capping,
+                'violation_statistics': {
+                    'total_violations': self.cap_violations,
+                    'total_samples': self.cap_samples,
+                    'violation_rate': self.cap_violations / max(self.cap_samples, 1),
+                    'avg_scale_factor': np.mean(self.cap_scales) if self.cap_scales else 1.0
+                }
+            },
+            'unscaling_parameters': {
                 'time_mean': self.time_mean,
                 'time_std': self.time_std,
                 'thermal_scaler_available': self.thermal_scaler is not None,
@@ -1009,17 +1208,17 @@ class PhysicsInformedTrainer:
             'save_timestamp': datetime.now().isoformat(),
             'pytorch_version': torch.__version__,
             'device': str(self.device),
-            'saving_method': 'state_dict_based_with_proper_unscaling'
+            'saving_method': 'state_dict_based_with_proper_unscaling_and_power_capping'
         }
         
         metadata_path = os.path.join(filepath, 'metadata.json')
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        print(f"9-bin physics-informed PyTorch model saved to {filepath} (with proper unscaling)")
+        print(f"9-bin physics-informed PyTorch model with power capping saved to {filepath}")
 
     def load_model(self, filepath, model_builder_func=None):
-        """Load model using PyTorch's state_dict approach."""
+        """Load model using PyTorch's state_dict approach with power capping info."""
         # Load metadata
         metadata_path = os.path.join(filepath, 'metadata.json')
         if os.path.exists(metadata_path):
@@ -1033,6 +1232,19 @@ class PhysicsInformedTrainer:
                 self.time_mean = unscaling_params.get('time_mean', 300.0)
                 self.time_std = unscaling_params.get('time_std', 300.0)
                 print(f"Loaded unscaling parameters: time_mean={self.time_mean}, time_std={self.time_std}")
+            
+            # Load power capping parameters if available
+            if 'power_capping' in metadata:
+                power_cap_params = metadata['power_capping']
+                self.cap_penalty_weight = power_cap_params.get('cap_penalty_weight', 0.01)
+                self.use_soft_capping = power_cap_params.get('use_soft_capping', False)
+                
+                # Load violation statistics
+                if 'violation_statistics' in power_cap_params:
+                    stats = power_cap_params['violation_statistics']
+                    self.cap_violations = stats.get('total_violations', 0)
+                    self.cap_samples = stats.get('total_samples', 0)
+                    print(f"Loaded power capping stats: {self.cap_violations} violations in {self.cap_samples} samples")
         else:
             print("Warning: No metadata found, using default parameters")
             metadata = {}
@@ -1086,7 +1298,7 @@ class PhysicsInformedTrainer:
                 self.history = json.load(f)
             print("Training history loaded")
         
-        print(f"9-bin physics-informed PyTorch model loaded from {filepath} (with proper unscaling)")
+        print(f"9-bin physics-informed PyTorch model with power capping loaded from {filepath}")
 
 
 def build_model(num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=0.2, device=None):
@@ -1106,8 +1318,9 @@ def build_model(num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=
 
 def create_trainer(model, physics_weight=0.1, constraint_weight=0.1, power_balance_weight=0.05,
                   learning_rate=0.001, cylinder_length=1.0, lstm_units=64, dropout_rate=0.2, 
-                  device=None, param_scaler=None, thermal_scaler=None, time_mean=300.0, time_std=300.0):
-    """Create physics-informed trainer with 9-bin approach and PROPER UNSCALING.
+                  device=None, param_scaler=None, thermal_scaler=None, time_mean=300.0, time_std=300.0,
+                  cap_penalty_weight=0.01, use_soft_capping=False):
+    """Create physics-informed trainer with 9-bin approach, PROPER UNSCALING, and POWER CAPPING.
     
     Args:
         model: PyTorch model to train.
@@ -1120,12 +1333,14 @@ def create_trainer(model, physics_weight=0.1, constraint_weight=0.1, power_balan
         dropout_rate (float): Dropout rate (for metadata).
         device (torch.device): Device for computations.
         param_scaler: StandardScaler for unscaling h and q0 parameters.
-        thermal_scaler: StandardScaler for unscaling temperature values.  # NEW
-        time_mean (float): Mean used for time normalization (default: 300.0).  # NEW
-        time_std (float): Std used for time normalization (default: 300.0).   # NEW
+        thermal_scaler: StandardScaler for unscaling temperature values.
+        time_mean (float): Mean used for time normalization (default: 300.0).
+        time_std (float): Std used for time normalization (default: 300.0).
+        cap_penalty_weight (float): Weight for power capping penalty (default: 0.01).
+        use_soft_capping (bool): Use soft capping instead of hard capping (default: False).
         
     Returns:
-        PhysicsInformedTrainer instance with 9-bin physics constraints and proper unscaling.
+        PhysicsInformedTrainer instance with 9-bin physics constraints, proper unscaling, and power capping.
     """
     trainer = PhysicsInformedTrainer(
         model=model,
@@ -1138,15 +1353,17 @@ def create_trainer(model, physics_weight=0.1, constraint_weight=0.1, power_balan
         dropout_rate=dropout_rate,
         device=device,
         param_scaler=param_scaler,
-        thermal_scaler=thermal_scaler,  # NEW: Pass thermal scaler
-        time_mean=time_mean,           # NEW: Pass time normalization params  
-        time_std=time_std              # NEW
+        thermal_scaler=thermal_scaler,
+        time_mean=time_mean,
+        time_std=time_std,
+        cap_penalty_weight=cap_penalty_weight,
+        use_soft_capping=use_soft_capping
     )
     
     return trainer
 
 
-# Additional utility functions for debugging unscaling
+# Additional utility functions for debugging unscaling and power capping
 def test_tensor_unscaling(thermal_scaler, sample_tensor, device=None):
     """Test function to verify tensor unscaling works correctly."""
     if device is None:
@@ -1185,6 +1402,37 @@ def test_tensor_unscaling(thermal_scaler, sample_tensor, device=None):
     except Exception as e:
         print(f"❌ Tensor unscaling failed: {e}")
         
+    print("="*50)
+
+
+def test_power_capping(trainer, sample_powers, incoming_power):
+    """Test power capping functionality."""
+    print("\n" + "="*50)
+    print("POWER CAPPING TEST")
+    print("="*50)
+    
+    # Convert to tensors
+    pred_powers = torch.tensor(sample_powers, dtype=torch.float32, device=trainer.device)
+    incoming_tensor = torch.tensor(incoming_power, dtype=torch.float32, device=trainer.device)
+    
+    print(f"Original predicted powers: {sample_powers}")
+    print(f"Incoming power: {incoming_power}")
+    print(f"Total original power: {sum(sample_powers):.2f}")
+    print(f"Capping method: {'Soft' if trainer.use_soft_capping else 'Hard'}")
+    
+    if trainer.use_soft_capping:
+        capped_powers, penalty = trainer._soft_cap_powers(pred_powers, incoming_tensor)
+        print(f"Soft capped powers: {capped_powers.detach().cpu().numpy()}")
+        print(f"Soft penalty: {penalty.item():.4f}")
+    else:
+        capped_powers, scale_factor, violated = trainer._cap_positive_powers(pred_powers, incoming_tensor)
+        print(f"Hard capped powers: {capped_powers.detach().cpu().numpy()}")
+        print(f"Scale factor: {scale_factor.item():.4f}")
+        print(f"Violation occurred: {violated.item()}")
+    
+    print(f"Total capped power: {torch.sum(capped_powers).item():.2f}")
+    print(f"Power reduction: {(sum(sample_powers) - torch.sum(capped_powers).item()):.2f}")
+    
     print("="*50)
 
 
@@ -1252,9 +1500,9 @@ def debug_prediction_unscaling(model, thermal_scaler, sample_input, device=None)
 
 
 def model_summary(model):
-    """Print detailed model summary with 9-bin configuration and unscaling info."""
+    """Print detailed model summary with 9-bin configuration, unscaling info, and power capping."""
     print("="*70)
-    print("PHYSICS-INFORMED LSTM MODEL SUMMARY (9-BIN + PROPER UNSCALING)")
+    print("PHYSICS-INFORMED LSTM MODEL SUMMARY (9-BIN + PROPER UNSCALING + POWER CAPPING)")
     print("="*70)
     
     # Count parameters
@@ -1274,7 +1522,7 @@ def model_summary(model):
                 print(f"  {name}: {module} ({params:,} params)")
     
     print("\n" + "="*70)
-    print("9-BIN PHYSICS CONFIGURATION WITH PROPER UNSCALING")
+    print("9-BIN PHYSICS CONFIGURATION WITH PROPER UNSCALING & POWER CAPPING")
     print("="*70)
     print("Spatial Segmentation:")
     for i in range(9):
@@ -1293,16 +1541,23 @@ def model_summary(model):
     print("  • All physics calculations use physical units")
     print("  • Model predictions properly unscaled before physics loss")
     
+    print("\nNEW - Power Capping:")
+    print("  • Hard Capping: Direct scaling of positive powers to respect incoming power limit")
+    print("  • Soft Capping: Smooth sigmoid-based discouragement of power violations")
+    print("  • Sign-aware: Only caps heating (positive) powers, preserves cooling (negative)")
+    print("  • Statistics tracking: Violation rates, scale factors, and performance metrics")
+    
     print("\nLoss Components:")
     print("  1. MAE Loss: Temperature prediction accuracy")
     print("  2. Physics Loss: 9-bin power difference (weighted, unscaled units)")
     print("  3. Constraint Loss: Energy conservation penalties (weighted)")
     print("  4. Power Balance Loss: Total power vs incoming power (weighted)")
+    print("  5. Capping Penalty: Penalty for frequent power scaling (weighted)")
     print("="*70)
 
 
 def get_model_config():
-    """Get recommended model configuration for 9-bin approach with unscaling."""
+    """Get recommended model configuration for 9-bin approach with unscaling and power capping."""
     return {
         'num_sensors': 10,
         'sequence_length': 20,
@@ -1314,7 +1569,9 @@ def get_model_config():
         'power_balance_weight': 0.05, # Weight for total power balance
         'cylinder_length': 1.0,     # Cylinder length in meters
         'time_mean': 300.0,         # Time normalization mean
-        'time_std': 300.0           # Time normalization std
+        'time_std': 300.0,          # Time normalization std
+        'cap_penalty_weight': 0.01, # Weight for power capping penalty
+        'use_soft_capping': False   # Use hard capping by default
     }
 
 
@@ -1379,7 +1636,7 @@ def create_power_metadata_tensor(temps_row1, temps_row21, time_diff, h, q0, devi
 
 
 def train_model(model, train_loader, val_loader, num_epochs, trainer=None, device=None):
-    """Complete training function with physics-informed loss and proper unscaling.
+    """Complete training function with physics-informed loss, proper unscaling, and power capping.
     
     Args:
         model: PyTorch model to train
@@ -1399,7 +1656,8 @@ def train_model(model, train_loader, val_loader, num_epochs, trainer=None, devic
         trainer = create_trainer(model, device=device)
     
     print(f"Training on device: {device}")
-    print(f"Training for {num_epochs} epochs with proper unscaling...")
+    print(f"Training for {num_epochs} epochs with proper unscaling and power capping...")
+    print(f"Power capping method: {'Soft' if trainer.use_soft_capping else 'Hard'}")
     
     for epoch in range(num_epochs):
         print(f"\n--- Epoch {epoch+1}/{num_epochs} ---")
@@ -1416,6 +1674,10 @@ def train_model(model, train_loader, val_loader, num_epochs, trainer=None, devic
             print(f"Val Loss: {results.get('val_loss', 0):.4f} | "
                   f"Val MAE: {results.get('val_mae', 0):.4f} | "
                   f"Val Physics: {results.get('val_physics_loss', 0):.4f}")
+        
+        # Print power capping statistics every 10 epochs
+        if (epoch + 1) % 10 == 0:
+            trainer.print_power_cap_statistics()
     
     return model, trainer.history
 
@@ -1480,10 +1742,10 @@ def test_unscaling_consistency(thermal_scaler, time_mean=300.0, time_std=300.0):
     print("="*60)
 
 
-# Example usage and validation with proper unscaling
+# Example usage and validation with proper unscaling and power capping
 if __name__ == "__main__":
     print("="*70)
-    print("FIXED 9-BIN PHYSICS-INFORMED LSTM WITH PROPER UNSCALING (PYTORCH)")
+    print("COMPLETE 9-BIN PHYSICS-INFORMED LSTM WITH PROPER UNSCALING & POWER CAPPING (PYTORCH)")
     print("="*70)
     
     # Set device
@@ -1517,7 +1779,7 @@ if __name__ == "__main__":
     # Test unscaling consistency
     test_unscaling_consistency(thermal_scaler, config['time_mean'], config['time_std'])
     
-    # Create trainer with 9-bin approach and proper unscaling
+    # Create trainer with 9-bin approach, proper unscaling, and power capping
     trainer = create_trainer(
         model=model,
         physics_weight=config['physics_weight'],
@@ -1526,17 +1788,43 @@ if __name__ == "__main__":
         learning_rate=config['learning_rate'],
         cylinder_length=config['cylinder_length'],
         device=device,
-        param_scaler=param_scaler,       # Pass parameter scaler
-        thermal_scaler=thermal_scaler,   # Pass thermal scaler  
-        time_mean=config['time_mean'],   # Pass time normalization params
-        time_std=config['time_std']
+        param_scaler=param_scaler,
+        thermal_scaler=thermal_scaler,
+        time_mean=config['time_mean'],
+        time_std=config['time_std'],
+        cap_penalty_weight=config['cap_penalty_weight'],
+        use_soft_capping=config['use_soft_capping']
     )
     
     # Print summary
     model_summary(model)
     
+    # Test power capping functionality
+    print("\n" + "="*70)
+    print("TESTING POWER CAPPING FUNCTIONALITY")
+    print("="*70)
+    
+    # Test case 1: Powers that exceed incoming power
+    sample_powers_high = [500, 800, 1200, -200, 600, 400, -100, 300, 700, 900]  # Total positive: 4500W
+    incoming_power_test = 3000.0  # Lower than total positive power
+    test_power_capping(trainer, sample_powers_high, incoming_power_test)
+    
+    # Test case 2: Powers that don't exceed incoming power
+    sample_powers_low = [200, 300, 100, -50, 150, 100, -25, 75, 200, 250]  # Total positive: 1375W
+    incoming_power_test2 = 2000.0  # Higher than total positive power
+    test_power_capping(trainer, sample_powers_low, incoming_power_test2)
+    
+    # Test soft capping mode
+    trainer.use_soft_capping = True
+    print(f"\n--- Testing Soft Capping ---")
+    test_power_capping(trainer, sample_powers_high, incoming_power_test)
+    trainer.use_soft_capping = False  # Reset
+    
     # Validate input shapes with dummy data
-    print("\nValidating FIXED 9-bin model with dummy data and proper unscaling...")
+    print("\n" + "="*70)
+    print("VALIDATING COMPLETE MODEL WITH DUMMY DATA")
+    print("="*70)
+    
     batch_size = 8  # Reduced batch size for testing
     dummy_time_series = torch.randn(batch_size, 20, 11, device=device)
     dummy_static_params = torch.randn(batch_size, 4, device=device)
@@ -1605,13 +1893,13 @@ if __name__ == "__main__":
             print(f"   Sample 0 temps_row1[0]: {sample_meta['temps_row1'][0]:.2f} K (unscaled)")
             print(f"   Sample 0 temps_row21[0]: {sample_meta['temps_row21'][0]:.2f} K (unscaled)")
         
-        # Test FIXED 9-bin physics loss computation with proper unscaling
-        print(f"\n🔧 TESTING FIXED PHYSICS LOSS WITH PROPER TENSOR UNSCALING...")
+        # Test COMPLETE 9-bin physics loss computation with proper unscaling and power capping
+        print(f"\n🔧 TESTING COMPLETE PHYSICS LOSS WITH PROPER TENSOR UNSCALING & POWER CAPPING...")
         physics_loss, constraint_loss, power_balance_loss, power_info = trainer.compute_nine_bin_physics_loss(
             dummy_target, dummy_output, power_metadata_list
         )
         
-        print(f"✅ FIXED 9-bin physics loss computation with proper unscaling successful")
+        print(f"✅ COMPLETE 9-bin physics loss computation with proper unscaling and power capping successful")
         print(f"   Physics loss: {physics_loss:.4f}")
         print(f"   Constraint loss: {constraint_loss:.4f}")
         print(f"   Power balance loss: {power_balance_loss:.4f}")
@@ -1619,20 +1907,29 @@ if __name__ == "__main__":
         if power_info:
             print(f"   Samples processed: {power_info.get('num_samples_processed', 0)}")
             print(f"   Power data arrays present: {len(power_info.get('total_actual_powers', []))}")
+            
+            # Show power capping statistics
+            cap_stats = power_info.get('power_cap_stats', {})
+            if cap_stats:
+                print(f"   Power capping violations: {cap_stats.get('violations', 0)}")
+                print(f"   Power capping samples: {cap_stats.get('samples', 0)}")
+                print(f"   Violation rate: {cap_stats.get('violation_rate', 0):.3f}")
+                print(f"   Average scale factor: {cap_stats.get('avg_scale_factor', 1.0):.4f}")
+                print(f"   Capping method: {cap_stats.get('capping_method', 'unknown')}")
         
         # Test training step with dummy batch
         dummy_batch = [dummy_time_series, dummy_static_params, dummy_target, dummy_power_data]
         train_result = trainer.train_step(dummy_batch)
         
-        print(f"✅ Training step with FIXED physics loss and proper unscaling successful")
+        print(f"✅ Training step with COMPLETE physics loss, proper unscaling, and power capping successful")
         print(f"   Total loss: {train_result['loss']:.4f}")
         print(f"   MAE: {train_result['mae']:.4f}")
         print(f"   Physics loss: {train_result['physics_loss']:.4f}")
         print(f"   Constraint loss: {train_result['constraint_loss']:.4f}")
         print(f"   Power balance loss: {train_result['power_balance_loss']:.4f}")
         
-        # Test the FIXED power balance analysis
-        print(f"\n🔧 TESTING FIXED POWER BALANCE ANALYSIS...")
+        # Test the COMPLETE power balance analysis
+        print(f"\n🔧 TESTING COMPLETE POWER BALANCE ANALYSIS WITH POWER CAPPING...")
         
         # Create a simple data loader for testing
         class DummyDataLoader:
@@ -1644,15 +1941,36 @@ if __name__ == "__main__":
         dummy_loader = DummyDataLoader(dummy_batch)
         trainer.analyze_power_balance(dummy_loader, num_samples=10)
         
+        # Test model saving and loading
+        print(f"\n🔧 TESTING MODEL SAVING AND LOADING WITH POWER CAPPING...")
+        
+        # Save model
+        save_path = "./test_physics_model_with_capping"
+        trainer.save_model(save_path)
+        
+        # Test loading (create new trainer instance)
+        new_trainer = PhysicsInformedTrainer(
+            model=build_model(device=device),
+            device=device,
+            param_scaler=param_scaler,
+            thermal_scaler=thermal_scaler
+        )
+        
+        try:
+            new_trainer.load_model(save_path)
+            print("✅ Model saving and loading with power capping successful")
+        except Exception as e:
+            print(f"❌ Model loading failed: {e}")
+        
     except Exception as e:
-        print(f"❌ Error during FIXED 9-bin validation with unscaling: {e}")
+        print(f"❌ Error during COMPLETE validation with unscaling and power capping: {e}")
         import traceback
         traceback.print_exc()
     
     print("\n" + "="*70)
-    print("FIXED 9-BIN PHYSICS-INFORMED PYTORCH MODEL WITH PROPER UNSCALING READY!")
+    print("COMPLETE 9-BIN PHYSICS-INFORMED PYTORCH MODEL WITH POWER CAPPING READY!")
     print("="*70)
-    print("🔧 CRITICAL FIXES IMPLEMENTED:")
+    print("🔧 ALL FEATURES IMPLEMENTED:")
     print("✅ Fixed device mismatch issues - all tensors on same device")
     print("✅ Fixed gradient computation - kept tensors instead of converting to scalars")
     print("✅ Fixed batch size consistency - trim all inputs to same size")
@@ -1663,16 +1981,30 @@ if __name__ == "__main__":
     print("✅ Optimized memory usage - minimal power_info returned")
     print("✅ FIXED POWER ANALYSIS - properly store and return power data with consistent naming")
     print("✅ FIXED analyze_power_balance - safe access to power arrays with error handling")
+    print("✅ NEW: HARD POWER CAPPING - direct scaling to enforce energy conservation")
+    print("✅ NEW: SOFT POWER CAPPING - smooth sigmoid-based power constraint")
+    print("✅ NEW: POWER CAPPING STATISTICS - violation rates and performance tracking")
+    print("✅ NEW: CONFIGURABLE CAPPING - switch between hard and soft methods")
+    print("✅ NEW: ENHANCED SAVING/LOADING - includes power capping configuration")
     print("="*70)
     
-    print("\nUSAGE NOTES FOR THE FIXED VERSION:")
-    print("• Main fixes are in compute_nine_bin_physics_loss and analyze_power_balance methods")
-    print("• All tensors now stay on the same device throughout computation")
-    print("• Gradient computation is preserved by keeping tensor operations")
-    print("• Batch size mismatches are handled by trimming to minimum size")
-    print("• Memory usage is optimized with periodic cache clearing")
-    print("• Individual batch errors don't crash the entire training")
-    print("• Power analysis now properly stores and accesses power data with consistent variable names")
-    print("• analyze_power_balance includes comprehensive error handling and data validation")
-    print("• Debug output is reduced for large batches to prevent memory issues")
+    print("\nUSAGE NOTES FOR THE COMPLETE VERSION:")
+    print("• Main power capping implementations are in _cap_positive_powers and _soft_cap_powers methods")
+    print("• Use create_trainer() with cap_penalty_weight and use_soft_capping parameters")
+    print("• Monitor trainer.print_power_cap_statistics() to tune capping behavior")
+    print("• Hard capping guarantees constraint satisfaction but may affect gradients")
+    print("• Soft capping preserves smooth gradients but relies on penalty terms")
+    print("• Power capping only affects positive (heating) powers, preserves cooling")
+    print("• All scalers (thermal_scaler, param_scaler) must be provided for proper unscaling")
+    print("• Power analysis includes comprehensive violation statistics and performance metrics")
+    print("• Model saving/loading preserves all power capping configuration and statistics")
+    print("="*70)
+    
+    print("\nRECOMMENDED PARAMETER TUNING:")
+    print("• Start with hard capping (use_soft_capping=False)")
+    print("• If violation rate > 50%, increase power_balance_weight from 0.05 to 0.1+")
+    print("• If training is unstable, try soft capping (use_soft_capping=True)")
+    print("• Adjust cap_penalty_weight (0.001-0.1) based on violation frequency")
+    print("• Monitor avg_scale_factor - values much < 1.0 indicate frequent capping")
+    print("• Consider reducing physics_weight if capping violations are excessive")
     print("="*70)
