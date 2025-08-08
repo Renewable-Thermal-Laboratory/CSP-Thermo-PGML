@@ -1435,9 +1435,9 @@ def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir
 # Updated Configuration Settings
 # =======================
 class Config:
-    data_dir = "data/processed_H6"
-    scaler_dir = "models_experimental_H6"
-    output_dir = "output/experimental_H6"
+    data_dir = "data/processed_New_theoretical_data"
+    scaler_dir = "models_new_theoretical_5sec"
+    output_dir = "output/new_theoretical_5sec"
     batch_size = 32
     learning_rate = 0.001
     max_epochs = 100
@@ -1448,7 +1448,7 @@ class Config:
     constraint_weight = 0.001
     power_balance_weight = 0.0005
     sequence_length = 20
-    prediction_horizon = 1
+    prediction_horizon = 5
     cylinder_length = 1.0
     num_workers = 4
 

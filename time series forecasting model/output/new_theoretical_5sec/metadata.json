@@ -53,10 +53,10 @@
     "cap_penalty_weight": 0.01,
     "use_soft_capping": false,
     "violation_statistics": {
-      "total_violations": 88556,
-      "total_samples": 352656,
-      "violation_rate": 0.25111156481103397,
-      "avg_scale_factor": 0.8704372980676115
+      "total_violations": 583985,
+      "total_samples": 1174310,
+      "violation_rate": 0.4973005424462025,
+      "avg_scale_factor": 0.7992433872301519
     }
   },
   "unscaling_parameters": {
@@ -79,7 +79,7 @@
     ],
     "eps": 1e-07
   },
-  "save_timestamp": "2025-08-08T11:33:16.940198",
+  "save_timestamp": "2025-08-08T12:03:41.281373",
   "pytorch_version": "2.7.0",
   "device": "cpu",
   "saving_method": "state_dict_based_with_proper_unscaling_and_power_capping"

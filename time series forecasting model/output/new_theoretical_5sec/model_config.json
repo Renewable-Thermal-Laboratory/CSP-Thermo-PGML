@@ -1,0 +1,6 @@
+{
+  "num_sensors": 10,
+  "sequence_length": 20,
+  "lstm_units": 64,
+  "dropout_rate": 0.2
+}

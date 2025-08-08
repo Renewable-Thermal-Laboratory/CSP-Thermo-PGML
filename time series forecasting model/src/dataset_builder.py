@@ -362,7 +362,7 @@ class TempSequenceDataset(data.Dataset):
                 target_idx = len(df) - 1
             else:
                 # Predict next step (21st row for sequence_length=20)
-                target_idx = start_idx + self.sequence_length
+                target_idx = start_idx + self.sequence_length - 1 + self.prediction_horizon
                 target = thermal_data_scaled[target_idx]
 
             # Create power data with sequence-relative indexing
@@ -484,7 +484,7 @@ class TempSequenceDataset(data.Dataset):
 
 # Utility functions for creating DataLoaders
 def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=20, 
-                       prediction_horizon=1, scaler_dir="models_new_theoretical"):
+                       prediction_horizon=5, scaler_dir="models_new_theoretical"):
     """
     Create PyTorch DataLoaders for train, validation, and test sets.
     
