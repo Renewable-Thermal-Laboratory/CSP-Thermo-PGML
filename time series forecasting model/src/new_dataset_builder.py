@@ -434,8 +434,8 @@ class TempSequenceDataset(data.Dataset):
         return {
             'thermal_scaler': self.thermal_scaler,
             'param_scaler': self.param_scaler,
-            'rho': 1836.31,  # kg/m³
-            'cp': 1512.0,    # J/(kg·K)
+            'rho': 1836.31,  # kg/mÂ³
+            'cp': 1512.0,    # J/(kgÂ·K)
             'radius': 0.05175,  # m
             'prediction_horizon': self.prediction_horizon  # Include horizon in physics params
         }
@@ -643,7 +643,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True,
+        persistent_workers=False,
+        pin_memory=False,
         drop_last=True,
         collate_fn=collate_fn
     )
@@ -653,7 +654,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        persistent_workers=False,
+        pin_memory=False,
         drop_last=False,
         collate_fn=collate_fn
     )
@@ -663,7 +665,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        persistent_workers=False,
+        pin_memory=False,
         drop_last=False,
         collate_fn=collate_fn
     )

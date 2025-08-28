@@ -58,31 +58,39 @@ class PhysicsInformedLSTM(nn.Module):
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize weights with corrected LSTM forget gate bias."""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
+        """Initialize weights with corrected LSTM forget gate bias - FIXED V4."""
+        with torch.no_grad():
+            # Initialize linear layer weights and biases
+            for m in self.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.xavier_uniform_(m.weight)
+                    if m.bias is not None:
+                        nn.init.zeros_(m.bias)
+                elif isinstance(m, nn.LayerNorm):
+                    nn.init.ones_(m.weight)
                     nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.LayerNorm):
-                nn.init.ones_(m.weight)
-                nn.init.zeros_(m.bias)
-        
-        # LSTM: Xavier for input weights, orthogonal for recurrent
-        for layer in range(self.lstm.num_layers):
-            nn.init.xavier_uniform_(getattr(self.lstm, f'weight_ih_l{layer}'))
-            nn.init.orthogonal_(getattr(self.lstm, f'weight_hh_l{layer}'))
             
-            bias_ih = getattr(self.lstm, f'bias_ih_l{layer}')
-            bias_hh = getattr(self.lstm, f'bias_hh_l{layer}')
-            nn.init.zeros_(bias_ih)
-            nn.init.zeros_(bias_hh)
-            
-            # CORRECTED: Only set forget gate on input-hidden bias to avoid double strength
-            # PyTorch sums bias_ih and bias_hh internally, so setting both = 2.0 total
-            H = self.lstm.hidden_size
-            bias_ih[H:2*H] = 1.0  # forget gate bias = 1
-            # Leave bias_hh forget gate at 0
+            # FIXED: Safe LSTM parameter initialization without in-place operations on leaf tensors
+            for layer in range(self.lstm.num_layers):
+                # Handle both unidirectional and bidirectional LSTMs
+                directions = [''] if not getattr(self.lstm, 'bidirectional', False) else ['', '_reverse']
+                
+                for direction in directions:
+                    # Initialize weights
+                    weight_ih = getattr(self.lstm, f'weight_ih_l{layer}{direction}')
+                    weight_hh = getattr(self.lstm, f'weight_hh_l{layer}{direction}')
+                    nn.init.xavier_uniform_(weight_ih)
+                    nn.init.orthogonal_(weight_hh)
+                    
+                    # Initialize biases safely
+                    for bias_name in ['bias_ih', 'bias_hh']:
+                        bias = getattr(self.lstm, f'{bias_name}_l{layer}{direction}')
+                        bias.zero_()
+                        
+                        # Set forget gate bias to 1.0
+                        # PyTorch LSTM gate order: [input, forget, cell, output]
+                        H = self.lstm.hidden_size
+                        bias[H:2*H].fill_(1.0)  # Forget gate bias slice
     
     def forward(self, inputs):
         """Forward pass of the model."""
