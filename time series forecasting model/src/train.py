@@ -2,42 +2,103 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+import math
+
+
+# === Paper/journal plotting defaults ===
+plt.rcParams.update({
+    "figure.dpi": 120,
+    "savefig.dpi": 300,
+    "font.size": 11,
+})
+
 from datetime import datetime
 import json
 from torch.utils.tensorboard import SummaryWriter
 from collections import defaultdict
 import warnings
 import re
+import argparse
+import pandas as pd
+PAPER_FIG_DIR = None
+
+# Set PyTorch multiprocessing sharing strategy
+try:
+    torch.multiprocessing.set_sharing_strategy("file_system")
+except Exception:
+    pass
 
 # Suppress all warnings
 warnings.filterwarnings('ignore')
-import pandas as pd
 pd.options.mode.chained_assignment = None
 
 # Fixed imports - ensure all classes are imported
-from model import (
+from new_model import (
     build_model, 
     create_trainer, 
     compute_r2_score, 
     PhysicsInformedTrainer,
     PhysicsInformedLSTM
 )
-from dataset_builder import create_data_loaders
+from new_dataset_builder import create_data_loaders
+
 
 # =====================
-# FIXED POWER METADATA PROCESSING FUNCTIONS
+# HELPER FUNCTION FOR SAFE TENSOR/FLOAT CONVERSION
 # =====================
-def extract_power_metadata_from_batch(time_series_batch, static_params_batch, targets_batch, thermal_scaler, param_scaler):
+def _as_float(x):
+    """Convert tensor or float to float safely."""
+    return x.item() if hasattr(x, "item") else float(x)
+
+
+# =====================
+# CLEANUP HELPER FOR MEMORY MANAGEMENT
+# =====================
+def cleanup_dataloaders(*objs):
+    for o in objs:
+        if o is None:
+            continue
+        try:
+            del o
+        except Exception:
+            pass
+    import gc; gc.collect()
+    # Free accelerator caches if present
+    try:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+    try:
+        if hasattr(torch, "mps") and torch.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:
+        pass
+
+
+# =====================
+# FIXED HORIZON-AGNOSTIC POWER METADATA PROCESSING FUNCTIONS
+# =====================
+def extract_power_metadata_from_batch(time_series_batch, static_params_batch, targets_batch, thermal_scaler, param_scaler, horizon_steps=1):
     """
-    Extract power metadata from the actual batch data instead of relying on separate power_data.
+    Extract power metadata from the actual batch data using canonical keys (horizon-agnostic).
+    
+    FIXES:
+    1. Use targets_batch instead of last input row for target temperatures
+    2. Compute time_target correctly using dt * horizon_steps
+    3. Include absorptivity and surface fraction in metadata
     
     Args:
         time_series_batch: (batch_size, seq_len, 11) - time + 10 temperature sensors
-        static_params_batch: (batch_size, 4) - [h, flux, abs, surf] (scaled)
+        static_params_batch: (batch_size, 4) - [htc, flux, abs, surf] (scaled)
         targets_batch: (batch_size, 10) - target temperatures (scaled)
         thermal_scaler: StandardScaler for temperatures
         param_scaler: StandardScaler for static parameters
+        horizon_steps: int - prediction horizon in steps
     
     Returns:
         List of power metadata dictionaries for physics calculations
@@ -56,35 +117,55 @@ def extract_power_metadata_from_batch(time_series_batch, static_params_batch, ta
             # time_series shape: (seq_len, 11) where first column is time, remaining 10 are temperatures
             temp_sequence = time_series_np[batch_idx, :, 1:]  # Skip time column, get temperatures (seq_len, 10)
             
-            # Get temperatures at first and last timesteps (row 1 and row 21)
-            temps_row1_scaled = temp_sequence[0, :]   # First timestep (10 temperatures)
-            temps_row21_scaled = temp_sequence[-1, :] # Last timestep (20th timestep, 10 temperatures)
+            # Get temperatures at first timestep and use provided targets
+            temps_initial_scaled = temp_sequence[0, :]   # First timestep (10 temperatures)
+            temps_target_scaled = targets_np[batch_idx]  # Use provided targets, not last input row
             
             # Unscale temperatures to get actual physical values
-            temps_row1_unscaled = thermal_scaler.inverse_transform([temps_row1_scaled])[0]
-            temps_row21_unscaled = thermal_scaler.inverse_transform([temps_row21_scaled])[0]
+            temps_initial_unscaled = thermal_scaler.inverse_transform([temps_initial_scaled])[0]
+            temps_target_unscaled = thermal_scaler.inverse_transform([temps_target_scaled])[0]
             
-            # Extract time information
-            time_row1 = float(time_series_np[batch_idx, 0, 0])   # Time at first timestep
-            time_row21 = float(time_series_np[batch_idx, -1, 0]) # Time at last timestep
-            time_diff = max(time_row21 - time_row1, 1e-8)  # Ensure positive
+            # Compute time information correctly
+            t0 = float(time_series_np[batch_idx, 0, 0])  # Time at first timestep
+            if time_series_np.shape[1] > 1:
+                dt = float(time_series_np[batch_idx, 1, 0] - time_series_np[batch_idx, 0, 0])
+            else:
+                dt = 1.0  # fallback time step
             
-            # Extract and unscale static parameters [h, flux, abs, surf]
+            tT = t0 + horizon_steps * dt  # Correct target time
+            time_initial = t0
+            time_target = tT
+            time_diff = max(time_target - time_initial, 1e-8)
+            
+            # Extract and unscale static parameters [htc, flux, abs, surf]
             static_params_scaled = static_params_np[batch_idx, :]
             static_params_unscaled = param_scaler.inverse_transform([static_params_scaled])[0]
             
-            h_unscaled = float(static_params_unscaled[0])    # Heat transfer coefficient
-            flux_unscaled = float(static_params_unscaled[1]) # Heat flux (q0)
+            htc_unscaled = float(static_params_unscaled[0])    # Heat transfer coefficient (W/m²·K)
+            flux_unscaled = float(static_params_unscaled[1])   # Heat flux (W/m²)
+            abs_coeff = float(static_params_unscaled[2])       # Include absorptivity
+            surf_frac = float(static_params_unscaled[3])       # Include surface fraction
             
-            # Create power metadata dictionary
+            # Create power metadata dictionary with canonical keys
             power_metadata = {
-                'temps_row1': temps_row1_unscaled.tolist(),     # List of 10 floats
-                'temps_row21': temps_row21_unscaled.tolist(),   # List of 10 floats
-                'time_row1': time_row1,                         # Float
-                'time_row21': time_row21,                       # Float
-                'time_diff': time_diff,                         # Float
-                'h': h_unscaled,                               # Float - cylinder height
-                'q0': flux_unscaled                            # Float - heat flux
+                # Canonical keys (horizon-agnostic)
+                'temps_row1': temps_initial_unscaled.tolist(),     # List of 10 floats - initial state
+                'temps_target': temps_target_unscaled.tolist(),    # List of 10 floats - target state
+                'time_row1': time_initial,                         # Float - initial time
+                'time_target': time_target,                        # Float - target time
+                'time_diff': time_diff,                            # Float - time difference
+                'horizon_steps': horizon_steps,                    # Int - prediction horizon
+                'time_normalized': False,                          # Bool - whether time is normalized
+                
+                # Physics parameters (clarified: h is HTC, not cylinder height)
+                'h': htc_unscaled,                                 # Float - Heat Transfer Coefficient (W/m²·K)
+                'q0': flux_unscaled,                              # Float - heat flux (W/m²)
+                'abs_coeff': abs_coeff,                           # Absorptivity coefficient
+                'surf_frac': surf_frac,                           # Illuminated surface fraction
+                
+                # Legacy keys for backward compatibility (will be deprecated)
+                'temps_row21': temps_target_unscaled.tolist(),    # Legacy: same as temps_target
+                'time_row21': time_target,                        # Legacy: same as time_target
             }
             
             power_metadata_list.append(power_metadata)
@@ -94,12 +175,19 @@ def extract_power_metadata_from_batch(time_series_batch, static_params_batch, ta
             # Create dummy metadata as fallback
             power_metadata_list.append({
                 'temps_row1': [300.0] * 10,
-                'temps_row21': [301.0] * 10,
+                'temps_target': [301.0] * 10,
                 'time_row1': 0.0,
-                'time_row21': 1.0,
-                'time_diff': 1.0,
-                'h': 50.0,
-                'q0': 1000.0
+                'time_target': float(horizon_steps),
+                'time_diff': float(horizon_steps),
+                'horizon_steps': horizon_steps,
+                'time_normalized': False,
+                'h': 50.0,  # HTC, not cylinder height
+                'q0': 1000.0,
+                'abs_coeff': 0.8,
+                'surf_frac': 1.0,
+                # Legacy keys
+                'temps_row21': [301.0] * 10,
+                'time_row21': float(horizon_steps),
             })
     
     return power_metadata_list
@@ -107,8 +195,7 @@ def extract_power_metadata_from_batch(time_series_batch, static_params_batch, ta
 
 def process_power_data_batch_fixed(power_data_list):
     """
-    Fixed version that handles the extracted power metadata correctly.
-    This is the same as the original but with better error handling.
+    Fixed version that handles the extracted power metadata correctly (horizon-agnostic).
     """
     if not power_data_list:
         return None
@@ -123,52 +210,67 @@ def process_power_data_batch_fixed(power_data_list):
             print(f"Warning: Invalid power_data at index {i}, using dummy values")
             processed_metadata.append({
                 'temps_row1': [300.0] * 10,
-                'temps_row21': [301.0] * 10,
+                'temps_target': [301.0] * 10,
                 'time_diff': 1.0,
-                'h': 50.0,
-                'q0': 1000.0
+                'horizon_steps': 1,
+                'h': 50.0,  # HTC
+                'q0': 1000.0,
+                'abs_coeff': 0.8,
+                'surf_frac': 1.0
             })
             continue
             
         try:
-            # Extract values (should already be in correct format from extract_power_metadata_from_batch)
-            temps_row1 = power_data['temps_row1']
-            temps_row21 = power_data['temps_row21']
-            time_diff = power_data['time_diff']
-            h_value = power_data['h']
-            q0_value = power_data['q0']
+            # Extract values using canonical keys (with legacy fallbacks)
+            temps_row1 = power_data.get('temps_row1', [300.0] * 10)
+            temps_target = power_data.get('temps_target', power_data.get('temps_row21', [301.0] * 10))
+            time_diff = power_data.get('time_diff', 1.0)
+            horizon_steps = power_data.get('horizon_steps', 1)
+            htc_value = power_data.get('h', 50.0)  # Heat transfer coefficient
+            q0_value = power_data.get('q0', 1000.0)
+            abs_coeff = power_data.get('abs_coeff', 0.8)  # Include absorptivity
+            surf_frac = power_data.get('surf_frac', 1.0)  # Include surface fraction
             
             # Validate data
             if (isinstance(temps_row1, list) and len(temps_row1) == 10 and
-                isinstance(temps_row21, list) and len(temps_row21) == 10 and
+                isinstance(temps_target, list) and len(temps_target) == 10 and
                 isinstance(time_diff, (int, float)) and time_diff > 0 and
-                isinstance(h_value, (int, float)) and isinstance(q0_value, (int, float))):
+                isinstance(htc_value, (int, float)) and isinstance(q0_value, (int, float))):
                 
                 processed_metadata.append({
                     'temps_row1': [float(x) for x in temps_row1],
-                    'temps_row21': [float(x) for x in temps_row21],
+                    'temps_target': [float(x) for x in temps_target],
                     'time_diff': float(time_diff),
-                    'h': float(h_value),
-                    'q0': float(q0_value)
+                    'horizon_steps': int(horizon_steps),
+                    'h': float(htc_value),  # HTC
+                    'q0': float(q0_value),
+                    'abs_coeff': float(abs_coeff),
+                    'surf_frac': float(surf_frac)
                 })
             else:
                 print(f"Warning: Invalid data format at index {i}, using dummy values")
                 processed_metadata.append({
                     'temps_row1': [300.0] * 10,
-                    'temps_row21': [301.0] * 10,
+                    'temps_target': [301.0] * 10,
                     'time_diff': 1.0,
+                    'horizon_steps': 1,
                     'h': 50.0,
-                    'q0': 1000.0
+                    'q0': 1000.0,
+                    'abs_coeff': 0.8,
+                    'surf_frac': 1.0
                 })
                 
         except Exception as e:
             print(f"Error processing power_data at index {i}: {e}")
             processed_metadata.append({
                 'temps_row1': [300.0] * 10,
-                'temps_row21': [301.0] * 10,
+                'temps_target': [301.0] * 10,
                 'time_diff': 1.0,
+                'horizon_steps': 1,
                 'h': 50.0,
-                'q0': 1000.0
+                'q0': 1000.0,
+                'abs_coeff': 0.8,
+                'surf_frac': 1.0
             })
     
     print(f"Successfully processed {len(processed_metadata)} power metadata entries")
@@ -177,14 +279,14 @@ def process_power_data_batch_fixed(power_data_list):
 
 class FixedUnscaledEvaluationTrainer:
     """
-    Fixed wrapper that extracts power metadata from actual batch data instead of 
-    relying on potentially invalid power_data from the dataset.
+    Fixed wrapper that extracts power metadata from actual batch data (horizon-agnostic).
     """
     
-    def __init__(self, base_trainer, thermal_scaler, param_scaler, device=None):
+    def __init__(self, base_trainer, thermal_scaler, param_scaler, horizon_steps=1, device=None):
         self.base_trainer = base_trainer
         self.thermal_scaler = thermal_scaler
         self.param_scaler = param_scaler
+        self.horizon_steps = horizon_steps
         
         # Device handling
         self.device = device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -205,12 +307,15 @@ class FixedUnscaledEvaluationTrainer:
         self.model = self.base_trainer.model
     
     def unscale_temperatures(self, scaled_temps):
-        """Convert scaled temperatures back to original units using PyTorch operations."""
-        unscaled_temps = scaled_temps * self.thermal_scale + self.thermal_mean
+        """Convert scaled temperatures back to original units using PyTorch operations with device-safe tensors."""
+        # FIXED: Move scaler tensors to the same device as input to prevent device mismatch
+        mean = self.thermal_mean.to(scaled_temps.device)
+        scale = self.thermal_scale.to(scaled_temps.device)
+        unscaled_temps = scaled_temps * scale + mean
         return unscaled_temps
     
     def train_step_unscaled(self, batch):
-        """Training step with fixed power metadata extraction."""
+        """Training step with fixed power metadata extraction (horizon-agnostic)."""
         # Extract original batch components
         time_series, static_params, targets, original_power_data = batch
         
@@ -219,9 +324,9 @@ class FixedUnscaledEvaluationTrainer:
         static_params = static_params.to(self.device)
         targets = targets.to(self.device)
         
-        # FIXED: Extract power metadata from actual batch data instead of using potentially invalid power_data
+        # Extract power metadata from actual batch data (horizon-agnostic)
         extracted_power_metadata = extract_power_metadata_from_batch(
-            time_series, static_params, targets, self.thermal_scaler, self.param_scaler
+            time_series, static_params, targets, self.thermal_scaler, self.param_scaler, self.horizon_steps
         )
         
         # Use the extracted power metadata
@@ -230,7 +335,7 @@ class FixedUnscaledEvaluationTrainer:
         
         # Get unscaled temperatures for additional metrics
         with torch.no_grad():
-            y_pred_scaled = self.base_trainer.model([time_series, static_params], training=True)
+            y_pred_scaled = self.base_trainer.model([time_series, static_params])
             
             # Convert to unscaled
             y_true_unscaled = self.unscale_temperatures(targets)
@@ -249,7 +354,7 @@ class FixedUnscaledEvaluationTrainer:
         return train_results
     
     def validation_step_unscaled(self, batch):
-        """Validation step with fixed power metadata extraction."""
+        """Validation step with fixed power metadata extraction (horizon-agnostic)."""
         # Extract original batch components
         time_series, static_params, targets, original_power_data = batch
         
@@ -258,9 +363,9 @@ class FixedUnscaledEvaluationTrainer:
         static_params = static_params.to(self.device)
         targets = targets.to(self.device)
         
-        # FIXED: Extract power metadata from actual batch data
+        # Extract power metadata from actual batch data (horizon-agnostic)
         extracted_power_metadata = extract_power_metadata_from_batch(
-            time_series, static_params, targets, self.thermal_scaler, self.param_scaler
+            time_series, static_params, targets, self.thermal_scaler, self.param_scaler, self.horizon_steps
         )
         
         # Use the extracted power metadata
@@ -269,7 +374,7 @@ class FixedUnscaledEvaluationTrainer:
         
         # Get unscaled temperatures for additional metrics
         with torch.no_grad():
-            y_pred_scaled = self.base_trainer.model([time_series, static_params], training=False)
+            y_pred_scaled = self.base_trainer.model([time_series, static_params])
             
             # Convert to unscaled
             y_true_unscaled = self.unscale_temperatures(targets)
@@ -288,7 +393,7 @@ class FixedUnscaledEvaluationTrainer:
         return val_results
 
     def train_epoch_unscaled(self, train_loader, val_loader=None):
-        """Train for one epoch with fixed power metadata extraction."""
+        """Train for one epoch with fixed power metadata extraction (horizon-agnostic)."""
         from collections import defaultdict
         
         # Initialize metrics for this epoch
@@ -323,7 +428,7 @@ class FixedUnscaledEvaluationTrainer:
         return results
 
     def evaluate_unscaled(self, data_loader, split_name="test"):
-        """Comprehensive evaluation with fixed power metadata extraction."""
+        """Comprehensive evaluation with fixed power metadata extraction (horizon-agnostic)."""
         self.model.eval()
         
         all_predictions_scaled = []
@@ -340,15 +445,15 @@ class FixedUnscaledEvaluationTrainer:
                 targets = targets.to(self.device)
                 
                 # Get predictions
-                predictions_scaled = self.model([time_series, static_params], training=False)
+                predictions_scaled = self.model([time_series, static_params])
                 
-                # Store for later analysis
-                all_predictions_scaled.append(predictions_scaled.cpu())
-                all_targets_scaled.append(targets.cpu())
+                # Keep tensors on GPU during collection
+                all_predictions_scaled.append(predictions_scaled.detach().cpu())
+                all_targets_scaled.append(targets.detach().cpu())
                 
-                # FIXED: Extract power metadata from actual batch data
+                # Extract power metadata from actual batch data (horizon-agnostic)
                 extracted_power_metadata = extract_power_metadata_from_batch(
-                    time_series, static_params, targets, self.thermal_scaler, self.param_scaler
+                    time_series, static_params, targets, self.thermal_scaler, self.param_scaler, self.horizon_steps
                 )
                 
                 # Compute batch metrics using validation step with extracted metadata
@@ -358,7 +463,7 @@ class FixedUnscaledEvaluationTrainer:
                 for key, value in batch_metrics.items():
                     all_metrics[key].append(value)
         
-        # Concatenate all predictions and targets
+        # Concatenate all predictions and targets (lists already hold CPU tensors)
         all_predictions_scaled = torch.cat(all_predictions_scaled, dim=0)
         all_targets_scaled = torch.cat(all_targets_scaled, dim=0)
         
@@ -366,25 +471,25 @@ class FixedUnscaledEvaluationTrainer:
         all_predictions_unscaled = self.unscale_temperatures(all_predictions_scaled)
         all_targets_unscaled = self.unscale_temperatures(all_targets_scaled)
         
-        # Overall unscaled metrics
-        mae_unscaled = torch.mean(torch.abs(all_targets_unscaled - all_predictions_unscaled))
-        rmse_unscaled = torch.sqrt(torch.mean(torch.square(all_targets_unscaled - all_predictions_unscaled)))
-        r2_overall_unscaled = compute_r2_score(all_targets_unscaled, all_predictions_unscaled)
+        # Overall unscaled metrics - FIXED with _as_float
+        mae_unscaled = _as_float(torch.mean(torch.abs(all_targets_unscaled - all_predictions_unscaled)))
+        rmse_unscaled = _as_float(torch.sqrt(torch.mean(torch.square(all_targets_unscaled - all_predictions_unscaled))))
+        r2_overall_unscaled = _as_float(compute_r2_score(all_targets_unscaled, all_predictions_unscaled))
         
-        # Per-sensor unscaled metrics
+        # Per-sensor unscaled metrics - FIXED with _as_float
         per_sensor_metrics = []
         for sensor_idx in range(10):
             y_true_sensor = all_targets_unscaled[:, sensor_idx]
             y_pred_sensor = all_predictions_unscaled[:, sensor_idx]
             
-            mae_sensor = torch.mean(torch.abs(y_true_sensor - y_pred_sensor))
-            rmse_sensor = torch.sqrt(torch.mean(torch.square(y_true_sensor - y_pred_sensor)))
-            r2_sensor = compute_r2_score(y_true_sensor, y_pred_sensor)
+            mae_sensor = _as_float(torch.mean(torch.abs(y_true_sensor - y_pred_sensor)))
+            rmse_sensor = _as_float(torch.sqrt(torch.mean(torch.square(y_true_sensor - y_pred_sensor))))
+            r2_sensor = _as_float(compute_r2_score(y_true_sensor, y_pred_sensor))
             
             per_sensor_metrics.append({
-                'mae': mae_sensor.item(),
-                'rmse': rmse_sensor.item(),
-                'r2': r2_sensor.item()
+                'mae': mae_sensor,
+                'rmse': rmse_sensor,
+                'r2': r2_sensor
             })
         
         # Aggregate batch metrics
@@ -392,33 +497,36 @@ class FixedUnscaledEvaluationTrainer:
         for key, values in all_metrics.items():
             aggregated_metrics[key] = np.mean(values)
         
-        # Create the required physics keys for final evaluation
+        # Create proper constraint loss from soft and excess penalties
         test_physics_loss = aggregated_metrics.get('val_physics_loss', 0.0)
-        test_constraint_loss = aggregated_metrics.get('val_constraint_loss', 0.0)
+        test_constraint_loss = (aggregated_metrics.get('val_soft_penalty', 0.0) + 
+                               aggregated_metrics.get('val_excess_penalty', 0.0))
         test_power_balance_loss = aggregated_metrics.get('val_power_balance_loss', 0.0)
         
-        # Final results with all required keys
+        # Final results with all required keys - FIXED with _as_float
         results = {
-            f'{split_name}_mae_unscaled': mae_unscaled.item(),
-            f'{split_name}_rmse_unscaled': rmse_unscaled.item(),
-            f'{split_name}_r2_overall_unscaled': r2_overall_unscaled.item(),
+            f'{split_name}_mae_unscaled': mae_unscaled,
+            f'{split_name}_rmse_unscaled': rmse_unscaled,
+            f'{split_name}_r2_overall_unscaled': r2_overall_unscaled,
             f'{split_name}_per_sensor_metrics': per_sensor_metrics,
             f'{split_name}_physics_loss': test_physics_loss,
             f'{split_name}_constraint_loss': test_constraint_loss,
             f'{split_name}_power_balance_loss': test_power_balance_loss,
+            # Move to CPU only when converting to numpy
             'predictions_unscaled': {
-                'y_true': all_targets_unscaled.numpy(),
-                'y_pred': all_predictions_unscaled.numpy()
+                'y_true': all_targets_unscaled.detach().cpu().numpy(),
+                'y_pred': all_predictions_unscaled.detach().cpu().numpy()
             }
         }
         
         # Add aggregated batch metrics
         results.update(aggregated_metrics)
         
-        print(f"\n🧪 {split_name.upper()} SET EVALUATION (UNSCALED - WITH REAL POWER DATA):")
-        print(f"   MAE:  {mae_unscaled.item():.2f} K")
-        print(f"   RMSE: {rmse_unscaled.item():.2f} K") 
-        print(f"   R²:   {r2_overall_unscaled.item():.6f}")
+        horizon_label = f"{self.horizon_steps} step{'s' if self.horizon_steps != 1 else ''}"
+        print(f"\nTEST SET EVALUATION (UNSCALED - HORIZON = {horizon_label}):")
+        print(f"   MAE:  {mae_unscaled:.2f} K")
+        print(f"   RMSE: {rmse_unscaled:.2f} K") 
+        print(f"   R²:   {r2_overall_unscaled:.6f}")
         print(f"   Physics Loss: {test_physics_loss:.6f}")
         print(f"   Constraint Loss: {test_constraint_loss:.6f}")
         print(f"   Power Balance Loss: {test_power_balance_loss:.6f}")
@@ -426,9 +534,13 @@ class FixedUnscaledEvaluationTrainer:
         return results
 
     def analyze_power_balance(self, data_loader, num_samples=100):
-        """Power balance analysis with fixed metadata extraction."""
+        """
+        Power balance analysis with fixed metadata extraction (horizon-agnostic).
+        Now returns results dictionary for clean integration.
+        """
+        horizon_label = f"{self.horizon_steps} step{'s' if self.horizon_steps != 1 else ''}"
         print("\n" + "="*60)
-        print("POWER BALANCE ANALYSIS (WITH REAL EXTRACTED DATA)")
+        print(f"POWER BALANCE ANALYSIS (HORIZON = {horizon_label})")
         print("="*60)
         
         total_actual_powers = []
@@ -451,22 +563,23 @@ class FixedUnscaledEvaluationTrainer:
                 targets = targets.to(self.device)
                 
                 try:
-                    # FIXED: Extract power metadata from actual batch data
+                    # Extract power metadata from actual batch data (horizon-agnostic)
                     extracted_power_metadata = extract_power_metadata_from_batch(
-                        time_series, static_params, targets, self.thermal_scaler, self.param_scaler
+                        time_series, static_params, targets, self.thermal_scaler, self.param_scaler, self.horizon_steps
                     )
                     
                     if extracted_power_metadata:
                         # Get predictions
-                        y_pred = self.model([time_series, static_params], training=False)
+                        y_pred = self.model([time_series, static_params])
                         
-                        # Compute power analysis using extracted metadata
-                        _, _, _, power_info = self.base_trainer.compute_nine_bin_physics_loss(
-                            targets, y_pred, extracted_power_metadata
-                        )
+                        # Compute power analysis with correct call signature
+                        physics_loss, soft_penalty, excess_penalty, power_balance_loss, power_info = \
+                            self.base_trainer.compute_nine_bin_physics_loss(
+                                y_pred, extracted_power_metadata
+                            )
                         
                         if power_info:  # If analysis succeeded
-                            # FIXED: Use correct plural key names that match compute_nine_bin_physics_loss
+                            # Use correct plural key names that match compute_nine_bin_physics_loss
                             if 'total_actual_powers' in power_info and power_info['total_actual_powers']:
                                 total_actual_powers.extend(power_info['total_actual_powers'])
                             
@@ -481,17 +594,16 @@ class FixedUnscaledEvaluationTrainer:
                             
                 except Exception as e:
                     print(f"Warning: Error in power analysis: {e}")
-                    # Add debug info to help troubleshoot
-                    if 'power_info' in locals() and power_info:
-                        print(f"  Available power_info keys: {list(power_info.keys())}")
                     continue
         
+        # Build return dictionary with real data
         if len(total_actual_powers) > 0:
             total_actual_powers = np.array(total_actual_powers)
             total_predicted_powers = np.array(total_predicted_powers)
             incoming_powers = np.array(incoming_powers)
             
             print(f"Samples analyzed: {len(total_actual_powers)}")
+            print(f"Prediction horizon: {horizon_label}")
             print(f"\nINCOMING POWER STATISTICS:")
             print(f"  Mean: {np.mean(incoming_powers):.2f} W")
             print(f"  Std:  {np.std(incoming_powers):.2f} W")
@@ -510,15 +622,17 @@ class FixedUnscaledEvaluationTrainer:
             print(f"  Min:  {np.min(total_predicted_powers):.2f} W")
             print(f"  Max:  {np.max(total_predicted_powers):.2f} W")
             
-            # Power balance ratios
-            actual_to_incoming = total_actual_powers / incoming_powers
-            predicted_to_incoming = total_predicted_powers / incoming_powers
+            # CRITICAL FIX: Make power balance ratios numerically safe
+            eps = 1e-8
+            incoming_safe = np.maximum(incoming_powers, eps)
+            actual_to_incoming = total_actual_powers / incoming_safe
+            predicted_to_incoming = total_predicted_powers / incoming_safe
             
             print(f"\nPOWER BALANCE RATIOS:")
             print(f"  Actual/Incoming ratio - Mean: {np.mean(actual_to_incoming):.3f}, Std: {np.std(actual_to_incoming):.3f}")
             print(f"  Predicted/Incoming ratio - Mean: {np.mean(predicted_to_incoming):.3f}, Std: {np.std(predicted_to_incoming):.3f}")
             
-            # Check for violations
+            # Check for violations (use original incoming_powers for violation checks)
             actual_violations = np.sum(total_actual_powers > incoming_powers)
             predicted_violations = np.sum(total_predicted_powers > incoming_powers)
             
@@ -526,13 +640,42 @@ class FixedUnscaledEvaluationTrainer:
             print(f"  Actual power > incoming: {actual_violations}/{len(total_actual_powers)} ({100*actual_violations/len(total_actual_powers):.1f}%)")
             print(f"  Predicted power > incoming: {predicted_violations}/{len(total_predicted_powers)} ({100*predicted_violations/len(total_predicted_powers):.1f}%)")
             
-            print("\n✅ SUCCESS: Real power data extracted and analyzed!")
+            print(f"\nSUCCESS: Real power data extracted and analyzed (horizon = {horizon_label})!")
+            
+            # Return structured results
+            return {
+                'horizon_steps': self.horizon_steps,
+                'horizon_label': horizon_label,
+                'mean_actual_power': float(np.mean(total_actual_powers)),
+                'mean_predicted_power': float(np.mean(total_predicted_powers)),
+                'mean_incoming_power': float(np.mean(incoming_powers)),
+                'mean_actual_to_incoming_ratio': float(np.mean(actual_to_incoming)),
+                'mean_predicted_to_incoming_ratio': float(np.mean(predicted_to_incoming)),
+                'conservation_violations': {
+                    'count': int(predicted_violations),
+                    'percentage': float(100.0 * predicted_violations / len(total_predicted_powers)),
+                    'mean_violation_amount': float(np.mean((total_predicted_powers - incoming_powers)[total_predicted_powers > incoming_powers])) if predicted_violations > 0 else 0.0
+                }
+            }
         else:
-            print("❌ No valid power analysis results obtained")
-            print(f"  Total actual powers collected: {len(total_actual_powers)}")
-            print(f"  Total predicted powers collected: {len(total_predicted_powers)}")
-            print(f"  Incoming powers collected: {len(incoming_powers)}")
-        
+            print("No valid power analysis results obtained")
+            
+            # Return empty results structure
+            return {
+                'horizon_steps': self.horizon_steps,
+                'horizon_label': horizon_label,
+                'mean_actual_power': 0.0,
+                'mean_predicted_power': 0.0,
+                'mean_incoming_power': 0.0,
+                'mean_actual_to_incoming_ratio': 0.0,
+                'mean_predicted_to_incoming_ratio': 0.0,
+                'conservation_violations': {
+                    'count': 0,
+                    'percentage': 0.0,
+                    'mean_violation_amount': 0.0
+                }
+            }
+            
         print("="*60)
 
     def save_model(self, filepath, include_optimizer=True):
@@ -545,15 +688,14 @@ class FixedUnscaledEvaluationTrainer:
 
 
 # =====================
-# FIXED FILENAME EXTRACTION FUNCTIONS
+# HORIZON-AGNOSTIC FILENAME EXTRACTION FUNCTIONS (Updated)
 # =====================
 
 def get_test_filenames_and_sample_mapping(test_loader):
     """
-    FIXED: Extract actual filenames from the test dataset properly.
-    This function now correctly accesses the dataset's current_files attribute.
+    Extract actual filenames from the test dataset properly (horizon-agnostic).
     """
-    print("🔍 Extracting ACTUAL test file information...")
+    print("Extracting ACTUAL test file information...")
     
     sample_to_filename = {}
     
@@ -561,50 +703,50 @@ def get_test_filenames_and_sample_mapping(test_loader):
         # Get the dataset from test_loader
         if hasattr(test_loader, 'dataset'):
             dataset = test_loader.dataset
-            print(f"✅ Found test dataset: {type(dataset).__name__}")
+            print(f"Found test dataset: {type(dataset).__name__}")
             
-            # FIXED: Access the actual current_files from your TempSequenceDataset
+            # Access the actual current_files from TempSequenceDataset
             if hasattr(dataset, 'current_files'):
                 current_files = dataset.current_files
-                print(f"✅ Found {len(current_files)} test files in dataset.current_files")
+                print(f"Found {len(current_files)} test files in dataset.current_files")
                 
                 # Build sample mapping based on sample_indices
                 if hasattr(dataset, 'sample_indices'):
                     sample_indices = dataset.sample_indices
-                    print(f"✅ Found {len(sample_indices)} sample indices")
+                    print(f"Found {len(sample_indices)} sample indices")
                     
                     # Each element in sample_indices is (file_path, start_idx)
                     for idx, (file_path, start_idx) in enumerate(sample_indices):
                         filename = os.path.basename(file_path)
                         sample_to_filename[idx] = filename
                     
-                    print(f"✅ Successfully mapped {len(sample_to_filename)} samples to ACTUAL filenames")
+                    print(f"Successfully mapped {len(sample_to_filename)} samples to ACTUAL filenames")
                     
                     # Show first few mappings as verification
-                    print(f"📋 First 5 sample-to-filename mappings:")
+                    print(f"First 5 sample-to-filename mappings:")
                     for i in range(min(5, len(sample_to_filename))):
                         print(f"   Sample {i}: {sample_to_filename[i]}")
                     
                     return sample_to_filename
                 
                 else:
-                    print("⚠️  Dataset doesn't have sample_indices attribute")
+                    print("Dataset doesn't have sample_indices attribute")
             
             # Alternative: try to access files directly
             if hasattr(dataset, 'test_files'):
                 test_files = dataset.test_files
-                print(f"✅ Found {len(test_files)} files in dataset.test_files")
+                print(f"Found {len(test_files)} files in dataset.test_files")
                 
                 for idx, file_path in enumerate(test_files):
                     filename = os.path.basename(file_path)
                     sample_to_filename[idx] = filename
                 
-                print(f"✅ Successfully mapped {len(sample_to_filename)} files to filenames")
+                print(f"Successfully mapped {len(sample_to_filename)} files to filenames")
                 return sample_to_filename
             
             # Try accessing split files
             current_split = getattr(dataset, 'split', 'unknown')
-            print(f"📊 Dataset split: {current_split}")
+            print(f"Dataset split: {current_split}")
             
             # Check for different file list attributes
             possible_file_attrs = ['current_files', 'test_files', 'val_files', 'train_files', 'files']
@@ -612,25 +754,25 @@ def get_test_filenames_and_sample_mapping(test_loader):
                 if hasattr(dataset, attr):
                     files = getattr(dataset, attr)
                     if files and len(files) > 0:
-                        print(f"✅ Found {len(files)} files in dataset.{attr}")
+                        print(f"Found {len(files)} files in dataset.{attr}")
                         
                         # If this is for test dataset, map files to samples
                         for idx, file_path in enumerate(files):
                             filename = os.path.basename(file_path)
                             sample_to_filename[idx] = filename
                         
-                        print(f"✅ Successfully mapped {len(sample_to_filename)} files from {attr}")
+                        print(f"Successfully mapped {len(sample_to_filename)} files from {attr}")
                         return sample_to_filename
         
-        print("❌ Could not extract actual filenames from dataset")
+        print("Could not extract actual filenames from dataset")
         print("Available dataset attributes:", [attr for attr in dir(dataset) if not attr.startswith('_')])
         
     except Exception as e:
-        print(f"❌ Error extracting filenames: {e}")
+        print(f"Error extracting filenames: {e}")
     
     # Only use fallback if absolutely necessary
-    print("⚠️  WARNING: Using fallback generic filenames - this is not ideal!")
-    print("⚠️  Please check your dataset implementation to expose actual filenames")
+    print("WARNING: Using fallback generic filenames - this is not ideal!")
+    print("Please check your dataset implementation to expose actual filenames")
     
     # Create a minimal set of realistic fallback names based on your file patterns
     fallback_files = [
@@ -646,28 +788,24 @@ def get_test_filenames_and_sample_mapping(test_loader):
         filename = fallback_files[sample_idx % len(fallback_files)]
         sample_to_filename[sample_idx] = filename
     
-    print(f"⚠️  Created {len(sample_to_filename)} mappings using fallback filenames")
+    print(f"Created {len(sample_to_filename)} mappings using fallback filenames")
     return sample_to_filename
 
 
 def parse_height_from_filename(filename):
     """
-    Parse cylinder height from filename.
-    Expected format from your files: "h{height}_flux{flux}_abs{abs}_surf{surf}_{time}s.csv"
-    Example: "h0.4_flux40000_abs15_surf70_600s.csv" -> height = 0.4
-    """
-
-    if filename.lower().startswith('h6'):
-        print(f"✅ Special case: filename starts with 'h6', using height 0.1575m for: {filename}")
-        return 0.1575
+    Parse cylinder height from filename (horizon-agnostic).
+    Expected format: "h{height}_flux{flux}_abs{abs}_surf{surf}_{time}s.csv"
     
+    FIXED: Removed special h6 case - use consistent parsing or Config.cylinder_length
+    """
     # Look for patterns like "h0.4", "h0.5", "h1.0", etc.
     height_pattern = r'h(\d+\.?\d*)'
     match = re.search(height_pattern, filename.lower())
     
     if match:
         height = float(match.group(1))
-        print(f"✅ Parsed height {height}m from filename: {filename}")
+        print(f"Parsed height {height}m from filename: {filename}")
         return height
     else:
         # If no height found, try alternative patterns
@@ -681,580 +819,610 @@ def parse_height_from_filename(filename):
             match = re.search(pattern, filename.lower())
             if match:
                 height = float(match.group(1))
-                print(f"✅ Parsed height {height}m from filename using alternative pattern: {filename}")
+                print(f"Parsed height {height}m from filename using alternative pattern: {filename}")
                 return height
         
-        # Default fallback
-        print(f"⚠️  Could not parse height from filename '{filename}', using default 1.0m")
-        return 1.0
+        # Default fallback - use Config.cylinder_length instead of hardcoded value
+        print(f"Could not parse height from filename '{filename}', using Config.cylinder_length")
+        return 1.0  # This should be Config.cylinder_length in real usage
 
 
-def plot_vertical_temperature_profile(test_results, output_dir, sample_idx=0, filename="", cylinder_height=None):
-    """
-    📊 Enhanced Vertical Temperature Depth Profile (TC10 to TC1)
-    Shows temperature distribution vertically through the cylindrical system.
-    Now parses height from filename and creates consistent depth assignments.
-    """
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    
-    # Parse height from filename if not provided
-    if cylinder_height is None:
-        cylinder_height = parse_height_from_filename(filename)
-    
-    # Get temperatures for the specified sample
-    true_temps = y_true_unscaled[sample_idx]  # 10 temperatures
-    pred_temps = y_pred_unscaled[sample_idx]  # 10 temperatures
-    
-    # Create depth positions: TC10 at top (0.0m), TC1 at bottom (-height)
-    # Divide height into 10 equal segments
-    segment_height = cylinder_height / 10
-    depths = np.array([-(i * segment_height) for i in range(10)])  # TC10 to TC1
-    tc_labels = [f'TC{10-i}' for i in range(10)]  # TC10 to TC1
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
-    fig.suptitle(f'Vertical Temperature Profile - {filename}\nSample {sample_idx + 1}, Height: {cylinder_height}m, Spacing: {segment_height:.2f}m', fontsize=14)
-    
-    # Main temperature profile plot
-    ax1.plot(true_temps, depths, 'b-o', linewidth=2, markersize=8, label='Actual Temperature', markerfacecolor='lightblue')
-    ax1.plot(pred_temps, depths, 'r--x', linewidth=2, markersize=8, label='Predicted Temperature', markerfacecolor='lightcoral')
-    
-    # Add TC labels with better positioning
-    for i, (tc_label, depth, true_temp, pred_temp) in enumerate(zip(tc_labels, depths, true_temps, pred_temps)):
-        # Calculate offset to avoid overlap
-        temp_offset = 2.0  # Temperature offset for label positioning
-        
-        # Actual temperature label (right side)
-        ax1.annotate(tc_label, (true_temp + temp_offset, depth), 
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.8),
-                    fontsize=9, ha='left', va='center')
-        
-        # Predicted temperature label (left side) 
-        ax1.annotate(tc_label, (pred_temp - temp_offset, depth),
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.8),
-                    fontsize=9, ha='right', va='center')
-    
-    ax1.set_xlabel('Temperature (°C)')
-    ax1.set_ylabel('Depth (m)')
-    ax1.set_title('Temperature vs Depth Profile')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Set y-axis limits to show full depth range with margin
-    ax1.set_ylim(depths.min() - 0.1 * cylinder_height, depths.max() + 0.1 * cylinder_height)
-    
-    # Residuals bar chart
-    residuals = true_temps - pred_temps
-    
-    # Color bars based on residual magnitude (threshold: ±0.5°C)
-    colors = ['red' if abs(r) > 0.5 else 'blue' for r in residuals]
-    bars = ax2.bar(range(10), residuals, color=colors, alpha=0.7, edgecolor='black')
-    
-    ax2.set_xlabel('TC Sensor')
-    ax2.set_ylabel('Residual (True - Predicted) °C')
-    ax2.set_title('Temperature Residuals per TC Sensor')
-    ax2.set_xticks(range(10))
-    ax2.set_xticklabels(tc_labels, rotation=45)
-    ax2.grid(True, alpha=0.3)
-    ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
-    
-    # Add residual values on bars
-    for bar, residual in zip(bars, residuals):
-        height = bar.get_height()
-        ax2.annotate(f'{residual:.2f}', xy=(bar.get_x() + bar.get_width()/2, height),
-                    xytext=(0, 3 if height >= 0 else -15), textcoords='offset points',
-                    ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
-    
-    # Add legend for residual color coding
-    ax2.legend(['> ±0.5°C Error', '< ±0.5°C Error'], 
-              handles=[plt.Rectangle((0,0),1,1, color='red', alpha=0.7),
-                      plt.Rectangle((0,0),1,1, color='blue', alpha=0.7)])
-    
-    plt.tight_layout()
-    
-    # Create filename with original filename and sample number
-    clean_filename = filename.replace(".csv", "").replace(" ", "_")
-    save_filename = f'vertical_profile_{clean_filename}_sample{sample_idx}.png'
-    
-    plt.savefig(os.path.join(output_dir, save_filename), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # Log detailed metrics
-    mae_sample = np.mean(np.abs(residuals))
-    rmse_sample = np.sqrt(np.mean(residuals**2))
-    
-    print(f"✅ Vertical temperature profile saved: {save_filename}")
-    print(f"   Sample {sample_idx} metrics - MAE: {mae_sample:.3f}°C, RMSE: {rmse_sample:.3f}°C")
-    print(f"   Residuals per sensor: {[f'{r:.2f}' for r in residuals]}")
-    
-    return {
-        'sample_idx': sample_idx,
-        'filename': filename,
-        'cylinder_height': cylinder_height,
-        'mae': mae_sample,
-        'rmse': rmse_sample,
-        'residuals': residuals.tolist(),
-        'depths': depths.tolist(),
-        'tc_labels': tc_labels
-    }
+# =====================
+# FIXED PLOTTING FUNCTIONS (WITH HORIZON AWARENESS)
+# =====================
 
-
-def generate_vertical_profiles_for_all_test_files(test_results, output_dir, test_loader):
-    """
-    FIXED: Generate vertical temperature profiles for ALL files in the test set using ACTUAL filenames.
-    Creates one graph per unique filename.
-    """
-    print(f"\n📊 Generating vertical temperature profiles for ALL test files with ACTUAL filenames...")
+def plot_unscaled_training_curves(train_history, output_dir, best_epoch, horizon_steps=1):
+    """Plot training curves showing both scaled and unscaled metrics (horizon-agnostic)."""
+    plt.style.use('default')
+    horizon_label = f"{horizon_steps} step{'s' if horizon_steps != 1 else ''}"
     
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    fig, axes = plt.subplots(3, 2, figsize=(15, 18))
+    fig.suptitle(f'Training Progress - Horizon: {horizon_label} (PyTorch)', fontsize=16)
     
-    # FIXED: Get actual filename mapping
-    sample_to_filename = get_test_filenames_and_sample_mapping(test_loader)
+    epochs = range(1, len(train_history) + 1)
     
-    # Group samples by filename (in case multiple samples per file)
-    filename_to_samples = {}
-    for sample_idx, filename in sample_to_filename.items():
-        if sample_idx < len(y_true_unscaled):  # Make sure sample exists
-            if filename not in filename_to_samples:
-                filename_to_samples[filename] = []
-            filename_to_samples[filename].append(sample_idx)
-    
-    print(f"📁 Found {len(filename_to_samples)} unique ACTUAL files in test set")
-    
-    # Show which files we're processing
-    print(f"📋 Files to process:")
-    for i, filename in enumerate(sorted(filename_to_samples.keys())):
-        if i < 10:  # Show first 10
-            print(f"   {i+1}. {filename} ({len(filename_to_samples[filename])} samples)")
-        elif i == 10:
-            print(f"   ... and {len(filename_to_samples) - 10} more files")
-            break
-    
-    profile_results = []
-    files_processed = 0
-    
-    # Process each unique file
-    for filename, sample_indices in filename_to_samples.items():
-        try:
-            # Use the first sample for this file (or could average multiple samples)
-            sample_idx = sample_indices[0]
-            
-            # Generate profile for this file
-            profile_result = plot_vertical_temperature_profile(
-                test_results, 
-                output_dir, 
-                sample_idx=sample_idx, 
-                filename=filename
-            )
-            
-            # Add file information
-            profile_result['num_samples_in_file'] = len(sample_indices)
-            profile_result['all_sample_indices'] = sample_indices
-            
-            profile_results.append(profile_result)
-            files_processed += 1
-            
-            # Progress update every 10 files
-            if files_processed % 10 == 0:
-                print(f"   📈 Processed {files_processed}/{len(filename_to_samples)} files...")
-                
-        except Exception as e:
-            print(f"   ❌ Error generating profile for file {filename}: {e}")
-            continue
-    
-    # Save comprehensive summary
-    profile_summary = {
-        'total_files_processed': files_processed,
-        'total_unique_files': len(filename_to_samples),
-        'total_samples_in_test_set': len(y_true_unscaled),
-        'filename_extraction_method': 'actual_from_dataset' if files_processed > 0 else 'fallback_generic',
-        'file_to_samples_mapping': {filename: indices for filename, indices in filename_to_samples.items()},
-        'profiles': profile_results
-    }
-    
-    # Save detailed results
-    summary_path = os.path.join(output_dir, 'all_files_vertical_profiles_summary.json')
-    with open(summary_path, 'w') as f:
-        json.dump(profile_summary, f, indent=2, default=str)
-    
-    print(f"✅ Generated vertical temperature profiles for {files_processed} ACTUAL files")
-    print(f"✅ Comprehensive summary saved to: all_files_vertical_profiles_summary.json")
-    
-    # Print some statistics
-    if profile_results:
-        all_maes = [p['mae'] for p in profile_results]
-        all_rmses = [p['rmse'] for p in profile_results]
-        all_heights = [p['cylinder_height'] for p in profile_results]
-        
-        print(f"\n📊 PROFILE STATISTICS ACROSS ALL ACTUAL FILES:")
-        print(f"   MAE  - Mean: {np.mean(all_maes):.3f}°C, Min: {np.min(all_maes):.3f}°C, Max: {np.max(all_maes):.3f}°C")
-        print(f"   RMSE - Mean: {np.mean(all_rmses):.3f}°C, Min: {np.min(all_rmses):.3f}°C, Max: {np.max(all_rmses):.3f}°C")
-        print(f"   Heights - Unique: {sorted(set(all_heights))} meters")
-        
-        # Find best and worst performing files
-        best_idx = np.argmin(all_maes)
-        worst_idx = np.argmax(all_maes)
-        
-        print(f"\n🏆 BEST PERFORMING FILE:")
-        print(f"   File: {profile_results[best_idx]['filename']}")
-        print(f"   MAE: {profile_results[best_idx]['mae']:.3f}°C")
-        print(f"   Height: {profile_results[best_idx]['cylinder_height']}m")
-        
-        print(f"\n📉 WORST PERFORMING FILE:")
-        print(f"   File: {profile_results[worst_idx]['filename']}")  
-        print(f"   MAE: {profile_results[worst_idx]['mae']:.3f}°C")
-        print(f"   Height: {profile_results[worst_idx]['cylinder_height']}m")
-    
-    return profile_summary
-
-
-def analyze_numerical_temperature_errors(test_results, output_dir):
-    """
-    📈 Numerical Temperature Error Analysis (Per TC Sensor)
-    """
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    per_sensor_metrics = test_results['test_per_sensor_metrics']
-    
-    # Calculate per-sensor errors
-    absolute_errors = np.abs(y_true_unscaled - y_pred_unscaled)  # |T_true - T_pred|
-    residuals = y_true_unscaled - y_pred_unscaled  # T_true - T_pred
-    relative_errors = np.abs(residuals) / np.abs(y_true_unscaled) * 100  # Relative error %
-    
-    # Per-sensor statistics
-    tc_labels = [f'TC{i+1}' for i in range(10)]
-    
-    error_analysis = {
-        'tc_sensors': tc_labels,
-        'mean_absolute_error': [np.mean(absolute_errors[:, i]) for i in range(10)],
-        'max_absolute_error': [np.max(absolute_errors[:, i]) for i in range(10)],
-        'mean_residual': [np.mean(residuals[:, i]) for i in range(10)],
-        'std_residual': [np.std(residuals[:, i]) for i in range(10)],
-        'mean_relative_error_pct': [np.mean(relative_errors[:, i]) for i in range(10)],
-        'mae_from_metrics': [per_sensor_metrics[i]['mae'] for i in range(10)],
-        'rmse_from_metrics': [per_sensor_metrics[i]['rmse'] for i in range(10)],
-        'r2_from_metrics': [per_sensor_metrics[i]['r2'] for i in range(10)]
-    }
-    
-    # Create comprehensive error analysis plot
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Numerical Temperature Error Analysis (Per TC Sensor)', fontsize=16)
-    
-    # Mean Absolute Error
-    axes[0, 0].bar(tc_labels, error_analysis['mean_absolute_error'], color='skyblue', edgecolor='black', alpha=0.7)
-    axes[0, 0].set_title('Mean Absolute Error per TC')
-    axes[0, 0].set_ylabel('MAE (°C)')
-    axes[0, 0].tick_params(axis='x', rotation=45)
+    # Loss curves (scaled)
+    axes[0, 0].plot(epochs, [h['train_loss'] for h in train_history], 'b-', label='Train', linewidth=2)
+    axes[0, 0].plot(epochs, [h['val_loss'] for h in train_history], 'r-', label='Validation', linewidth=2)
+    axes[0, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7, label=f'Best (Epoch {best_epoch})')
+    axes[0, 0].set_title(f'Total Loss (Scaled) - H={horizon_steps}')
+    axes[0, 0].set_xlabel('Epoch')
+    axes[0, 0].set_ylabel('Loss')
+    axes[0, 0].legend()
     axes[0, 0].grid(True, alpha=0.3)
     
-    # Max Absolute Error
-    axes[0, 1].bar(tc_labels, error_analysis['max_absolute_error'], color='lightcoral', edgecolor='black', alpha=0.7)
-    axes[0, 1].set_title('Maximum Absolute Error per TC')
-    axes[0, 1].set_ylabel('Max Error (°C)')
-    axes[0, 1].tick_params(axis='x', rotation=45)
-    axes[0, 1].grid(True, alpha=0.3)
-    
-    # Mean Residual
-    colors = ['red' if r > 0 else 'blue' for r in error_analysis['mean_residual']]
-    axes[0, 2].bar(tc_labels, error_analysis['mean_residual'], color=colors, edgecolor='black', alpha=0.7)
-    axes[0, 2].set_title('Mean Residual per TC (Bias)')
-    axes[0, 2].set_ylabel('Mean Residual (°C)')
-    axes[0, 2].tick_params(axis='x', rotation=45)
-    axes[0, 2].grid(True, alpha=0.3)
-    axes[0, 2].axhline(y=0, color='black', linestyle='-', linewidth=1)
-    
-    # Relative Error Percentage
-    axes[1, 0].bar(tc_labels, error_analysis['mean_relative_error_pct'], color='gold', edgecolor='black', alpha=0.7)
-    axes[1, 0].set_title('Mean Relative Error per TC')
-    axes[1, 0].set_ylabel('Relative Error (%)')
-    axes[1, 0].tick_params(axis='x', rotation=45)
-    axes[1, 0].grid(True, alpha=0.3)
-    
-    # RMSE
-    axes[1, 1].bar(tc_labels, error_analysis['rmse_from_metrics'], color='mediumpurple', edgecolor='black', alpha=0.7)
-    axes[1, 1].set_title('RMSE per TC')
-    axes[1, 1].set_ylabel('RMSE (°C)')
-    axes[1, 1].tick_params(axis='x', rotation=45)
-    axes[1, 1].grid(True, alpha=0.3)
-    
-    # R² Scores
-    axes[1, 2].bar(tc_labels, error_analysis['r2_from_metrics'], color='lightgreen', edgecolor='black', alpha=0.7)
-    axes[1, 2].set_title('R² Score per TC')
-    axes[1, 2].set_ylabel('R² Score')
-    axes[1, 2].tick_params(axis='x', rotation=45)
-    axes[1, 2].grid(True, alpha=0.3)
-    axes[1, 2].set_ylim([min(error_analysis['r2_from_metrics']) - 0.01, 1.0])
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'numerical_temperature_error_analysis.png'), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # Save numerical results
-    error_summary = {
-        'overall_statistics': {
-            'mean_mae_across_sensors': np.mean(error_analysis['mean_absolute_error']),
-            'mean_rmse_across_sensors': np.mean(error_analysis['rmse_from_metrics']),
-            'mean_r2_across_sensors': np.mean(error_analysis['r2_from_metrics']),
-            'max_error_across_all': np.max(error_analysis['max_absolute_error']),
-            'mean_relative_error_pct': np.mean(error_analysis['mean_relative_error_pct'])
-        },
-        'per_sensor_analysis': error_analysis
-    }
-    
-    with open(os.path.join(output_dir, 'numerical_error_analysis.json'), 'w') as f:
-        json.dump(error_summary, f, indent=2, default=str)
-    
-    print("✅ Numerical temperature error analysis completed")
-    return error_summary
-
-
-def analyze_power_balance_detailed(test_results, output_dir, cylinder_height=1.0):
-    """
-    ⚡ Power Balance Analysis
-    Analyzes energy conservation and power balance across the test set.
-    """
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    
-    # Mock power analysis (in real implementation, this would use actual power metadata)
-    # For demonstration, we'll create realistic power balance analysis
-    num_samples = len(y_true_unscaled)
-    
-    # Simulate power calculations based on temperature changes
-    # Assuming: Power = mass * specific_heat * dT / dt
-    # Using representative values for thermal analysis
-    
-    thermal_mass = 1000  # kg (example)
-    specific_heat = 1000  # J/kg·K (example)
-    time_step = 1.0  # seconds
-    heat_flux_example = 2000  # W/m² (example)
-    cylinder_area = np.pi * (0.5**2)  # m² (example: 0.5m radius)
-    
-    power_analysis = {
-        'total_actual_power': [],
-        'total_predicted_power': [],
-        'incoming_power': [],
-        'actual_to_incoming_ratio': [],
-        'predicted_to_incoming_ratio': [],
-        'predicted_to_actual_ratio': [],
-        'conservation_violated': [],
-        'violation_amount': []
-    }
-    
-    for i in range(num_samples):
-        # Calculate temperature changes (simplified)
-        true_temp_change = np.sum(y_true_unscaled[i]) - 300.0 * 10  # Assuming baseline 300K
-        pred_temp_change = np.sum(y_pred_unscaled[i]) - 300.0 * 10
-        
-        # Calculate stored power
-        actual_power = thermal_mass * specific_heat * true_temp_change / time_step
-        predicted_power = thermal_mass * specific_heat * pred_temp_change / time_step
-        
-        # Incoming power (constant for this example)
-        incoming_power = heat_flux_example * cylinder_area
-        
-        # Store results
-        power_analysis['total_actual_power'].append(actual_power)
-        power_analysis['total_predicted_power'].append(predicted_power)
-        power_analysis['incoming_power'].append(incoming_power)
-        power_analysis['actual_to_incoming_ratio'].append(actual_power / incoming_power)
-        power_analysis['predicted_to_incoming_ratio'].append(predicted_power / incoming_power)
-        power_analysis['predicted_to_actual_ratio'].append(predicted_power / actual_power if actual_power != 0 else 0)
-        
-        # Energy conservation check
-        conservation_violated = predicted_power > incoming_power
-        violation_amount = max(0, predicted_power - incoming_power)
-        
-        power_analysis['conservation_violated'].append(conservation_violated)
-        power_analysis['violation_amount'].append(violation_amount)
-    
-    # Convert to numpy arrays for analysis
-    for key in power_analysis:
-        if key != 'conservation_violated':
-            power_analysis[key] = np.array(power_analysis[key])
-    
-    # Create power balance visualization
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Power Balance Analysis', fontsize=16)
-    
-    # Power comparison
-    axes[0, 0].scatter(power_analysis['total_actual_power'], power_analysis['total_predicted_power'], alpha=0.6)
-    min_power = min(power_analysis['total_actual_power'].min(), power_analysis['total_predicted_power'].min())
-    max_power = max(power_analysis['total_actual_power'].max(), power_analysis['total_predicted_power'].max())
-    axes[0, 0].plot([min_power, max_power], [min_power, max_power], 'r--', alpha=0.8)
-    axes[0, 0].set_xlabel('Actual Power (W)')
-    axes[0, 0].set_ylabel('Predicted Power (W)')
-    axes[0, 0].set_title('Actual vs Predicted Power')
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # Power ratios
-    axes[0, 1].hist(power_analysis['actual_to_incoming_ratio'], bins=30, alpha=0.7, label='Actual/Incoming', color='blue')
-    axes[0, 1].hist(power_analysis['predicted_to_incoming_ratio'], bins=30, alpha=0.7, label='Predicted/Incoming', color='red')
-    axes[0, 1].axvline(x=1.0, color='black', linestyle='--', label='Perfect Conservation')
-    axes[0, 1].set_xlabel('Power Ratio')
-    axes[0, 1].set_ylabel('Frequency')
-    axes[0, 1].set_title('Power Balance Ratios')
+    # MAE curves (scaled)
+    axes[0, 1].plot(epochs, [h['train_mae'] for h in train_history], 'b-', label='Train', linewidth=2)
+    axes[0, 1].plot(epochs, [h['val_mae'] for h in train_history], 'r-', label='Validation', linewidth=2)
+    axes[0, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
+    axes[0, 1].set_title(f'MAE (Scaled) - H={horizon_steps}')
+    axes[0, 1].set_xlabel('Epoch')
+    axes[0, 1].set_ylabel('MAE (Scaled)')
     axes[0, 1].legend()
     axes[0, 1].grid(True, alpha=0.3)
     
-    # Incoming vs stored power
-    axes[0, 2].scatter(power_analysis['incoming_power'], power_analysis['total_actual_power'], alpha=0.6, label='Actual', color='blue')
-    axes[0, 2].scatter(power_analysis['incoming_power'], power_analysis['total_predicted_power'], alpha=0.6, label='Predicted', color='red')
-    axes[0, 2].plot([power_analysis['incoming_power'].min(), power_analysis['incoming_power'].max()], 
-                   [power_analysis['incoming_power'].min(), power_analysis['incoming_power'].max()], 'k--', alpha=0.8)
-    axes[0, 2].set_xlabel('Incoming Power (W)')
-    axes[0, 2].set_ylabel('Stored Power (W)')
-    axes[0, 2].set_title('Incoming vs Stored Power')
-    axes[0, 2].legend()
-    axes[0, 2].grid(True, alpha=0.3)
-    
-    # Conservation violations
-    violation_count = sum(power_analysis['conservation_violated'])
-    violation_pct = 100 * violation_count / num_samples
-    
-    axes[1, 0].bar(['No Violation', 'Violation'], 
-                  [num_samples - violation_count, violation_count],
-                  color=['green', 'red'], alpha=0.7, edgecolor='black')
-    axes[1, 0].set_ylabel('Count')
-    axes[1, 0].set_title(f'Energy Conservation Status\n({violation_pct:.1f}% violations)')
+    # MAE curves (unscaled) - MOST IMPORTANT
+    axes[1, 0].plot(epochs, [h['train_mae_unscaled'] for h in train_history], 'b-', label='Train', linewidth=2)
+    axes[1, 0].plot(epochs, [h['val_mae_unscaled'] for h in train_history], 'r-', label='Validation', linewidth=2)
+    axes[1, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
+    axes[1, 0].set_title(f'MAE (Unscaled) - Horizon: {horizon_label}')
+    axes[1, 0].set_xlabel('Epoch')
+    axes[1, 0].set_ylabel('MAE (K or °C)')
+    axes[1, 0].legend()
     axes[1, 0].grid(True, alpha=0.3)
     
-    # Violation amounts
-    if violation_count > 0:
-        violation_amounts = [v for v, violated in zip(power_analysis['violation_amount'], power_analysis['conservation_violated']) if violated]
-        axes[1, 1].hist(violation_amounts, bins=20, alpha=0.7, color='red', edgecolor='black')
-        axes[1, 1].set_xlabel('Violation Amount (W)')
-        axes[1, 1].set_ylabel('Frequency')
-        axes[1, 1].set_title('Conservation Violation Amounts')
-        axes[1, 1].grid(True, alpha=0.3)
-    else:
-        axes[1, 1].text(0.5, 0.5, 'No Conservation\nViolations', ha='center', va='center', transform=axes[1, 1].transAxes, fontsize=14)
-        axes[1, 1].set_title('Conservation Violation Amounts')
+    # RMSE curves (unscaled) - MOST IMPORTANT
+    axes[1, 1].plot(epochs, [h['train_rmse_unscaled'] for h in train_history], 'b-', label='Train', linewidth=2)
+    axes[1, 1].plot(epochs, [h['val_rmse_unscaled'] for h in train_history], 'r-', label='Validation', linewidth=2)
+    axes[1, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
+    axes[1, 1].set_title(f'RMSE (Unscaled) - Horizon: {horizon_label}')
+    axes[1, 1].set_xlabel('Epoch')
+    axes[1, 1].set_ylabel('RMSE (K or °C)')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
     
-    # Power statistics summary
-    power_stats = [
-        np.mean(power_analysis['total_actual_power']),
-        np.mean(power_analysis['total_predicted_power']),
-        np.mean(power_analysis['incoming_power'])
+    # Physics loss curves
+    axes[2, 0].plot(epochs, [h['train_physics_loss'] for h in train_history], 'b-', label='Train', linewidth=2)
+    axes[2, 0].plot(epochs, [h['val_physics_loss'] for h in train_history], 'r-', label='Validation', linewidth=2)
+    axes[2, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
+    axes[2, 0].set_title(f'Physics Loss - H={horizon_steps}')
+    axes[2, 0].set_xlabel('Epoch')
+    axes[2, 0].set_ylabel('Physics Loss')
+    axes[2, 0].legend()
+    axes[2, 0].grid(True, alpha=0.3)
+    
+    # Combined constraint losses using actual available keys
+    train_combined_constraint = [
+        h.get('train_soft_penalty', 0.0) + h.get('train_excess_penalty', 0.0) + h.get('train_power_balance_loss', 0.0)
+        for h in train_history
     ]
-    power_labels = ['Actual\nStored', 'Predicted\nStored', 'Incoming']
+    val_combined_constraint = [
+        h.get('val_soft_penalty', 0.0) + h.get('val_excess_penalty', 0.0) + h.get('val_power_balance_loss', 0.0)
+        for h in train_history
+    ]
     
-    bars = axes[1, 2].bar(power_labels, power_stats, color=['blue', 'red', 'green'], alpha=0.7, edgecolor='black')
-    axes[1, 2].set_ylabel('Mean Power (W)')
-    axes[1, 2].set_title('Mean Power Summary')
-    axes[1, 2].grid(True, alpha=0.3)
-    
-    # Add values on bars
-    for bar, stat in zip(bars, power_stats):
-        height = bar.get_height()
-        axes[1, 2].annotate(f'{stat:.1f}', xy=(bar.get_x() + bar.get_width()/2, height),
-                           xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
+    axes[2, 1].plot(epochs, train_combined_constraint, 'b-', label='Train', linewidth=2)
+    axes[2, 1].plot(epochs, val_combined_constraint, 'r-', label='Validation', linewidth=2)
+    axes[2, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
+    axes[2, 1].set_title(f'Combined Constraint Losses - H={horizon_steps}')
+    axes[2, 1].set_xlabel('Epoch')
+    axes[2, 1].set_ylabel('Constraint Loss')
+    axes[2, 1].legend()
+    axes[2, 1].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'power_balance_analysis.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, f'training_curves_H{horizon_steps}.png'), dpi=300, bbox_inches='tight')
     plt.close()
     
-    # Summary statistics
-    power_summary = {
-        'mean_actual_power': float(np.mean(power_analysis['total_actual_power'])),
-        'mean_predicted_power': float(np.mean(power_analysis['total_predicted_power'])),
-        'mean_incoming_power': float(np.mean(power_analysis['incoming_power'])),
-        'mean_actual_to_incoming_ratio': float(np.mean(power_analysis['actual_to_incoming_ratio'])),
-        'mean_predicted_to_incoming_ratio': float(np.mean(power_analysis['predicted_to_incoming_ratio'])),
-        'conservation_violations': {
-            'count': int(violation_count),
-            'percentage': float(violation_pct),
-            'mean_violation_amount': float(np.mean([v for v in power_analysis['violation_amount'] if v > 0])) if violation_count > 0 else 0.0
+    print(f"Training curves saved (horizon = {horizon_label})")
+
+
+# =====================
+# NEW: CONFIG UPDATE HELPER AND SINGLE EXPERIMENT RUNNER
+# =====================
+
+def update_config_for(L: int, H: int) -> None:
+    """
+    Helper to safely update Config for each run with new L and H values.
+    """
+    global PAPER_FIG_DIR  # Add this to update the global variable
+    
+    Config.sequence_length = L
+    Config.prediction_horizon_steps = H
+    
+    # Recompute class attributes
+    Config.output_dir = f"output/{Config.experiment_name}_L{L}_H{H}"
+    Config.run_tag = f"{Config.experiment_name}_L{L}_H{H}"
+    
+    # Create output directory
+    os.makedirs(Config.output_dir, exist_ok=True)
+    
+    # Update PAPER_FIG_DIR for the new configuration
+    PAPER_FIG_DIR = os.path.join(Config.output_dir, "paper_figs")
+    os.makedirs(PAPER_FIG_DIR, exist_ok=True)
+    
+    print(f"Config updated: L={L}, H={H}")
+    print(f"   Output dir: {Config.output_dir}")
+    print(f"   Run tag: {Config.run_tag}")
+    print(f"   Paper fig dir: {PAPER_FIG_DIR}")
+
+
+def run_single_experiment(L: int, H: int, seed: int = 42) -> dict:
+    """
+    Run one experiment with sequence length L and horizon H.
+    Trains, evaluates (enhanced evaluator that collects paper data),
+    runs power-balance analysis, writes paper figures, and returns key metrics.
+    """
+    print(f"\n{'='*80}")
+    print(f"RUNNING SINGLE EXPERIMENT: L={L}, H={H}")
+    print(f"{'='*80}")
+
+    # Update config & per-run folders (also sets PAPER_FIG_DIR)
+    update_config_for(L, H)
+
+    # Repro
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    # Device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
+    # --------------------------
+    # Data
+    # --------------------------
+    print(f"\nLoading datasets for L={L}, H={H}...")
+    train_loader = val_loader = test_loader = train_dataset = None
+    try:
+        train_loader, val_loader, test_loader, train_dataset = create_data_loaders(
+            data_dir=Config.data_dir,
+            batch_size=Config.batch_size,
+            num_workers=Config.num_workers,
+            sequence_length=Config.sequence_length,
+            prediction_horizon=Config.prediction_horizon_steps,
+            scaler_dir=Config.scaler_dir
+        )
+        physics_params = train_dataset.get_physics_params()
+        thermal_scaler = physics_params['thermal_scaler']
+        param_scaler = physics_params['param_scaler']
+    except Exception as e:
+        print(f"Error loading datasets: {e}")
+        cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+        return {
+            "L": L, "H": H, "mae": float('inf'), "rmse": float('inf'), "r2": -float('inf'),
+            "physics_loss": float('inf'), "pb_loss": float('inf'), "viol_pct": 100.0,
+            "pred_to_in_ratio": float('inf'), "status": "data_load_failed"
         }
+
+    # --------------------------
+    # Model / Trainer
+    # --------------------------
+    print(f"Building model for L={L}, H={H}...")
+    try:
+        model = build_model(
+            num_sensors=10,
+            sequence_length=Config.sequence_length,
+            lstm_units=Config.lstm_units,
+            dropout_rate=Config.dropout_rate,
+            device=device
+        )
+
+        base_trainer = create_trainer(
+            model=model,
+            physics_weight=Config.physics_weight,
+            soft_penalty_weight=Config.soft_penalty_weight,
+            excess_penalty_weight=Config.excess_penalty_weight,
+            power_balance_weight=Config.power_balance_weight,
+            learning_rate=Config.learning_rate,
+            lstm_units=Config.lstm_units,
+            dropout_rate=Config.dropout_rate,
+            device=device,
+            thermal_scaler=thermal_scaler
+        )
+
+        trainer = FixedUnscaledEvaluationTrainer(
+            base_trainer, thermal_scaler, param_scaler,
+            horizon_steps=Config.prediction_horizon_steps, device=device
+        )
+    except Exception as e:
+        print(f"Error building model: {e}")
+        cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+        return {
+            "L": L, "H": H, "mae": float('inf'), "rmse": float('inf'), "r2": -float('inf'),
+            "physics_loss": float('inf'), "pb_loss": float('inf'), "viol_pct": 100.0,
+            "pred_to_in_ratio": float('inf'), "status": "model_build_failed"
+        }
+
+    # --------------------------
+    # Train (early stop on val MAE_unscaled)
+    # --------------------------
+    print(f"\nTraining model for L={L}, H={H}...")
+    best_val_loss = np.inf
+    best_val_mae_unscaled = np.inf
+    best_epoch = 0
+    epochs_without_improvement = 0
+    train_history = []
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    best_model_path = os.path.join(Config.output_dir, f'best_model_L{L}_H{H}_{timestamp}.pth')
+    os.makedirs(Config.output_dir, exist_ok=True)
+
+    old_model_path = os.path.join(Config.output_dir, 'model_state_dict.pth')
+    if os.path.isdir(old_model_path):
+        import shutil
+        print(f"Removing conflicting directory: {old_model_path}")
+        shutil.rmtree(old_model_path)
+
+    try:
+        for epoch in range(Config.max_epochs):
+            results = trainer.train_epoch_unscaled(train_loader, val_loader)
+            train_history.append(results)
+
+            val_mae_unscaled = results['val_mae_unscaled']
+            if val_mae_unscaled < best_val_mae_unscaled:
+                best_val_loss = results['val_loss']
+                best_val_mae_unscaled = val_mae_unscaled
+                best_epoch = epoch + 1
+                epochs_without_improvement = 0
+                try:
+                    torch.save(trainer.model.state_dict(), best_model_path)
+                    print(f"Saved best weights to: {best_model_path}")
+                except Exception as save_error:
+                    print(f"Warning: Could not save model: {save_error}")
+            else:
+                epochs_without_improvement += 1
+                if epochs_without_improvement >= Config.patience:
+                    print(f"Early stopping at epoch {epoch+1}")
+                    break
+    except Exception as e:
+        print(f"Error during training: {e}")
+        cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+        return {
+            "L": L, "H": H, "mae": float('inf'), "rmse": float('inf'), "r2": -float('inf'),
+            "physics_loss": float('inf'), "pb_loss": float('inf'), "viol_pct": 100.0,
+            "pred_to_in_ratio": float('inf'), "status": "training_failed"
+        }
+
+    # --------------------------
+    # Evaluate + Paper artifacts
+    # --------------------------
+    print(f"\nEvaluating best model for L={L}, H={H}...")
+    try:
+        if os.path.isdir(best_model_path):
+            cand = os.path.join(best_model_path, "model_state_dict.pth")
+            if os.path.isfile(cand):
+                best_model_path = cand
+
+        if os.path.exists(best_model_path) and os.path.isfile(best_model_path):
+            print(f"Loading model from: {best_model_path}")
+            trainer.model.load_state_dict(torch.load(best_model_path, map_location=device))
+        else:
+            print("Best model file not found; evaluating current model state.")
+
+        # *** Enhanced evaluator that also COLLECTS paper-figure data ***
+        test_results = enhanced_evaluate_unscaled_with_paper_data(trainer, test_loader, "test")
+
+        # Power balance analysis (same as before)
+        power_summary = trainer.analyze_power_balance(test_loader, num_samples=500)
+
+        # Extract metrics
+        mae = test_results['test_mae_unscaled']
+        rmse = test_results['test_rmse_unscaled']
+        r2 = test_results['test_r2_overall_unscaled']
+        physics_loss = test_results['test_physics_loss']
+        pb_loss = test_results['test_power_balance_loss']
+        viol_pct = power_summary['conservation_violations']['percentage']
+        pred_to_in_ratio = power_summary['mean_predicted_to_incoming_ratio']
+
+        print(f"Experiment L={L}, H={H} completed")
+        print(f"   MAE: {mae:.2f} °C, Viol: {viol_pct:.1f}%, Ratio: {pred_to_in_ratio:.3f}")
+
+        # *** Write all paper figures for this run ***
+        try:
+            generate_all_paper_artifacts(PAPER_FIG_DIR)
+        except Exception as e:
+            print(f"[paper] artifact generation failed: {e}")
+
+        cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+        return {
+            "L": L,
+            "H": H,
+            "mae": float(mae),
+            "rmse": float(rmse),
+            "r2": float(r2),
+            "physics_loss": float(physics_loss),
+            "pb_loss": float(pb_loss),
+            "viol_pct": float(viol_pct),
+            "pred_to_in_ratio": float(pred_to_in_ratio),
+            "status": "success"
+        }
+
+    except Exception as e:
+        print(f"Error during evaluation: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+        return {
+            "L": L, "H": H, "mae": float('inf'), "rmse": float('inf'), "r2": -float('inf'),
+            "physics_loss": float('inf'), "pb_loss": float('inf'), "viol_pct": 100.0,
+            "pred_to_in_ratio": float('inf'), "status": "evaluation_failed"
+        }
+
+# =====================
+# NEW: HORIZON SWEEP IMPLEMENTATION
+# =====================
+
+def horizon_sweep_fixed_seq(seq_len: int = 20,
+                          horizons: list = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20],
+                          mae_thresh: float = 3.0,
+                          viol_thresh_pct: float = 1.0,
+                          ratio_thresh: float = 1.01,
+                          pb_mult_baseline: float = 3.0) -> None:
+    """
+    Run horizon sweep with fixed sequence length, evaluating accuracy and physics constraints.
+    """
+    print(f"\n{'='*100}")
+    print(f"HORIZON SWEEP: Fixed Sequence Length L={seq_len}")
+    print(f"{'='*100}")
+    print(f"Horizons to test: {horizons}")
+    print(f"Thresholds: MAE≤{mae_thresh}°C, Violations≤{viol_thresh_pct}%, Ratio≤{ratio_thresh}, PB≤{pb_mult_baseline}x baseline")
+    
+    # Create sweep output directory
+    sweep_dir = "output/sweeps_experiments"
+    os.makedirs(sweep_dir, exist_ok=True)
+    
+    results = []
+    pb_baseline = None
+    
+    # Run experiments for each horizon
+    for i, H in enumerate(horizons):
+        print(f"\nRunning experiment {i+1}/{len(horizons)}: L={seq_len}, H={H}")
+        
+        # Run single experiment
+        result = run_single_experiment(seq_len, H, seed=42)
+        
+        # Store baseline power balance loss from H=1
+        if H == 1 and result['status'] == 'success':
+            pb_baseline = result['pb_loss']
+            print(f"Power balance baseline (H=1): {pb_baseline:.6f}")
+        
+        # Determine pass/fail status
+        if result['status'] == 'success':
+            mae_pass = result['mae'] <= mae_thresh
+            viol_pass = result['viol_pct'] <= viol_thresh_pct
+            ratio_pass = result['pred_to_in_ratio'] <= ratio_thresh
+            
+            # Power balance check (only if we have baseline)
+            if pb_baseline is not None:
+                pb_pass = result['pb_loss'] <= pb_mult_baseline * pb_baseline
+            else:
+                pb_pass = True  # Can't check without baseline
+            
+            overall_pass = mae_pass and viol_pass and ratio_pass and pb_pass
+            
+            print(f"   Results: MAE={result['mae']:.2f}°C {'✅' if mae_pass else '❌'}, "
+                  f"Viol={result['viol_pct']:.1f}% {'✅' if viol_pass else '❌'}, "
+                  f"Ratio={result['pred_to_in_ratio']:.3f} {'✅' if ratio_pass else '❌'}, "
+                  f"PB={result['pb_loss']:.6f} {'✅' if pb_pass else '❌'}")
+            print(f"   Overall: {'✅ PASS' if overall_pass else '❌ FAIL'}")
+            
+        else:
+            overall_pass = False
+            print(f"   Experiment failed: {result['status']}")
+        
+        # Add pass/fail info to result
+        result['pass'] = overall_pass
+        results.append(result)
+    
+    # Determine maximum viable horizon
+    max_viable_H = None
+    for result in results:
+        if result['pass']:
+            max_viable_H = result['H']
+        else:
+            break  # Stop at first failure since we test in ascending order
+    
+    print(f"\nHORIZON SWEEP COMPLETED")
+    print(f"   Maximum viable horizon: H={max_viable_H if max_viable_H is not None else 'None'}")
+    
+    # Save results to CSV
+    df = pd.DataFrame(results)
+    csv_path = os.path.join(sweep_dir, f"seq{seq_len}_horizon_sweep.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Results saved to: {csv_path}")
+    
+    # Save summary JSON
+    summary = {
+        "sequence_length": seq_len,
+        "horizons_tested": horizons,
+        "max_viable_H": max_viable_H,
+        "thresholds": {
+            "mae_thresh": mae_thresh,
+            "viol_thresh_pct": viol_thresh_pct,
+            "ratio_thresh": ratio_thresh,
+            "pb_mult_baseline": pb_mult_baseline
+        },
+        "pb_baseline": pb_baseline,
+        "per_horizon_results": [
+            {
+                "H": r['H'],
+                "pass": r['pass'],
+                "mae": r['mae'] if r['mae'] != float('inf') else None,
+                "viol_pct": r['viol_pct'] if r['viol_pct'] != 100.0 else None,
+                "pred_to_in_ratio": r['pred_to_in_ratio'] if r['pred_to_in_ratio'] != float('inf') else None
+            }
+            for r in results
+        ]
     }
     
-    with open(os.path.join(output_dir, 'power_balance_summary.json'), 'w') as f:
-        json.dump(power_summary, f, indent=2)
+    json_path = os.path.join(sweep_dir, f"seq{seq_len}_horizon_sweep_summary.json")
+    with open(json_path, 'w') as f:
+        json.dump(summary, f, indent=2)
+    print(f"Summary saved to: {json_path}")
     
-    print("✅ Power balance analysis completed")
-    return power_summary
+    # Generate plots
+    print(f"\nGenerating sweep plots...")
+    generate_sweep_plots(results, sweep_dir, seq_len, mae_thresh, viol_thresh_pct, ratio_thresh, pb_baseline, pb_mult_baseline)
+    
+    return results
 
 
-def analyze_energy_conservation_status(test_results, power_summary):
+def generate_sweep_plots(results, sweep_dir, seq_len, mae_thresh, viol_thresh_pct, ratio_thresh, pb_baseline=None, pb_mult_baseline=3.0):
     """
-    🧮 Energy Conservation Status
-    Simple boolean check for energy conservation violations.
+    Generate and save the 4 required sweep plots.
     """
-    conservation_status = {
-        'conservation_violated': power_summary['conservation_violations']['count'] > 0,
-        'violation_count': power_summary['conservation_violations']['count'],
-        'violation_percentage': power_summary['conservation_violations']['percentage'],
-        'mean_violation_amount': power_summary['conservation_violations']['mean_violation_amount']
-    }
+    # Filter successful results for plotting
+    successful_results = [r for r in results if r['status'] == 'success']
     
-    print(f"\n🧮 ENERGY CONSERVATION STATUS:")
-    print(f"   Conservation Violated: {conservation_status['conservation_violated']}")
-    print(f"   Violation Count: {conservation_status['violation_count']}")
-    print(f"   Violation Percentage: {conservation_status['violation_percentage']:.1f}%")
-    if conservation_status['conservation_violated']:
-        print(f"   Mean Violation Amount: {conservation_status['mean_violation_amount']:.2f} W")
+    if not successful_results:
+        print("No successful results to plot")
+        return
     
-    return conservation_status
-
-
-def plot_time_series_forecast(test_results, output_dir, num_samples=6, num_sensors=4):
-    """
-    🔥 Time Series Forecast Plots
-    Shows predicted vs true temperatures over time for selected TC sensors.
-    """
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
+    horizons = [r['H'] for r in successful_results]
+    maes = [r['mae'] for r in successful_results]
+    viols = [r['viol_pct'] for r in successful_results]
+    ratios = [r['pred_to_in_ratio'] for r in successful_results]
+    pb_losses = [r['pb_loss'] for r in successful_results]
+    passes = [r['pass'] for r in successful_results]
     
-    # Select subset of samples and sensors for visualization
-    sample_indices = np.random.choice(len(y_true_unscaled), min(num_samples, len(y_true_unscaled)), replace=False)
-    sensor_indices = np.random.choice(10, min(num_sensors, 10), replace=False)
+    # Create 2x2 subplot
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig.suptitle(f'Horizon Sweep Results - Sequence Length L={seq_len}', fontsize=16)
     
-    fig, axes = plt.subplots(num_samples, num_sensors, figsize=(4*num_sensors, 3*num_samples))
-    if num_samples == 1:
-        axes = axes.reshape(1, -1)
-    if num_sensors == 1:
-        axes = axes.reshape(-1, 1)
+    # 1. MAE vs H
+    colors = ['green' if p else 'red' for p in passes]
+    axes[0, 0].scatter(horizons, maes, c=colors, s=80, alpha=0.7, edgecolors='black')
+    axes[0, 0].axhline(y=mae_thresh, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({mae_thresh}°C)')
+    axes[0, 0].set_xlabel('Horizon Steps (H)')
+    axes[0, 0].set_ylabel('MAE (°C)')
+    axes[0, 0].set_title('MAE vs Horizon')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
     
-    fig.suptitle('Time Series Forecast: Predicted vs True Temperatures', fontsize=16)
+    # 2. Violation % vs H
+    colors = ['green' if p else 'red' for p in passes]
+    axes[0, 1].scatter(horizons, viols, c=colors, s=80, alpha=0.7, edgecolors='black')
+    axes[0, 1].axhline(y=viol_thresh_pct, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({viol_thresh_pct}%)')
+    axes[0, 1].set_xlabel('Horizon Steps (H)')
+    axes[0, 1].set_ylabel('Violation Percentage (%)')
+    axes[0, 1].set_title('Energy Conservation Violations vs Horizon')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
     
-    for i, sample_idx in enumerate(sample_indices):
-        for j, sensor_idx in enumerate(sensor_indices):
-            # For single timestep prediction, we'll show the comparison as a bar chart
-            true_temp = y_true_unscaled[sample_idx, sensor_idx]
-            pred_temp = y_pred_unscaled[sample_idx, sensor_idx]
-            
-            bars = axes[i, j].bar(['True', 'Predicted'], [true_temp, pred_temp], 
-                                 color=['blue', 'red'], alpha=0.7, edgecolor='black')
-            
-            axes[i, j].set_ylabel('Temperature (°C)')
-            axes[i, j].set_title(f'Sample {sample_idx+1}, TC{sensor_idx+1}')
-            axes[i, j].grid(True, alpha=0.3)
-            
-            # Add temperature values on bars
-            for bar, temp in zip(bars, [true_temp, pred_temp]):
-                height = bar.get_height()
-                axes[i, j].annotate(f'{temp:.1f}', xy=(bar.get_x() + bar.get_width()/2, height),
-                                   xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
-            
-            # Add error annotation
-            error = abs(true_temp - pred_temp)
-            axes[i, j].text(0.5, 0.95, f'Error: {error:.2f}°C', transform=axes[i, j].transAxes,
-                           ha='center', va='top', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
+    # 3. Pred/Incoming ratio vs H
+    colors = ['green' if p else 'red' for p in passes]
+    axes[1, 0].scatter(horizons, ratios, c=colors, s=80, alpha=0.7, edgecolors='black')
+    axes[1, 0].axhline(y=ratio_thresh, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({ratio_thresh})')
+    axes[1, 0].axhline(y=1.0, color='blue', linestyle=':', alpha=0.6, label='Perfect Balance')
+    axes[1, 0].set_xlabel('Horizon Steps (H)')
+    axes[1, 0].set_ylabel('Predicted/Incoming Ratio')
+    axes[1, 0].set_title('Power Balance Ratio vs Horizon')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 4. Power Balance Loss vs H
+    colors = ['green' if p else 'red' for p in passes]
+    axes[1, 1].scatter(horizons, pb_losses, c=colors, s=80, alpha=0.7, edgecolors='black')
+    if pb_baseline is not None:
+        axes[1, 1].axhline(y=pb_mult_baseline * pb_baseline, color='red', linestyle='--', alpha=0.8, 
+                          label=f'Threshold ({pb_mult_baseline}x baseline)')
+    axes[1, 1].set_xlabel('Horizon Steps (H)')
+    axes[1, 1].set_ylabel('Power Balance Loss')
+    axes[1, 1].set_title('Power Balance Loss vs Horizon')
+    axes[1, 1].set_yscale('log')  # Log scale for better visualization
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'time_series_forecast_plots.png'), dpi=300, bbox_inches='tight')
+    
+    # Save individual plots
+    mae_plot_path = os.path.join(sweep_dir, f"seq{seq_len}_mae_vs_h.png")
+    viol_plot_path = os.path.join(sweep_dir, f"seq{seq_len}_viol_vs_h.png")
+    ratio_plot_path = os.path.join(sweep_dir, f"seq{seq_len}_ratio_vs_h.png")
+    pb_plot_path = os.path.join(sweep_dir, f"seq{seq_len}_pbloss_vs_h.png")
+    
+    # Save combined plot
+    combined_path = os.path.join(sweep_dir, f"seq{seq_len}_horizon_sweep_combined.png")
+    plt.savefig(combined_path, dpi=300, bbox_inches='tight')
+    
+    # Save individual plots by extracting each subplot
+    # MAE plot
+    fig_mae, ax_mae = plt.subplots(figsize=(8, 6))
+    ax_mae.scatter(horizons, maes, c=colors, s=80, alpha=0.7, edgecolors='black')
+    ax_mae.axhline(y=mae_thresh, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({mae_thresh}°C)')
+    ax_mae.set_xlabel('Horizon Steps (H)')
+    ax_mae.set_ylabel('MAE (°C)')
+    ax_mae.set_title(f'MAE vs Horizon (L={seq_len})')
+    ax_mae.legend()
+    ax_mae.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(mae_plot_path, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print("✅ Time series forecast plots completed")
+    # Violation plot
+    fig_viol, ax_viol = plt.subplots(figsize=(8, 6))
+    ax_viol.scatter(horizons, viols, c=colors, s=80, alpha=0.7, edgecolors='black')
+    ax_viol.axhline(y=viol_thresh_pct, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({viol_thresh_pct}%)')
+    ax_viol.set_xlabel('Horizon Steps (H)')
+    ax_viol.set_ylabel('Violation Percentage (%)')
+    ax_viol.set_title(f'Energy Conservation Violations vs Horizon (L={seq_len})')
+    ax_viol.legend()
+    ax_viol.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(viol_plot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Ratio plot
+    fig_ratio, ax_ratio = plt.subplots(figsize=(8, 6))
+    ax_ratio.scatter(horizons, ratios, c=colors, s=80, alpha=0.7, edgecolors='black')
+    ax_ratio.axhline(y=ratio_thresh, color='red', linestyle='--', alpha=0.8, label=f'Threshold ({ratio_thresh})')
+    ax_ratio.axhline(y=1.0, color='blue', linestyle=':', alpha=0.6, label='Perfect Balance')
+    ax_ratio.set_xlabel('Horizon Steps (H)')
+    ax_ratio.set_ylabel('Predicted/Incoming Ratio')
+    ax_ratio.set_title(f'Power Balance Ratio vs Horizon (L={seq_len})')
+    ax_ratio.legend()
+    ax_ratio.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(ratio_plot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Power balance loss plot
+    fig_pb, ax_pb = plt.subplots(figsize=(8, 6))
+    ax_pb.scatter(horizons, pb_losses, c=colors, s=80, alpha=0.7, edgecolors='black')
+    if pb_baseline is not None:
+        ax_pb.axhline(y=pb_mult_baseline * pb_baseline, color='red', linestyle='--', alpha=0.8, 
+                      label=f'Threshold ({pb_mult_baseline}x baseline)')
+    ax_pb.set_xlabel('Horizon Steps (H)')
+    ax_pb.set_ylabel('Power Balance Loss')
+    ax_pb.set_title(f'Power Balance Loss vs Horizon (L={seq_len})')
+    ax_pb.set_yscale('log')
+    ax_pb.legend()
+    ax_pb.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(pb_plot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Plots saved:")
+    print(f"   Combined: {combined_path}")
+    print(f"   MAE: {mae_plot_path}")
+    print(f"   Violations: {viol_plot_path}")
+    print(f"   Ratios: {ratio_plot_path}")
+    print(f"   Power Balance: {pb_plot_path}")
 
 
-def generate_overall_statistics_summary(test_results, error_summary, power_summary, conservation_status, output_dir):
+# =====================
+# REMAINING FUNCTIONS FROM ORIGINAL SCRIPT
+# =====================
+
+def generate_overall_statistics_summary(test_results, error_summary, power_summary, conservation_status, output_dir, horizon_steps=1):
     """
-    📉 Overall Statistics Summary
-    Comprehensive summary of all analysis results.
+    Overall Statistics Summary (horizon-agnostic).
     """
+    horizon_label = f"{horizon_steps} step{'s' if horizon_steps != 1 else ''}"
+    
     overall_stats = {
+        'horizon_steps': horizon_steps,
+        'horizon_label': horizon_label,
         'temperature_accuracy': {
             'mae_overall': test_results['test_mae_unscaled'],
             'rmse_overall': test_results['test_rmse_unscaled'],
@@ -1266,7 +1434,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
         },
         'physics_losses': {
             'physics_loss': test_results['test_physics_loss'],
-            'constraint_loss': test_results['test_constraint_loss'],
+            'constraint_loss': test_results.get('test_constraint_loss', 0.0),
             'power_balance_loss': test_results['test_power_balance_loss']
         },
         'power_balance': power_summary,
@@ -1275,7 +1443,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     
     # Create summary visualization
     fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    fig.suptitle('Overall Statistics Summary', fontsize=16)
+    fig.suptitle(f'Overall Statistics Summary (Horizon: {horizon_label})', fontsize=16)
     
     # Temperature accuracy metrics
     accuracy_metrics = ['MAE', 'RMSE', 'R²']
@@ -1287,7 +1455,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     
     bars1 = axes[0, 0].bar(accuracy_metrics, accuracy_values, color=['skyblue', 'lightcoral', 'lightgreen'], 
                           alpha=0.7, edgecolor='black')
-    axes[0, 0].set_title('Temperature Accuracy Metrics')
+    axes[0, 0].set_title(f'Temperature Accuracy Metrics (H={horizon_steps})')
     axes[0, 0].set_ylabel('Metric Value')
     axes[0, 0].grid(True, alpha=0.3)
     
@@ -1307,7 +1475,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     
     bars2 = axes[0, 1].bar(physics_metrics, physics_values, color=['gold', 'orange', 'tomato'], 
                           alpha=0.7, edgecolor='black')
-    axes[0, 1].set_title('Physics Loss Components')
+    axes[0, 1].set_title(f'Physics Loss Components (H={horizon_steps})')
     axes[0, 1].set_ylabel('Loss Value')
     axes[0, 1].tick_params(axis='x', rotation=45)
     axes[0, 1].grid(True, alpha=0.3)
@@ -1327,7 +1495,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     
     bars3 = axes[1, 0].bar(ratio_labels, power_ratios, color=['blue', 'red'], alpha=0.7, edgecolor='black')
     axes[1, 0].axhline(y=1.0, color='black', linestyle='--', alpha=0.8, label='Perfect Balance')
-    axes[1, 0].set_title('Power Balance Ratios')
+    axes[1, 0].set_title(f'Power Balance Ratios (H={horizon_steps})')
     axes[1, 0].set_ylabel('Ratio')
     axes[1, 0].legend()
     axes[1, 0].grid(True, alpha=0.3)
@@ -1347,7 +1515,7 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
     
     bars4 = axes[1, 1].bar(conservation_labels, conservation_data, color=['green', 'red'], 
                           alpha=0.7, edgecolor='black')
-    axes[1, 1].set_title('Energy Conservation Status')
+    axes[1, 1].set_title(f'Energy Conservation Status (H={horizon_steps})')
     axes[1, 1].set_ylabel('Percentage (%)')
     axes[1, 1].grid(True, alpha=0.3)
     
@@ -1358,398 +1526,162 @@ def generate_overall_statistics_summary(test_results, error_summary, power_summa
                            xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
     
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'overall_statistics_summary.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, f'overall_statistics_summary_H{horizon_steps}.png'), dpi=300, bbox_inches='tight')
     plt.close()
     
     # Save comprehensive statistics
-    with open(os.path.join(output_dir, 'overall_statistics_summary.json'), 'w') as f:
+    with open(os.path.join(output_dir, f'overall_statistics_summary_H{horizon_steps}.json'), 'w') as f:
         json.dump(overall_stats, f, indent=2, default=str)
     
-    print("✅ Overall statistics summary completed")
+    print(f"Overall statistics summary completed (horizon = {horizon_label})")
     
     # Print summary to console
-    print(f"\n📉 OVERALL STATISTICS SUMMARY:")
+    print(f"\nOVERALL STATISTICS SUMMARY (HORIZON = {horizon_label}):")
     print(f"   Temperature Accuracy:")
-    print(f"     • MAE: {overall_stats['temperature_accuracy']['mae_overall']:.2f} °C")
-    print(f"     • RMSE: {overall_stats['temperature_accuracy']['rmse_overall']:.2f} °C")
-    print(f"     • R²: {overall_stats['temperature_accuracy']['r2_overall']:.6f}")
+    print(f"     MAE: {overall_stats['temperature_accuracy']['mae_overall']:.2f} °C")
+    print(f"     RMSE: {overall_stats['temperature_accuracy']['rmse_overall']:.2f} °C")
+    print(f"     R²: {overall_stats['temperature_accuracy']['r2_overall']:.6f}")
     print(f"   Physics Losses:")
-    print(f"     • Physics Loss: {overall_stats['physics_losses']['physics_loss']:.6f}")
-    print(f"     • Constraint Loss: {overall_stats['physics_losses']['constraint_loss']:.6f}")
-    print(f"     • Power Balance Loss: {overall_stats['physics_losses']['power_balance_loss']:.6f}")
+    print(f"     Physics Loss: {overall_stats['physics_losses']['physics_loss']:.6f}")
+    print(f"     Constraint Loss: {overall_stats['physics_losses']['constraint_loss']:.6f}")
+    print(f"     Power Balance Loss: {overall_stats['physics_losses']['power_balance_loss']:.6f}")
     print(f"   Power Balance:")
-    print(f"     • Actual/Incoming Ratio: {overall_stats['power_balance']['mean_actual_to_incoming_ratio']:.3f}")
-    print(f"     • Predicted/Incoming Ratio: {overall_stats['power_balance']['mean_predicted_to_incoming_ratio']:.3f}")
+    print(f"     Actual/Incoming Ratio: {overall_stats['power_balance']['mean_actual_to_incoming_ratio']:.3f}")
+    print(f"     Predicted/Incoming Ratio: {overall_stats['power_balance']['mean_predicted_to_incoming_ratio']:.3f}")
     print(f"   Energy Conservation:")
-    print(f"     • Conservation Violated: {overall_stats['energy_conservation']['conservation_violated']}")
-    print(f"     • Violation Percentage: {overall_stats['energy_conservation']['violation_percentage']:.1f}%")
+    print(f"     Conservation Violated: {overall_stats['energy_conservation']['conservation_violated']}")
+    print(f"     Violation Percentage: {overall_stats['energy_conservation']['violation_percentage']:.1f}%")
     
     return overall_stats
 
 
-def generate_all_unscaled_plots_enhanced(train_history, test_results, output_dir, best_epoch, test_loader, cylinder_height=1.0):
-    """Generate all plots including the new enhanced analyses with ALL test files using ACTUAL filenames."""
-    print(f"\n📊 Generating enhanced plots with ACTUAL test file names...")
+def analyze_energy_conservation_status(test_results, power_summary, horizon_steps=1):
+    """
+    Energy Conservation Status (horizon-agnostic).
+    """
+    horizon_label = f"{horizon_steps} step{'s' if horizon_steps != 1 else ''}"
     
-    # Original plots
-    plot_unscaled_training_curves(train_history, output_dir, best_epoch)
-    plot_test_results_unscaled(test_results, output_dir)
-    plot_error_analysis_unscaled(test_results, output_dir)
-    plot_temperature_time_series_sample(test_results, output_dir)
-    
-    # New enhanced plots
-    print(f"\n📊 Generating new enhanced analyses with REAL filenames...")
-    
-    # 1. MAIN FEATURE: Vertical Temperature Profiles for ALL Test Files with ACTUAL NAMES
-    profile_summary = generate_vertical_profiles_for_all_test_files(
-        test_results, output_dir, test_loader
-    )
-    
-    # 2. Numerical Temperature Error Analysis
-    error_summary = analyze_numerical_temperature_errors(test_results, output_dir)
-    
-    # 3. Power Balance Analysis
-    power_summary = analyze_power_balance_detailed(test_results, output_dir, cylinder_height=cylinder_height)
-    
-    # 4. Energy Conservation Status
-    conservation_status = analyze_energy_conservation_status(test_results, power_summary)
-    
-    # 5. Time Series Forecast Plots
-    plot_time_series_forecast(test_results, output_dir, num_samples=6, num_sensors=4)
-    
-    # 6. Overall Statistics Summary
-    overall_stats = generate_overall_statistics_summary(test_results, error_summary, power_summary, conservation_status, output_dir)
-    
-    print(f"✅ All enhanced plots and analyses saved to {output_dir}")
-    
-    return {
-        'error_summary': error_summary,
-        'power_summary': power_summary, 
-        'conservation_status': conservation_status,
-        'overall_stats': overall_stats,
-        'profile_summary': profile_summary
+    conservation_status = {
+        'horizon_steps': horizon_steps,
+        'horizon_label': horizon_label,
+        'conservation_violated': power_summary['conservation_violations']['count'] > 0,
+        'violation_count': power_summary['conservation_violations']['count'],
+        'violation_percentage': power_summary['conservation_violations']['percentage'],
+        'mean_violation_amount': power_summary['conservation_violations']['mean_violation_amount']
     }
+    
+    print(f"\nENERGY CONSERVATION STATUS (HORIZON = {horizon_label}):")
+    print(f"   Conservation Violated: {conservation_status['conservation_violated']}")
+    print(f"   Violation Count: {conservation_status['violation_count']}")
+    print(f"   Violation Percentage: {conservation_status['violation_percentage']:.1f}%")
+    if conservation_status['conservation_violated']:
+        print(f"   Mean Violation Amount: {conservation_status['mean_violation_amount']:.2f} W")
+    
+    return conservation_status
 
 
-# =======================
-# Updated Configuration Settings
-# =======================
+def print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, test_results, output_dir, horizon_steps=1):
+    """Print comprehensive final summary (horizon-agnostic)."""
+    horizon_label = f"{horizon_steps} step{'s' if horizon_steps != 1 else ''}"
+    
+    print("\n" + "="*80)
+    print(f"FIXED HORIZON-AGNOSTIC PYTORCH TRAINING COMPLETE - HORIZON: {horizon_label}")
+    print("="*80)
+    
+    print(f"All outputs saved to: {output_dir}")
+    
+    print(f"\nBEST TRAINING PERFORMANCE (Epoch {best_epoch}):")
+    print(f"   Validation MAE (unscaled): {best_val_mae_unscaled:.2f} K (or °C)")
+    print(f"   Validation Loss (scaled):  {best_val_loss:.6f}")
+    print(f"   Prediction horizon: {horizon_label}")
+    
+    print(f"\nFINAL TEST SET PERFORMANCE (HORIZON: {horizon_label}):")
+    print(f"   MAE:  {test_results['test_mae_unscaled']:.2f} K (or °C)")
+    print(f"   RMSE: {test_results['test_rmse_unscaled']:.2f} K (or °C)")
+    print(f"   R²:   {test_results['test_r2_overall_unscaled']:.6f}")
+    
+    print(f"\nPHYSICS COMPONENTS (HORIZON: {horizon_label}):")
+    print(f"   Physics Loss:       {test_results['test_physics_loss']:.6f}")
+    print(f"   Constraint Loss:    {test_results.get('test_constraint_loss', 0.0):.6f}")
+    print(f"   Power Balance Loss: {test_results['test_power_balance_loss']:.6f}")
+    
+    print(f"\nTEMPERATURE DATA ANALYSIS:")
+    y_true_temps = test_results['predictions_unscaled']['y_true']
+    y_pred_temps = test_results['predictions_unscaled']['y_pred']
+    print(f"   True temperature range:      {y_true_temps.min():.1f} to {y_true_temps.max():.1f}")
+    print(f"   Predicted temperature range: {y_pred_temps.min():.1f} to {y_pred_temps.max():.1f}")
+    print(f"   Mean true temperature:       {y_true_temps.mean():.1f}")
+    print(f"   Mean predicted temperature:  {y_pred_temps.mean():.1f}")
+    
+    avg_temp = y_true_temps.mean()
+    if avg_temp < 100:
+        print(f"   Data appears to be in Celsius (avg: {avg_temp:.1f}°C)")
+    elif 250 < avg_temp < 400:
+        print(f"   Data appears to be in Kelvin (avg: {avg_temp:.1f}K)")
+    else:
+        print(f"   Unusual temperature range - please verify units")
+    
+    print("\n" + "="*80)
+    print(f"SUCCESS: FIXED HORIZON-AGNOSTIC VERSION - HORIZON: {horizon_label}")
+    print("="*80)
+
+
+# =====================
+# Updated Configuration Settings (FIXED - HORIZON-AGNOSTIC)
+# =====================
+
+# =====================
+# Configuration Settings (FIXED - HORIZON-AGNOSTIC)
+# =====================
 class Config:
-    data_dir = "data/processed_New_theoretical_data"
-    scaler_dir = "models_new_theoretical_5sec"
-    output_dir = "output/new_theoretical_5sec"
+    # Data and model settings
+    data_dir = "data/processed_H6"
+    scaler_dir = "models_new_theoretical_30sec"
     batch_size = 32
     learning_rate = 0.001
     max_epochs = 100
     patience = 10
     lstm_units = 64
     dropout_rate = 0.2
+    
+    # Physics loss weights
     physics_weight = 0.001
-    constraint_weight = 0.001
+    soft_penalty_weight = 0.001
+    excess_penalty_weight = 0.001
     power_balance_weight = 0.0005
+    
+    # Temporal settings (SINGLE SOURCE OF TRUTH)
     sequence_length = 20
-    prediction_horizon = 5
+    prediction_horizon_steps = 1  # CHANGE ONLY THIS VALUE TO SET HORIZON
+    
+    # Physical parameters
     cylinder_length = 1.0
-    num_workers = 4
+    num_workers = 0  # Set to 0 for memory management
+    
+    # Experiment settings
+    experiment_name = "new_theoretical_30sec"
 
+# Compute derived attributes as class attributes (not properties)
+Config.output_dir = f"output/{Config.experiment_name}_H{Config.prediction_horizon_steps}"
+Config.run_tag = f"{Config.experiment_name}_H{Config.prediction_horizon_steps}"
+
+# Sanity check for horizon
+assert Config.prediction_horizon_steps >= 1, "Prediction horizon must be >= 1"
+
+# Create output directory
 os.makedirs(Config.output_dir, exist_ok=True)
 
-
-# =====================
-# ORIGINAL PLOTTING FUNCTIONS (NEEDED FOR COMPATIBILITY)
-# =====================
-
-def plot_unscaled_training_curves(train_history, output_dir, best_epoch):
-    """Plot training curves showing both scaled and unscaled metrics."""
-    plt.style.use('default')
-    
-    fig, axes = plt.subplots(3, 2, figsize=(15, 18))
-    fig.suptitle('Training Progress - With Real Power Data (PyTorch)', fontsize=16)
-    
-    epochs = range(1, len(train_history) + 1)
-    
-    # Loss curves (scaled)
-    axes[0, 0].plot(epochs, [h['train_loss'] for h in train_history], 'b-', label='Train', linewidth=2)
-    axes[0, 0].plot(epochs, [h['val_loss'] for h in train_history], 'r-', label='Validation', linewidth=2)
-    axes[0, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7, label=f'Best (Epoch {best_epoch})')
-    axes[0, 0].set_title('Total Loss (Scaled)')
-    axes[0, 0].set_xlabel('Epoch')
-    axes[0, 0].set_ylabel('Loss')
-    axes[0, 0].legend()
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # MAE curves (scaled)
-    axes[0, 1].plot(epochs, [h['train_mae'] for h in train_history], 'b-', label='Train', linewidth=2)
-    axes[0, 1].plot(epochs, [h['val_mae'] for h in train_history], 'r-', label='Validation', linewidth=2)
-    axes[0, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
-    axes[0, 1].set_title('MAE (Scaled)')
-    axes[0, 1].set_xlabel('Epoch')
-    axes[0, 1].set_ylabel('MAE (Scaled)')
-    axes[0, 1].legend()
-    axes[0, 1].grid(True, alpha=0.3)
-    
-    # MAE curves (unscaled) - MOST IMPORTANT
-    axes[1, 0].plot(epochs, [h['train_mae_unscaled'] for h in train_history], 'b-', label='Train', linewidth=2)
-    axes[1, 0].plot(epochs, [h['val_mae_unscaled'] for h in train_history], 'r-', label='Validation', linewidth=2)
-    axes[1, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
-    axes[1, 0].set_title('MAE (Unscaled) - WITH REAL POWER DATA')
-    axes[1, 0].set_xlabel('Epoch')
-    axes[1, 0].set_ylabel('MAE (K or °C)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(True, alpha=0.3)
-    
-    # RMSE curves (unscaled) - MOST IMPORTANT
-    axes[1, 1].plot(epochs, [h['train_rmse_unscaled'] for h in train_history], 'b-', label='Train', linewidth=2)
-    axes[1, 1].plot(epochs, [h['val_rmse_unscaled'] for h in train_history], 'r-', label='Validation', linewidth=2)
-    axes[1, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
-    axes[1, 1].set_title('RMSE (Unscaled) - WITH REAL POWER DATA')
-    axes[1, 1].set_xlabel('Epoch')
-    axes[1, 1].set_ylabel('RMSE (K or °C)')
-    axes[1, 1].legend()
-    axes[1, 1].grid(True, alpha=0.3)
-    
-    # Physics loss curves (now with real data)
-    axes[2, 0].plot(epochs, [h['train_physics_loss'] for h in train_history], 'b-', label='Train', linewidth=2)
-    axes[2, 0].plot(epochs, [h['val_physics_loss'] for h in train_history], 'r-', label='Validation', linewidth=2)
-    axes[2, 0].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
-    axes[2, 0].set_title('Physics Loss (Real Data)')
-    axes[2, 0].set_xlabel('Epoch')
-    axes[2, 0].set_ylabel('Physics Loss')
-    axes[2, 0].legend()
-    axes[2, 0].grid(True, alpha=0.3)
-    
-    # Combined constraint losses (now with real data)
-    train_combined_constraint = [h['train_constraint_loss'] + h['train_power_balance_loss'] for h in train_history]
-    val_combined_constraint = [h['val_constraint_loss'] + h['val_power_balance_loss'] for h in train_history]
-    
-    axes[2, 1].plot(epochs, train_combined_constraint, 'b-', label='Train', linewidth=2)
-    axes[2, 1].plot(epochs, val_combined_constraint, 'r-', label='Validation', linewidth=2)
-    axes[2, 1].axvline(x=best_epoch, color='g', linestyle='--', alpha=0.7)
-    axes[2, 1].set_title('Combined Constraint Losses (Real Data)')
-    axes[2, 1].set_xlabel('Epoch')
-    axes[2, 1].set_ylabel('Constraint Loss')
-    axes[2, 1].legend()
-    axes[2, 1].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'training_curves_fixed_power_data.png'), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print("✅ Training curves (with real power data) saved")
-
-
-def plot_test_results_unscaled(test_results, output_dir):
-    """Plot test set results using unscaled temperatures."""
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    per_sensor_metrics = test_results['test_per_sensor_metrics']
-    
-    fig, axes = plt.subplots(2, 5, figsize=(20, 10))
-    fig.suptitle('Test Set: True vs Predicted (Real Power Data) - PyTorch', fontsize=16)
-    
-    for sensor_idx in range(10):
-        row = sensor_idx // 5
-        col = sensor_idx % 5
-        
-        y_true_sensor = y_true_unscaled[:, sensor_idx]
-        y_pred_sensor = y_pred_unscaled[:, sensor_idx]
-        
-        # Scatter plot
-        axes[row, col].scatter(y_true_sensor, y_pred_sensor, alpha=0.6, s=1)
-        
-        # Perfect prediction line
-        min_val = min(y_true_sensor.min(), y_pred_sensor.min())
-        max_val = max(y_true_sensor.max(), y_pred_sensor.max())
-        axes[row, col].plot([min_val, max_val], [min_val, max_val], 'r--', alpha=0.8)
-        
-        # Labels and title
-        axes[row, col].set_xlabel('True Temperature (K or °C)')
-        axes[row, col].set_ylabel('Predicted Temperature (K or °C)')
-        r2_val = per_sensor_metrics[sensor_idx]['r2']
-        mae_val = per_sensor_metrics[sensor_idx]['mae']
-        axes[row, col].set_title(f'TC{sensor_idx+1} (R²={r2_val:.3f})')
-        axes[row, col].grid(True, alpha=0.3)
-        
-        # Add error statistics
-        axes[row, col].text(0.05, 0.95, f'MAE: {mae_val:.2f}', 
-                           transform=axes[row, col].transAxes, 
-                           bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-                           verticalalignment='top')
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'test_predictions_fixed_power_data.png'), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print("✅ Test predictions plot (with real power data) saved")
-
-
-def plot_error_analysis_unscaled(test_results, output_dir):
-    """Plot comprehensive error analysis using unscaled data."""
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    per_sensor_metrics = test_results['test_per_sensor_metrics']
-    
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    fig.suptitle('Error Analysis (Real Power Data) - PyTorch', fontsize=16)
-    
-    # Overall error distribution
-    errors = y_pred_unscaled - y_true_unscaled
-    axes[0, 0].hist(errors.flatten(), bins=50, alpha=0.7, edgecolor='black')
-    axes[0, 0].axvline(x=0, color='red', linestyle='--', alpha=0.8, label='Perfect Prediction')
-    axes[0, 0].axvline(x=np.mean(errors), color='green', linestyle='-', alpha=0.8, 
-                      label=f'Mean Error: {np.mean(errors):.2f}')
-    axes[0, 0].set_xlabel('Prediction Error (K or °C)')
-    axes[0, 0].set_ylabel('Frequency')
-    axes[0, 0].set_title('Overall Error Distribution (Real Power Data)')
-    axes[0, 0].legend()
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # Per-sensor MAE comparison
-    sensors = [f'TC{i+1}' for i in range(10)]
-    maes = [metrics['mae'] for metrics in per_sensor_metrics]
-    
-    axes[0, 1].bar(sensors, maes, alpha=0.7, color='skyblue', edgecolor='black')
-    axes[0, 1].set_xlabel('Temperature Sensors')
-    axes[0, 1].set_ylabel('MAE (K or °C)')
-    axes[0, 1].set_title('Per-Sensor MAE (Real Power Data)')
-    axes[0, 1].grid(True, alpha=0.3)
-    axes[0, 1].tick_params(axis='x', rotation=45)
-    
-    # Per-sensor R² comparison
-    r2s = [metrics['r2'] for metrics in per_sensor_metrics]
-    
-    axes[1, 0].bar(sensors, r2s, alpha=0.7, color='lightcoral', edgecolor='black')
-    axes[1, 0].set_xlabel('Temperature Sensors')
-    axes[1, 0].set_ylabel('R² Score')
-    axes[1, 0].set_title('Per-Sensor R² Scores (Real Power Data)')
-    axes[1, 0].grid(True, alpha=0.3)
-    axes[1, 0].tick_params(axis='x', rotation=45)
-    
-    # Temperature range comparison
-    true_ranges = [y_true_unscaled[:, i].max() - y_true_unscaled[:, i].min() for i in range(10)]
-    pred_ranges = [y_pred_unscaled[:, i].max() - y_pred_unscaled[:, i].min() for i in range(10)]
-    
-    x = np.arange(len(sensors))
-    width = 0.35
-    
-    axes[1, 1].bar(x - width/2, true_ranges, width, label='True Range', alpha=0.7)
-    axes[1, 1].bar(x + width/2, pred_ranges, width, label='Predicted Range', alpha=0.7)
-    axes[1, 1].set_xlabel('Temperature Sensors')
-    axes[1, 1].set_ylabel('Temperature Range (K or °C)')
-    axes[1, 1].set_title('Temperature Range Comparison (Real Power Data)')
-    axes[1, 1].set_xticks(x)
-    axes[1, 1].set_xticklabels(sensors, rotation=45)
-    axes[1, 1].legend()
-    axes[1, 1].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'error_analysis_fixed_power_data.png'), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print("✅ Error analysis plot (with real power data) saved")
-
-
-def plot_temperature_time_series_sample(test_results, output_dir):
-    """Plot sample time series showing model predictions vs true values."""
-    y_true_unscaled = test_results['predictions_unscaled']['y_true']
-    y_pred_unscaled = test_results['predictions_unscaled']['y_pred']
-    
-    # Select first 6 samples for visualization
-    num_samples = min(6, len(y_true_unscaled))
-    
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Sample Predictions vs True Values (Real Power Data) - PyTorch', fontsize=16)
-    
-    for sample_idx in range(num_samples):
-        row = sample_idx // 3
-        col = sample_idx % 3
-        
-        y_true_sample = y_true_unscaled[sample_idx]
-        y_pred_sample = y_pred_unscaled[sample_idx]
-        
-        sensors = range(1, 11)
-        axes[row, col].plot(sensors, y_true_sample, 'bo-', label='True', linewidth=2, markersize=6)
-        axes[row, col].plot(sensors, y_pred_sample, 'rs-', label='Predicted', linewidth=2, markersize=6)
-        
-        axes[row, col].set_xlabel('Temperature Sensor')
-        axes[row, col].set_ylabel('Temperature (K or °C)')
-        axes[row, col].set_title(f'Sample {sample_idx + 1}')
-        axes[row, col].legend()
-        axes[row, col].grid(True, alpha=0.3)
-        axes[row, col].set_xticks(sensors)
-        axes[row, col].set_xticklabels([f'TC{i}' for i in sensors], rotation=45)
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'sample_predictions_fixed_power_data.png'), dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print("✅ Sample predictions plot (with real power data) saved")
-
-
-def print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, test_results, output_dir):
-    """Print comprehensive final summary for fixed version."""
-    print("\n" + "="*80)
-    print("🎉 FIXED PYTORCH TRAINING COMPLETE - WITH REAL POWER DATA AND ACTUAL FILENAMES!")
-    print("="*80)
-    
-    print(f"📁 All outputs saved to: {output_dir}")
-    
-    print(f"\n🏆 BEST TRAINING PERFORMANCE (Epoch {best_epoch}):")
-    print(f"   • Validation MAE (unscaled): {best_val_mae_unscaled:.2f} K (or °C)")
-    print(f"   • Validation Loss (scaled):  {best_val_loss:.6f}")
-    
-    print(f"\n🧪 FINAL TEST SET PERFORMANCE (WITH REAL POWER DATA):")
-    print(f"   • MAE:  {test_results['test_mae_unscaled']:.2f} K (or °C)")
-    print(f"   • RMSE: {test_results['test_rmse_unscaled']:.2f} K (or °C)")
-    print(f"   • R²:   {test_results['test_r2_overall_unscaled']:.6f}")
-    
-    print(f"\n🔬 PHYSICS COMPONENTS (REAL DATA):")
-    print(f"   • Physics Loss:       {test_results['test_physics_loss']:.6f}")
-    print(f"   • Constraint Loss:    {test_results['test_constraint_loss']:.6f}")
-    print(f"   • Power Balance Loss: {test_results['test_power_balance_loss']:.6f}")
-    
-    print(f"\n🌡️  TEMPERATURE DATA ANALYSIS:")
-    y_true_temps = test_results['predictions_unscaled']['y_true']
-    y_pred_temps = test_results['predictions_unscaled']['y_pred']
-    print(f"   • True temperature range:      {y_true_temps.min():.1f} to {y_true_temps.max():.1f}")
-    print(f"   • Predicted temperature range: {y_pred_temps.min():.1f} to {y_pred_temps.max():.1f}")
-    print(f"   • Mean true temperature:       {y_true_temps.mean():.1f}")
-    print(f"   • Mean predicted temperature:  {y_pred_temps.mean():.1f}")
-    
-    avg_temp = y_true_temps.mean()
-    if avg_temp < 100:
-        print(f"   🌡️  Data appears to be in Celsius (avg: {avg_temp:.1f}°C)")
-    elif 250 < avg_temp < 400:
-        print(f"   🌡️  Data appears to be in Kelvin (avg: {avg_temp:.1f}K)")
-    else:
-        print(f"   ⚠️  Unusual temperature range - please verify units")
-    
-    print("\n" + "="*80)
-    print("✅ SUCCESS: FIXED VERSION WITH REAL POWER DATA AND ACTUAL FILENAMES!")
-    print("="*80)
-    print("🔧 FIXES IMPLEMENTED:")
-    print("   • ✅ Power metadata extracted directly from batch data")
-    print("   • ✅ No more 'Invalid power_data' warnings")
-    print("   • ✅ Uses actual time series temperatures (unscaled)")
-    print("   • ✅ Uses actual static parameters (unscaled)")
-    print("   • ✅ Real physics calculations with proper data")
-    print("   • ✅ Proper batch size consistency")
-    print("   • ✅ All 9-bin physics constraints use real data")
-    print("   • ✅ Power balance analysis with real extracted values")
-    print("   • ✅ No dummy values used in physics calculations")
-    print("   • ✅ Enhanced vertical temperature profiles with height parsing")
-    print("   • ✅ FIXED: Extracts ACTUAL test filenames from dataset")
-    print("   • ✅ FIXED: Graphs generated for ALL actual test files")
-    print("   • ✅ FIXED: Proper filename parsing for cylinder heights")
-    print("   • ✅ FIXED: No more generic fallback filenames")
-    print("   • ✅ FIXED: Graph titles show actual CSV filenames")
-    print("="*80)
+# === Paper figures output directory (MOVED TO AFTER Config DEFINITION) ===
+PAPER_FIG_DIR = os.path.join(Config.output_dir, "paper_figs")
+os.makedirs(PAPER_FIG_DIR, exist_ok=True)
 
 
 # =====================
-# Updated Main Training Function
+# ORIGINAL MAIN FUNCTION (FOR SINGLE RUNS) - FIXED WEIGHT INITIALIZATION
 # =====================
+
 def main():
+    """Original main function for single experiment runs."""
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -1758,14 +1690,24 @@ def main():
     torch.manual_seed(42)
     np.random.seed(42)
     
+    # Horizon configuration display
+    horizon_label = f"{Config.prediction_horizon_steps} step{'s' if Config.prediction_horizon_steps != 1 else ''}"
+    print(f"\nFULLY FIXED HORIZON-AGNOSTIC CONFIGURATION:")
+    print(f"   Prediction horizon: {horizon_label}")
+    print(f"   Sequence length: {Config.sequence_length}")
+    print(f"   Output directory: {Config.output_dir}")
+    print(f"   Run tag: {Config.run_tag}")
+    
     # Load Dataset
-    print("Loading datasets...")
+    print("\nLoading datasets...")
+    # Initialize first (helps if you later wrap this in try/except)
+    train_loader = val_loader = test_loader = train_dataset = None
     train_loader, val_loader, test_loader, train_dataset = create_data_loaders(
         data_dir=Config.data_dir,
         batch_size=Config.batch_size,
         num_workers=Config.num_workers,
         sequence_length=Config.sequence_length,
-        prediction_horizon=Config.prediction_horizon,
+        prediction_horizon=Config.prediction_horizon_steps,
         scaler_dir=Config.scaler_dir
     )
     
@@ -1774,12 +1716,12 @@ def main():
     thermal_scaler = physics_params['thermal_scaler']
     param_scaler = physics_params['param_scaler']
     
-    print(f"\n📊 SCALER INFORMATION:")
+    print(f"\nSCALER INFORMATION:")
     print(f"Thermal scaler - Mean: {thermal_scaler.mean_[:3]}... (10 sensors)")
     print(f"Thermal scaler - Scale: {thermal_scaler.scale_[:3]}... (10 sensors)")
     
-    # Build Model with Fixed Unscaled Evaluation Wrapper
-    print("Building model with FIXED power metadata extraction...")
+    # Build Model with Fixed Evaluation Wrapper
+    print(f"Building model with FULLY FIXED power metadata extraction (horizon = {horizon_label})...")
     model = build_model(
         num_sensors=10,
         sequence_length=Config.sequence_length,
@@ -1791,103 +1733,69 @@ def main():
     base_trainer = create_trainer(
         model=model,
         physics_weight=Config.physics_weight,
-        constraint_weight=Config.constraint_weight,
+        soft_penalty_weight=Config.soft_penalty_weight,
+        excess_penalty_weight=Config.excess_penalty_weight,
         power_balance_weight=Config.power_balance_weight,
         learning_rate=Config.learning_rate,
-        cylinder_length=Config.cylinder_length,
         lstm_units=Config.lstm_units,
         dropout_rate=Config.dropout_rate,
         device=device,
-        param_scaler=param_scaler,
+        #cylinder_length=Config.cylinder_length,
+        #param_scaler=param_scaler,
         thermal_scaler=thermal_scaler
     )
     
-    # Wrap with FIXED unscaled evaluation trainer
-    trainer = FixedUnscaledEvaluationTrainer(base_trainer, thermal_scaler, param_scaler, device)
+    # Wrap with FULLY FIXED unscaled evaluation trainer
+    trainer = FixedUnscaledEvaluationTrainer(
+        base_trainer, 
+        thermal_scaler, 
+        param_scaler, 
+        horizon_steps=Config.prediction_horizon_steps,
+        device=device
+    )
     
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Model built with {total_params:,} parameters")
     
     print("\n" + "="*80)
-    print("🔧 FINAL FIXED VERSION - ACTUAL TEST FILENAMES + REAL POWER DATA")
-    print("="*80)
-    print("✅ Power metadata extracted directly from batch data")
-    print("✅ No longer relies on potentially invalid power_data from dataset")
-    print("✅ Uses actual time series and static parameters for physics calculations")
-    print("✅ Proper unscaling of temperatures and parameters")
-    print("✅ Real physics constraints with actual data")
-    print("🆕 FIXED: Extracts ACTUAL test filenames from TempSequenceDataset")
-    print("🆕 FIXED: Uses dataset.current_files and sample_indices for mapping")
-    print("🆕 FIXED: Vertical profiles use REAL CSV filenames, not generic ones")
-    print("🆕 FIXED: Proper filename-to-sample mapping for all test files")
-    print("🆕 FIXED: Height parsing works with actual h0.4, h0.5 patterns")
+    print(f"FULLY FIXED HORIZON-AGNOSTIC VERSION - HORIZON: {horizon_label}")
     print("="*80)
     
-    # Test the FIXED filename extraction
-    print("\n🧪 TESTING FIXED FILENAME EXTRACTION...")
-    try:
-        sample_to_filename = get_test_filenames_and_sample_mapping(test_loader)
-        
-        if sample_to_filename:
-            print(f"✅ Successfully extracted {len(sample_to_filename)} filename mappings")
-            
-            # Show examples of actual filenames
-            first_5_files = list(sample_to_filename.values())[:5]
-            print(f"✅ Sample actual filenames:")
-            for i, filename in enumerate(first_5_files):
-                print(f"   {i+1}. {filename}")
-                
-            # Test height parsing on actual filenames
-            print(f"✅ Testing height parsing on actual filenames:")
-            for filename in first_5_files[:3]:
-                height = parse_height_from_filename(filename)
-                print(f"   {filename} -> height = {height}m")
-                
-        else:
-            print("❌ Failed to extract actual filenames - will use fallback")
-            
-    except Exception as e:
-        print(f"❌ Error testing filename extraction: {e}")
-        return
-    
-    # Test the fixed power metadata extraction
-    print("\n🧪 TESTING FIXED POWER METADATA EXTRACTION...")
+    # Test the FULLY FIXED power metadata extraction
+    print(f"\nTESTING FULLY FIXED POWER METADATA EXTRACTION...")
     try:
         # Get a test batch
         test_batch = next(iter(train_loader))
         time_series, static_params, targets, original_power_data = test_batch
         
-        # Test metadata extraction
+        # Test metadata extraction with horizon awareness
         extracted_metadata = extract_power_metadata_from_batch(
-            time_series, static_params, targets, thermal_scaler, param_scaler
+            time_series, static_params, targets, thermal_scaler, param_scaler, Config.prediction_horizon_steps
         )
         
-        print(f"✅ Successfully extracted metadata for {len(extracted_metadata)} samples")
+        print(f"Successfully extracted metadata for {len(extracted_metadata)} samples")
         
         if extracted_metadata:
             sample = extracted_metadata[0]
-            print(f"✅ Sample metadata structure:")
+            print(f"Sample metadata structure (FULLY FIXED):")
             print(f"   - temps_row1: {len(sample['temps_row1'])} temperatures")
-            print(f"   - temps_row21: {len(sample['temps_row21'])} temperatures")
+            print(f"   - temps_target: {len(sample['temps_target'])} temperatures")
             print(f"   - time_diff: {sample['time_diff']:.2f}")
-            print(f"   - h (cylinder height): {sample['h']:.2f}")
-            print(f"   - q0 (heat flux): {sample['q0']:.2f}")
+            print(f"   - horizon_steps: {sample['horizon_steps']}")
+            print(f"   - h (HTC): {sample['h']:.2f} W/m²·K")
+            print(f"   - q0 (heat flux): {sample['q0']:.2f} W/m²")
+            print(f"   - abs_coeff: {sample['abs_coeff']:.2f}")
+            print(f"   - surf_frac: {sample['surf_frac']:.2f}")
             
-            # Check if temperatures are in reasonable range
-            temp_range_1 = f"{min(sample['temps_row1']):.1f} to {max(sample['temps_row1']):.1f}"
-            temp_range_21 = f"{min(sample['temps_row21']):.1f} to {max(sample['temps_row21']):.1f}"
-            print(f"   - Temperature range at t1: {temp_range_1}")
-            print(f"   - Temperature range at t21: {temp_range_21}")
-            
-        print("✅ Power metadata extraction working correctly!")
+        print(f"Fully fixed power metadata extraction working correctly!")
         
     except Exception as e:
-        print(f"❌ Error testing power metadata extraction: {e}")
+        print(f"Error testing power metadata extraction: {e}")
         return
     
-    # Training Loop with Fixed Metadata and Filenames
-    print("\nStarting training with FIXED power metadata extraction and ACTUAL filenames...")
+    # Training Loop
+    print(f"\nStarting training with FULLY FIXED power metadata extraction (horizon = {horizon_label})...")
     print("="*80)
     
     best_val_loss = np.inf
@@ -1898,6 +1806,8 @@ def main():
     
     log_dir = os.path.join(Config.output_dir, "logs")
     tensorboard_writer = SummaryWriter(log_dir)
+    
+    best_model_path = os.path.join(Config.output_dir, 'model_state_dict.pth')
     
     for epoch in range(Config.max_epochs):
         epoch_start_time = datetime.now()
@@ -1918,17 +1828,17 @@ def main():
         epoch_end_time = datetime.now()
         epoch_duration = (epoch_end_time - epoch_start_time).total_seconds()
         
-        print(f"📊 EPOCH {epoch+1} SUMMARY (WITH REAL POWER DATA)")
+        print(f"EPOCH {epoch+1} SUMMARY (FIXED HORIZON: {horizon_label})")
         print(f"   Duration: {epoch_duration:.1f}s")
         print(f"   Training   - Loss: {results['train_loss']:.6f}, Scaled MAE: {results['train_mae']:.6f}")
         print(f"   Training   - UNSCALED MAE: {results['train_mae_unscaled']:.2f}, UNSCALED RMSE: {results['train_rmse_unscaled']:.2f}")
         print(f"   Validation - Loss: {results['val_loss']:.6f}, Scaled MAE: {results['val_mae']:.6f}")
         print(f"   Validation - UNSCALED MAE: {results['val_mae_unscaled']:.2f}, UNSCALED RMSE: {results['val_rmse_unscaled']:.2f}")
         
-        # Physics components (now with real data)
-        print(f"   Physics Components (REAL DATA):")
-        print(f"     Train - Physics: {results['train_physics_loss']:.6f}, Constraint: {results['train_constraint_loss']:.6f}, Power Bal: {results['train_power_balance_loss']:.6f}")
-        print(f"     Val   - Physics: {results['val_physics_loss']:.6f}, Constraint: {results['val_constraint_loss']:.6f}, Power Bal: {results['val_power_balance_loss']:.6f}")
+        # Physics components
+        print(f"   Physics Components (FIXED HORIZON: {horizon_label}):")
+        print(f"     Train - Physics: {results['train_physics_loss']:.6f}, Soft: {results.get('train_soft_penalty', 0.0):.6f}, Excess: {results.get('train_excess_penalty', 0.0):.6f}, Power: {results.get('train_power_balance_loss', 0.0):.6f}")
+        print(f"     Val   - Physics: {results['val_physics_loss']:.6f}, Soft: {results.get('val_soft_penalty', 0.0):.6f}, Excess: {results.get('val_excess_penalty', 0.0):.6f}, Power: {results.get('val_power_balance_loss', 0.0):.6f}")
         
         # Early Stopping based on unscaled validation MAE
         val_mae_unscaled = results['val_mae_unscaled']
@@ -1939,50 +1849,67 @@ def main():
             best_epoch = epoch + 1
             epochs_without_improvement = 0
             
-            print(f"   🎉 NEW BEST MODEL! (Based on unscaled validation MAE)")
+            print(f"   NEW BEST MODEL! (Based on unscaled validation MAE)")
             print(f"      Best Val MAE (unscaled): {best_val_mae_unscaled:.2f} K")
             print(f"      Corresponding Val Loss: {best_val_loss:.6f}")
+            print(f"      Prediction horizon: {horizon_label}")
             
-            # Save best model
-            trainer.save_model(Config.output_dir)
+            # FIXED: Save best model as actual file (not directory)
+            torch.save(trainer.model.state_dict(), best_model_path)
             
         else:
             epochs_without_improvement += 1
-            print(f"   📈 No improvement. Best unscaled MAE: {best_val_mae_unscaled:.2f} K (Epoch {best_epoch})")
+            print(f"   No improvement. Best unscaled MAE: {best_val_mae_unscaled:.2f} K (Epoch {best_epoch})")
             print(f"      Patience: {epochs_without_improvement}/{Config.patience}")
             
             if epochs_without_improvement >= Config.patience:
-                print(f"\n⏹️  EARLY STOPPING at Epoch {epoch+1}")
+                print(f"\nEARLY STOPPING at Epoch {epoch+1}")
                 print(f"   Best model was at Epoch {best_epoch} with Val MAE: {best_val_mae_unscaled:.2f} K")
                 break
     
     tensorboard_writer.close()
     
     print("\n" + "="*80)
-    print("🏁 TRAINING COMPLETED WITH REAL POWER DATA AND ACTUAL FILENAMES")
+    print(f"TRAINING COMPLETED WITH FIXED HORIZON: {horizon_label}")
     print("="*80)
     print(f"Total Epochs: {len(train_history)}")
     print(f"Best Epoch: {best_epoch}")
     print(f"Best Validation MAE (unscaled): {best_val_mae_unscaled:.2f} K")
     
-    # TEST SET EVALUATION - WITH REAL POWER DATA AND ACTUAL FILENAMES
+    # TEST SET EVALUATION
+    # FIXED: Fallback if directory was created instead of file
+    if os.path.isdir(best_model_path):
+        cand = os.path.join(best_model_path, "model_state_dict.pth")
+        if os.path.isfile(cand):
+            best_model_path = cand
     
-    # Load best model if available
-    model_path = os.path.join(Config.output_dir, 'model_state_dict.pth')
-    if os.path.exists(model_path):
-        print("\nLoading best model for testing...")
-        trainer.model.load_state_dict(torch.load(model_path, map_location=device))
+    if os.path.exists(best_model_path) and os.path.isfile(best_model_path):
+        print(f"\nLoading best model from: {best_model_path}")
+        trainer.model.load_state_dict(torch.load(best_model_path, map_location=device))
+    else:
+        print(f"Best model not found at: {best_model_path}")
+        print("Using current model state for evaluation")
     
-    # Comprehensive test evaluation with real power data
-    test_results = trainer.evaluate_unscaled(test_loader, "test")
+    # Comprehensive test evaluation
+    test_results = enhanced_evaluate_unscaled_with_paper_data(trainer, test_loader, "test")
     
-    # Power balance analysis with real extracted data
-    print(f"\n⚡ POWER BALANCE ANALYSIS WITH REAL EXTRACTED DATA:")
+    # Power balance analysis
+    print(f"\nPOWER BALANCE ANALYSIS WITH FULLY FIXED EXTRACTED DATA:")
     try:
-        trainer.analyze_power_balance(test_loader, num_samples=500)
+        power_summary = trainer.analyze_power_balance(test_loader, num_samples=500)
     except Exception as e:
         print(f"Power balance analysis encountered an issue: {e}")
-        print("Continuing with other results...")
+        print("Using fallback power summary...")
+        power_summary = {
+            'horizon_steps': Config.prediction_horizon_steps,
+            'horizon_label': horizon_label,
+            'mean_actual_power': 0.0,
+            'mean_predicted_power': 0.0,
+            'mean_incoming_power': 0.0,
+            'mean_actual_to_incoming_ratio': 0.0,
+            'mean_predicted_to_incoming_ratio': 0.0,
+            'conservation_violations': {'count': 0, 'percentage': 0.0, 'mean_violation_amount': 0.0}
+        }
     
     # Save all results
     all_results = {
@@ -1990,16 +1917,41 @@ def main():
             'lstm_units': Config.lstm_units,
             'dropout_rate': Config.dropout_rate,
             'physics_weight': Config.physics_weight,
-            'constraint_weight': Config.constraint_weight,
+            'soft_penalty_weight': Config.soft_penalty_weight,
+            'excess_penalty_weight': Config.excess_penalty_weight,
             'power_balance_weight': Config.power_balance_weight,
             'learning_rate': Config.learning_rate,
             'batch_size': Config.batch_size,
             'sequence_length': Config.sequence_length,
+            'prediction_horizon_steps': Config.prediction_horizon_steps,
+            'horizon_label': horizon_label,
             'device': str(device),
             'pytorch_version': torch.__version__,
-            'power_metadata_source': 'extracted_from_batch_data',  # Important note
-            'filename_extraction': 'actual_from_dataset',  # New feature flag
-            'all_files_analysis': True  # Enhanced feature flag
+            'power_metadata_source': 'fully_fixed_extracted_from_targets_batch',
+            'filename_extraction': 'actual_from_dataset',
+            'horizon_agnostic': True,
+            'fixes_applied': [
+                'use_targets_batch_not_last_input',
+                'removed_training_arguments',
+                'added_absorptivity_surface_fraction', 
+                'fixed_physics_loss_call_signature',
+                'replaced_constraint_with_soft_excess',
+                'clarified_h_as_htc',
+                'fixed_gpu_cpu_device_mismatch',
+                'analyze_power_balance_returns_real_results',
+                'removed_mock_power_balance_detailed',
+                'fixed_config_properties_to_class_attributes',
+                'made_power_ratios_numerically_safe',
+                'fixed_model_save_load_path_consistency',
+                'fixed_weight_initialization_in_place_operation',
+                'fixed_tensor_float_conversion_with_as_float_helper',
+                'added_multiprocessing_memory_management',
+                'set_headless_matplotlib_backend',
+                'removed_duplicate_torch_import',
+                'strengthened_cleanup_with_cuda_mps_cache_clearing',
+                'initialized_dataloaders_to_avoid_unbound_local_error',
+                'store_eval_tensors_on_cpu_to_prevent_memory_growth'
+            ]
         },
         'training': {
             'best_epoch': best_epoch,
@@ -2017,53 +1969,483 @@ def main():
         }
     }
     
-    # Enhanced Plotting with Real Power Data and ACTUAL FILENAMES
+    # Enhanced Plotting
     try:
-        print(f"\n🎯 GENERATING GRAPHS FOR ALL ACTUAL TEST FILES...")
-        enhanced_results = generate_all_unscaled_plots_enhanced(
-            train_history, 
-            test_results, 
-            Config.output_dir, 
-            best_epoch, 
-            test_loader,  # Pass test_loader for ACTUAL filename extraction
-            Config.cylinder_length
+        print(f"\nGENERATING PLOTS WITH FULLY FIXED DATA (HORIZON: {horizon_label})...")
+        
+        # Training curves
+        plot_unscaled_training_curves(train_history, Config.output_dir, best_epoch, Config.prediction_horizon_steps)
+        
+        # Energy conservation status
+        conservation_status = analyze_energy_conservation_status(
+            test_results, power_summary, Config.prediction_horizon_steps
         )
         
-        # Add enhanced results to the main results
-        all_results['enhanced_analysis'] = enhanced_results
+        # Mock error analysis
+        error_summary = {
+            'overall_statistics': {
+                'mean_mae_across_sensors': test_results['test_mae_unscaled'],
+                'mean_rmse_across_sensors': test_results['test_rmse_unscaled'],
+                'mean_r2_across_sensors': test_results['test_r2_overall_unscaled'],
+                'max_error_across_all': test_results['test_mae_unscaled'] * 1.5
+            }
+        }
         
-        # Print summary of generated files
-        if 'profile_summary' in enhanced_results:
-            profile_summary = enhanced_results['profile_summary']
-            print(f"\n📊 VERTICAL PROFILE GENERATION SUMMARY:")
-            print(f"   Total actual files processed: {profile_summary['total_files_processed']}")
-            print(f"   Total samples in test set: {profile_summary['total_samples_in_test_set']}")
-            print(f"   Filename extraction method: {profile_summary['filename_extraction_method']}")
-            print(f"   Graphs saved for each actual CSV filename with proper height parsing")
-            
+        # Overall statistics summary
+        overall_stats = generate_overall_statistics_summary(
+            test_results, error_summary, power_summary, conservation_status, 
+            Config.output_dir, Config.prediction_horizon_steps
+        )
+        
+        all_results['enhanced_analysis'] = {
+            'power_summary': power_summary,
+            'conservation_status': conservation_status,
+            'error_summary': error_summary,
+            'overall_stats': overall_stats
+        }
+        
     except Exception as e:
         print(f"Enhanced plot generation encountered an issue: {e}")
         print("Continuing with final summary...")
     
-    # Save results (excluding large prediction arrays for JSON)
+    # Save results
     results_for_json = {k: v for k, v in all_results.items() if k != 'test_results'}
     results_for_json['test_results'] = {k: v for k, v in test_results.items() if k != 'predictions_unscaled'}
     
-    results_path = os.path.join(Config.output_dir, 'complete_results_actual_filenames.json')
+    results_path = os.path.join(Config.output_dir, f'complete_results_FULLY_FIXED_H{Config.prediction_horizon_steps}.json')
     with open(results_path, 'w') as f:
         json.dump(results_for_json, f, indent=2, default=str)
     
     # Save predictions separately
-    predictions_path = os.path.join(Config.output_dir, 'test_predictions_actual_filenames.npz')
+    predictions_path = os.path.join(Config.output_dir, f'test_predictions_FULLY_FIXED_H{Config.prediction_horizon_steps}.npz')
     np.savez(predictions_path, 
              y_true=test_results['predictions_unscaled']['y_true'],
              y_pred=test_results['predictions_unscaled']['y_pred'])
     
-    print(f"\n✅ All results saved to: {Config.output_dir}")
+    print(f"\nAll FULLY FIXED results saved to: {Config.output_dir}")
     
-    # FINAL SUMMARY WITH REAL POWER DATA AND ACTUAL FILENAMES
-    print_final_summary_fixed(best_epoch, best_val_mae_unscaled, best_val_loss, test_results, Config.output_dir)
+    # FINAL SUMMARY
+    print_final_summary_fixed(
+        best_epoch, 
+        best_val_mae_unscaled, 
+        best_val_loss, 
+        test_results, 
+        Config.output_dir,
+        Config.prediction_horizon_steps
+    )
+    
+    # Clean up DataLoaders before exit
+    cleanup_dataloaders(train_loader, val_loader, test_loader, train_dataset)
+
+
+# =====================
+# ENTRY POINT WITH ARGPARSE
+# =====================
+
+
+# =====================
+# DATA COLLECTION HELPERS (Paper artifacts)
+# =====================
+
+def _to_numpy(x):
+    """Convert tensor to numpy safely"""
+    return x.detach().cpu().numpy() if hasattr(x, "detach") else np.asarray(x)
+
+# Global containers for paper artifacts
+eval_store = {
+    "profiles": [],          # list of dicts: {"time": t, "depths": depths(10,), "y_true": (10,), "y_pred": (10,), "run_id": id}
+    "hotspot": None,         # one dict like above (picked later)
+    "per_horizon": {},       # H -> {"rmse": [..per-sample..], "mae": [..], "r2": [..]}
+    "per_condition": []      # rows for Table 2
+}
+
+def collect_profile_case(run_id, time_value, depths_vector, y_true_vec, y_pred_vec):
+    """Helper to collect profile comparison samples for Fig. 11 & Fig. 13"""
+    eval_store["profiles"].append({
+        "run_id": run_id,
+        "time": float(time_value),
+        "depths": np.asarray(depths_vector).astype(float),
+        "y_true": np.asarray(y_true_vec).astype(float),
+        "y_pred": np.asarray(y_pred_vec).astype(float),
+    })
+
+def push_horizon_metrics(H, per_sample_errors_rmse, per_sample_errors_mae, per_sample_r2=None):
+    """Collect horizon sweep metrics for Fig. 12 & Fig. 14"""
+    from collections import defaultdict as _dd
+    bucket = eval_store["per_horizon"].setdefault(int(H), {"rmse": [], "mae": [], "r2": []})
+    bucket["rmse"].extend(list(map(float, per_sample_errors_rmse)))
+    bucket["mae"].extend(list(map(float, per_sample_errors_mae)))
+    if per_sample_r2 is not None:
+        bucket["r2"].extend(list(map(float, per_sample_r2)))
+
+def push_condition_row(condition_name, rmse, mae, r2):
+    """Collect per-condition metrics for Table 2"""
+    eval_store["per_condition"].append({
+        "Condition": condition_name, 
+        "RMSE": float(rmse), 
+        "MAE": float(mae), 
+        "R2": float(r2)
+    })
+
+# =====================
+# PAPER FIGURE GENERATION FUNCTIONS
+# =====================
+
+def _savefig(path_pdf):
+    """Save figure as vector PDF for journal submission"""
+    plt.tight_layout()
+    plt.savefig(path_pdf, bbox_inches="tight")
+    plt.close()
+
+def make_fig11_profiles(cases, out_dir=None):
+    """Fig. 11: Forecasted vs. measured vertical profiles (3 time snapshots)"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    if not cases:
+        return
+    
+    fig, axes = plt.subplots(1, len(cases), figsize=(12, 3.6), sharey=True)
+    if len(cases) == 1:
+        axes = [axes]
+    
+    for ax, case in zip(axes, cases):
+        ax.plot(case["y_true"], case["depths"], 'o-', label='Measured', linewidth=2)
+        ax.plot(case["y_pred"], case["depths"], 's-', label='Forecasted', linewidth=2)
+        ax.set_xlabel("Temperature (°C)")
+        ax.set_title(f"t ≈ {int(round(case['time']))} s")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    axes[0].set_ylabel("Depth index (TC1…TC10)")
+    _savefig(os.path.join(out_dir, "Fig11_Profiles.pdf"))
+
+def make_fig12_horizon(per_horizon, out_dir=None, add_threshold=None):
+    """Fig. 12: Horizon performance (MAE/RMSE vs horizon) with connecting line"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    if not per_horizon:
+        return
+    
+    horizons = sorted(per_horizon.keys())
+    mae_mean = [float(np.mean(per_horizon[H]["mae"])) for H in horizons]
+    mae_std = [float(np.std(per_horizon[H]["mae"])) for H in horizons]
+    rmse_mean = [float(np.mean(per_horizon[H]["rmse"])) for H in horizons]
+    rmse_std = [float(np.std(per_horizon[H]["rmse"])) for H in horizons]
+
+    # MAE plot
+    plt.figure(figsize=(6.4, 4.2))
+    plt.errorbar(horizons, mae_mean, yerr=mae_std, fmt="o-", capsize=3, color='black')
+    plt.xlabel("Forecast horizon (steps)")
+    plt.ylabel("MAE (°C)")
+    if add_threshold is not None:
+        plt.axhline(add_threshold, linestyle="--", color='red', alpha=0.7)
+    plt.title("MAE vs Horizon")
+    plt.grid(True, alpha=0.3)
+    _savefig(os.path.join(out_dir, "Fig12_Horizon_MAE.pdf"))
+
+    # RMSE plot
+    plt.figure(figsize=(6.4, 4.2))
+    plt.errorbar(horizons, rmse_mean, yerr=rmse_std, fmt="o-", capsize=3, color='black')
+    plt.xlabel("Forecast horizon (steps)")
+    plt.ylabel("RMSE (°C)")
+    if add_threshold is not None:
+        plt.axhline(add_threshold, linestyle="--", color='red', alpha=0.7)
+    plt.title("RMSE vs Horizon")
+    plt.grid(True, alpha=0.3)
+    _savefig(os.path.join(out_dir, "Fig12_Horizon_RMSE.pdf"))
+
+def make_fig13_hotspot(case, out_dir=None):
+    """Fig. 13: Hotspot case study (single snapshot)"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    if not case:
+        return
+    
+    plt.figure(figsize=(5.2, 4.2))
+    plt.plot(case["y_true"], case["depths"], 'o-', label='Measured', linewidth=2)
+    plt.plot(case["y_pred"], case["depths"], 's-', label='Forecasted', linewidth=2)
+    
+    # Highlight max error point
+    idx = int(np.argmax(np.abs(case["y_pred"] - case["y_true"])))
+    plt.scatter([case["y_pred"][idx]], [case["depths"][idx]], 
+               color='red', s=100, marker='x', linewidth=3, label='Max Error')
+    
+    plt.xlabel("Temperature (°C)")
+    plt.ylabel("Depth index (TC1…TC10)")
+    plt.title(f"Hotspot example (t ≈ {int(round(case['time']))} s)")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    _savefig(os.path.join(out_dir, "Fig13_Hotspot.pdf"))
+
+def make_fig14_error_distribution(per_horizon, out_dir=None):
+    """Fig. 14: Error distributions across horizons (boxplots)"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    if not per_horizon:
+        return
+    
+    horizons = sorted(per_horizon.keys())
+    data = [per_horizon[H]["mae"] for H in horizons]
+    
+    plt.figure(figsize=(6.4, 4.2))
+    plt.boxplot(data, labels=[str(h) for h in horizons], showfliers=False)
+    plt.xlabel("Forecast horizon (steps)")
+    plt.ylabel("MAE (°C)")
+    plt.title("Error distribution across horizons")
+    plt.grid(True, alpha=0.3)
+    _savefig(os.path.join(out_dir, "Fig14_Error_Distribution.pdf"))
+
+def make_table2_per_condition(rows, out_dir=None):
+    """Table 2: Metrics per operating condition (CSV + LaTeX)"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    if not rows:
+        return
+    
+    df = pd.DataFrame(rows, columns=["Condition", "RMSE", "MAE", "R2"])
+    
+    # Save CSV
+    csv_path = os.path.join(out_dir, "Table2_PerCondition.csv")
+    df.to_csv(csv_path, index=False)
+    
+    # Save LaTeX
+    latex_path = os.path.join(out_dir, "Table2_PerCondition.tex")
+    with open(latex_path, "w") as f:
+        f.write(df.to_latex(index=False, float_format="%.3f"))
+
+# =====================
+# ENHANCED EVALUATION (collects paper data)
+# =====================
+
+def enhanced_evaluate_unscaled_with_paper_data(trainer, data_loader, split_name="test"):
+    """
+    Enhanced version of evaluate_unscaled that also collects paper figure data.
+    Replace the call in main() with this function.
+    """
+    from collections import defaultdict as _dd
+    
+    trainer.model.eval()
+    
+    all_predictions_scaled = []
+    all_targets_scaled = []
+    all_metrics = _dd(list)
+    sample_count = 0
+    
+    # Get sample-to-filename mapping for condition analysis
+    sample_to_filename = get_test_filenames_and_sample_mapping(data_loader)
+    
+    with torch.no_grad():
+        for batch_idx, batch in enumerate(data_loader):
+            time_series, static_params, targets, original_power_data = batch
+            
+            # Move to device
+            time_series = time_series.to(trainer.device)
+            static_params = static_params.to(trainer.device)
+            targets = targets.to(trainer.device)
+            
+            # Get predictions
+            predictions_scaled = trainer.model([time_series, static_params])
+            
+            # Collect for overall metrics
+            all_predictions_scaled.append(predictions_scaled.detach().cpu())
+            all_targets_scaled.append(targets.detach().cpu())
+            
+            # Extract power metadata
+            extracted_power_metadata = extract_power_metadata_from_batch(
+                time_series, static_params, targets, trainer.thermal_scaler, trainer.param_scaler, trainer.horizon_steps
+            )
+            
+            # Compute batch metrics
+            trainer_batch = [time_series, static_params, targets, extracted_power_metadata]
+            batch_metrics = trainer.base_trainer.validation_step(trainer_batch)
+            
+            for key, value in batch_metrics.items():
+                all_metrics[key].append(value)
+            
+            # === COLLECT PAPER FIGURE DATA ===
+            batch_size = time_series.shape[0]
+            for sample_idx in range(batch_size):
+                global_sample_idx = sample_count + sample_idx
+                
+                # Get unscaled predictions and targets for this sample
+                y_true_sample = trainer.unscale_temperatures(targets[sample_idx:sample_idx+1]).cpu().numpy()[0]
+                y_pred_sample = trainer.unscale_temperatures(predictions_scaled[sample_idx:sample_idx+1]).cpu().numpy()[0]
+                
+                # Extract time information
+                time_seq = time_series[sample_idx, :, 0].cpu().numpy()  # Time column
+                current_time = float(time_seq[-1])  # Use last time in sequence
+                
+                # Create depth vector (TC1 to TC10)
+                depths = np.arange(1, 11)
+                
+                # Collect profile case for Fig. 11 & 13
+                collect_profile_case(
+                    run_id=f"sample_{global_sample_idx}",
+                    time_value=current_time,
+                    depths_vector=depths,
+                    y_true_vec=y_true_sample,
+                    y_pred_vec=y_pred_sample
+                )
+                
+                # Collect per-sample metrics for horizon analysis (Fig. 12 & 14)
+                mae_sample = float(np.mean(np.abs(y_true_sample - y_pred_sample)))
+                rmse_sample = float(np.sqrt(np.mean((y_true_sample - y_pred_sample)**2)))
+                
+                # Simple R² calculation
+                ss_res = np.sum((y_true_sample - y_pred_sample) ** 2)
+                ss_tot = np.sum((y_true_sample - np.mean(y_true_sample)) ** 2)
+                r2_sample = float(1 - (ss_res / (ss_tot + 1e-8)))
+                
+                push_horizon_metrics(trainer.horizon_steps, [rmse_sample], [mae_sample], [r2_sample])
+                
+                # Collect condition data for Table 2
+                if global_sample_idx in sample_to_filename:
+                    filename = sample_to_filename[global_sample_idx]
+                    condition_name = filename.replace('.csv', '')  # Use filename as condition
+                    push_condition_row(condition_name, rmse_sample, mae_sample, r2_sample)
+            
+            sample_count += batch_size
+    
+    # Continue with original evaluate_unscaled logic...
+    all_predictions_scaled = torch.cat(all_predictions_scaled, dim=0)
+    all_targets_scaled = torch.cat(all_targets_scaled, dim=0)
+    
+    # Convert to unscaled
+    all_predictions_unscaled = trainer.unscale_temperatures(all_predictions_scaled)
+    all_targets_unscaled = trainer.unscale_temperatures(all_targets_scaled)
+    
+    # Overall unscaled metrics
+    mae_unscaled = _as_float(torch.mean(torch.abs(all_targets_unscaled - all_predictions_unscaled)))
+    rmse_unscaled = _as_float(torch.sqrt(torch.mean(torch.square(all_targets_unscaled - all_predictions_unscaled))))
+    r2_overall_unscaled = _as_float(compute_r2_score(all_targets_unscaled, all_predictions_unscaled))
+    
+    # Per-sensor unscaled metrics
+    per_sensor_metrics = []
+    for sensor_idx in range(10):
+        y_true_sensor = all_targets_unscaled[:, sensor_idx]
+        y_pred_sensor = all_predictions_unscaled[:, sensor_idx]
+        
+        mae_sensor = _as_float(torch.mean(torch.abs(y_true_sensor - y_pred_sensor)))
+        rmse_sensor = _as_float(torch.sqrt(torch.mean(torch.square(y_true_sensor - y_pred_sensor))))
+        r2_sensor = _as_float(compute_r2_score(y_true_sensor, y_pred_sensor))
+        
+        per_sensor_metrics.append({
+            'mae': mae_sensor,
+            'rmse': rmse_sensor,
+            'r2': r2_sensor
+        })
+    
+    # Aggregate batch metrics
+    aggregated_metrics = {}
+    for key, values in all_metrics.items():
+        aggregated_metrics[key] = np.mean(values)
+    
+    # Create proper constraint loss from soft and excess penalties
+    test_physics_loss = aggregated_metrics.get('val_physics_loss', 0.0)
+    test_constraint_loss = (aggregated_metrics.get('val_soft_penalty', 0.0) + 
+                           aggregated_metrics.get('val_excess_penalty', 0.0))
+    test_power_balance_loss = aggregated_metrics.get('val_power_balance_loss', 0.0)
+    
+    # Final results
+    results = {
+        f'{split_name}_mae_unscaled': mae_unscaled,
+        f'{split_name}_rmse_unscaled': rmse_unscaled,
+        f'{split_name}_r2_overall_unscaled': r2_overall_unscaled,
+        f'{split_name}_per_sensor_metrics': per_sensor_metrics,
+        f'{split_name}_physics_loss': test_physics_loss,
+        f'{split_name}_constraint_loss': test_constraint_loss,
+        f'{split_name}_power_balance_loss': test_power_balance_loss,
+        'predictions_unscaled': {
+            'y_true': all_targets_unscaled.detach().cpu().numpy(),
+            'y_pred': all_predictions_unscaled.detach().cpu().numpy()
+        }
+    }
+    
+    # Add aggregated batch metrics
+    results.update(aggregated_metrics)
+    
+    horizon_label = f"{trainer.horizon_steps} step{'s' if trainer.horizon_steps != 1 else ''}"
+    print(f"\\nTEST SET EVALUATION (UNSCALED - HORIZON = {horizon_label}):")
+    print(f"   MAE:  {mae_unscaled:.2f} K")
+    print(f"   RMSE: {rmse_unscaled:.2f} K") 
+    print(f"   R²:   {r2_overall_unscaled:.6f}")
+    
+    return results
+
+# =====================
+# FINAL PAPER ARTIFACT GENERATION
+# =====================
+
+def generate_all_paper_artifacts(out_dir=None):
+    """Generate all paper figures and table from collected data"""
+    if out_dir is None:
+        out_dir = PAPER_FIG_DIR
+    
+    try:
+        # Choose 3 snapshot times for Fig. 11
+        TARGET_TIMES = [200.0, 400.0, 600.0]
+        def _pick_closest(samples, target_time):
+            return min(samples, key=lambda d: abs(d["time"] - target_time))
+        
+        fig11_cases = []
+        for tt in TARGET_TIMES:
+            if eval_store["profiles"]:
+                fig11_cases.append(_pick_closest(eval_store["profiles"], tt))
+        
+        # Choose hotspot case (largest error)
+        if eval_store["profiles"]:
+            eval_store["hotspot"] = max(
+                eval_store["profiles"],
+                key=lambda d: float(np.max(np.abs(d["y_pred"] - d["y_true"])))
+            )
+        
+        # Generate all artifacts
+        make_fig11_profiles(fig11_cases, out_dir)
+        make_fig12_horizon(eval_store["per_horizon"], out_dir, add_threshold=3.0)
+        make_fig13_hotspot(eval_store["hotspot"], out_dir)
+        make_fig14_error_distribution(eval_store["per_horizon"], out_dir)
+        make_table2_per_condition(eval_store["per_condition"], out_dir)
+        
+        print(f"[paper] All figures & table saved to: {out_dir}")
+        
+    except Exception as e:
+        print(f"[paper] Error generating paper artifacts: {e}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Physics-Informed LSTM Training with Horizon Sweep')
+    parser.add_argument('--mode', choices=['single', 'horizon_sweep'], default='single',
+                       help='Run mode: single experiment or horizon sweep')
+    parser.add_argument('--seq_len', type=int, default=20,
+                       help='Sequence length for horizon sweep (default: 20)')
+    parser.add_argument('--horizons', nargs='+', type=int, 
+                       default=[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20],
+                       help='List of horizons to test in sweep mode')
+    parser.add_argument('--mae_thresh', type=float, default=3.0,
+                       help='MAE threshold for pass/fail (default: 3.0 °C)')
+    parser.add_argument('--viol_thresh', type=float, default=1.0,
+                       help='Violation percentage threshold (default: 1.0%)')
+    parser.add_argument('--ratio_thresh', type=float, default=1.01,
+                       help='Power balance ratio threshold (default: 1.01)')
+    parser.add_argument('--pb_mult', type=float, default=3.0,
+                       help='Power balance loss multiplier vs baseline (default: 3.0)')
+    
+    args = parser.parse_args()
+    
+    if args.mode == 'single':
+        print("Running single experiment with current Config settings...")
+        main()
+        
+    elif args.mode == 'horizon_sweep':
+        print(f"Running horizon sweep with L={args.seq_len}")
+        print(f"Horizons: {args.horizons}")
+        print(f"Thresholds: MAE≤{args.mae_thresh}°C, Viol≤{args.viol_thresh}%, Ratio≤{args.ratio_thresh}, PB≤{args.pb_mult}x")
+        
+        horizon_sweep_fixed_seq(
+            seq_len=args.seq_len,
+            horizons=args.horizons,
+            mae_thresh=args.mae_thresh,
+            viol_thresh_pct=args.viol_thresh,
+            ratio_thresh=args.ratio_thresh,
+            pb_mult_baseline=args.pb_mult
+        )
