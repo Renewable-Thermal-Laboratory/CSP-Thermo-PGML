@@ -1,0 +1,27 @@
+{
+    "h2": {
+        "h_value": 0.0375,
+        "num_sensors": 3,
+        "tc_cols": [
+            "TC1_tip",
+            "TC2",
+            "TC3"
+        ]
+    },
+    "h6": {
+        "h_value": 0.1575,
+        "num_sensors": 10,
+        "tc_cols": [
+            "TC1_tip",
+            "TC2",
+            "TC3",
+            "TC4",
+            "TC5",
+            "TC6",
+            "TC7",
+            "TC8",
+            "TC9",
+            "TC10"
+        ]
+    }
+}
