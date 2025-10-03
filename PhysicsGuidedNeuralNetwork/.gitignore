@@ -1,2 +1,4 @@
 *.pth
 *.pkl
+/__pycache__/
+.venv
