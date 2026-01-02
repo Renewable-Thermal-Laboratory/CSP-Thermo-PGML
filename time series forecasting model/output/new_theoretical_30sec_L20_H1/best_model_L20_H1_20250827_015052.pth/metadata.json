@@ -1,0 +1,133 @@
+{
+  "model_type": "PhysicsInformedLSTM",
+  "physics_approach": "9-bin_spatial_segmentation_v4_critical_bug_fixes",
+  "num_sensors": 10,
+  "sequence_length": 20,
+  "lstm_units": 64,
+  "dropout_rate": 0.2,
+  "physics_weight": 0.001,
+  "soft_penalty_weight": 0.001,
+  "excess_penalty_weight": 0.001,
+  "power_balance_weight": 0.0005,
+  "num_bins": 9,
+  "bin_sensor_pairs": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      9
+    ]
+  ],
+  "dynamic_geometry": true,
+  "min_time_diff": 0.001,
+  "area_calculation": {
+    "use_lateral_area": false,
+    "description": "endcap"
+  },
+  "temperature_clamping": {
+    "enabled": false,
+    "range": null
+  },
+  "mixed_precision": {
+    "enabled": false,
+    "scaler_available": false
+  },
+  "gradient_logging": {
+    "enabled": false,
+    "samples_logged": 0
+  },
+  "power_capping": {
+    "enabled": true,
+    "use_soft_capping": false,
+    "soft_cap_factor": 0.9,
+    "soft_cap_slope": 10.0,
+    "physics_on_capped": false,
+    "power_enforcement_mode": "power_balance_only",
+    "violation_statistics": {
+      "total_violations": 589386,
+      "total_samples": 591235,
+      "violation_rate": 0.9968726479318715,
+      "avg_scale_factor": 0.003337000302171317
+    }
+  },
+  "error_tracking": {
+    "physics_successes": 591235,
+    "physics_errors": 0,
+    "max_error_rate_threshold": 0.1
+  },
+  "reproducibility": {
+    "seed": null,
+    "deterministic": false,
+    "rng_state_saved": false
+  },
+  "debugging": {
+    "debug_samples": 10,
+    "power_info_history_length": 10
+  },
+  "unscaling_parameters": {
+    "time_mean": 300.0,
+    "time_std": 300.0,
+    "thermal_scaler_available": true,
+    "unit_safety_enabled": true,
+    "physical_units_metrics": true,
+    "nan_handling_enabled": true
+  },
+  "physics_constants": {
+    "density": 1836.31005859375,
+    "specific_heat": 1512.0,
+    "radius": 0.051750000566244125,
+    "sourced_from_model_buffers": true
+  },
+  "optimizer_config": {
+    "type": "Adam",
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-07
+  },
+  "critical_fixes_v4": {
+    "soft_capping_bias_eliminated": true,
+    "unit_mixing_prevented": true,
+    "per_batch_error_tracking": true,
+    "symmetric_penalty_weighting": true,
+    "parameterized_min_time_diff": true,
+    "positive_power_excess_calculation": true,
+    "gpu_tensor_conversion_fixed": true
+  },
+  "save_timestamp": "2025-08-27T02:04:34.096137",
+  "pytorch_version": "2.7.0",
+  "device": "cpu",
+  "saving_method": "production_v4_critical_bug_fixes"
+}
