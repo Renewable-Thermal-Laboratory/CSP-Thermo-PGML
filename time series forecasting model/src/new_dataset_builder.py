@@ -26,16 +26,17 @@ class TempSequenceDataset(data.Dataset):
         prediction_horizon (int): Steps ahead to predict (1 = next step, -1 = final state of file).
         scaler_dir (str): Directory to save/load scalers.
         split (str): Dataset split - 'train', 'val', or 'test'.
+        num_sensors (int): The number of thermal sensors to use.
 
     Returns:
         A PyTorch Dataset yielding tuples:
-        - time_series: (sequence_length, 11) with normalized time and TC1-TC10.
+        - time_series: (sequence_length, num_sensors + 1) with normalized time and TC1-TC<num_sensors>.
         - static_params: (4,) with normalized h, flux, abs, surf.
-        - target: (10,) with normalized target temperatures.
+        - target: (num_sensors,) with normalized target temperatures.
         - power_data: Dictionary with unscaled time and temperatures for power calculation.
     """
     def __init__(self, data_dir, sequence_length=20, prediction_horizon=1, 
-                 scaler_dir="models_new_theoretical", split='train'):
+                 scaler_dir="models_new_theoretical", split='train', num_sensors=10):
         # Guard acceptable horizons (A4)
         assert (prediction_horizon >= 1) or (prediction_horizon == -1), \
             "prediction_horizon must be >=1 or -1 (use -1 to mean 'to the end of file')."
@@ -46,6 +47,7 @@ class TempSequenceDataset(data.Dataset):
         self.prediction_horizon = prediction_horizon
         self.scaler_dir = scaler_dir
         self.split = split
+        self.num_sensors = num_sensors
         os.makedirs(self.scaler_dir, exist_ok=True)
 
         # Initialize scalers
@@ -66,8 +68,8 @@ class TempSequenceDataset(data.Dataset):
         self.sample_indices = self._build_sample_indices()
 
         print(f"Dataset initialized with {len(self.sample_indices)} sequences for {split} split")
-        print(f"Input shape: time_series [{self.sequence_length}, 11], static_params [4]")
-        print(f"Output shape: [10]")
+        print(f"Input shape: time_series [{self.sequence_length}, {self.num_sensors + 1}], static_params [4]")
+        print(f"Output shape: [{self.num_sensors}]")
         print(f"Power data: Dictionary with unscaled time/temps for power calculation")
         print(f"Prediction horizon: {prediction_horizon} ({'final state' if prediction_horizon == -1 else f'{prediction_horizon} steps ahead'})")
         
@@ -103,7 +105,7 @@ class TempSequenceDataset(data.Dataset):
         )
 
     def _get_thermal_columns(self, df):
-        """Extract and validate thermal sensor columns (TC1-TC10)."""
+        """Extract and validate thermal sensor columns (TC1-TC<num_sensors>)."""
         # Handle both TC1_tip and TC1 formats, extract sensor numbers
         potential_cols = []
         for col in df.columns:
@@ -112,17 +114,17 @@ class TempSequenceDataset(data.Dataset):
                 numbers = re.findall(r'\d+', col)
                 if numbers:
                     sensor_num = int(numbers[0])
-                    if 1 <= sensor_num <= 10:
+                    if 1 <= sensor_num <= self.num_sensors:
                         potential_cols.append((sensor_num, col))
         
         # Sort by sensor number and extract column names
         potential_cols.sort(key=lambda x: x[0])
         thermal_cols = [col for _, col in potential_cols]
         
-        if len(thermal_cols) != 10:
+        if len(thermal_cols) != self.num_sensors:
             available_cols = [col for col in df.columns if 'TC' in col.upper()]
             raise ValueError(
-                f"Expected 10 thermal sensors (TC1-TC10), found {len(thermal_cols)}: {thermal_cols}. "
+                f"Expected {self.num_sensors} thermal sensors (TC1-TC{self.num_sensors}), found {len(thermal_cols)}: {thermal_cols}. "
                 f"Available TC columns: {available_cols}"
             )
         
@@ -470,8 +472,8 @@ class TempSequenceDataset(data.Dataset):
                 'median_timestep_ms': self._data_stats.get('median_dt_ms', 'N/A')
             },
             'sensor_info': {
-                'thermal_sensors': 10,
-                'sensor_labels': 'TC1-TC10'
+                'thermal_sensors': self.num_sensors,
+                'sensor_labels': f'TC1-TC{self.num_sensors}'
             },
             'scaler_stats': {
                 'thermal_mean': self.thermal_scaler.mean_.tolist() if hasattr(self.thermal_scaler, 'mean_') else None,
@@ -586,7 +588,7 @@ class TempSequenceDataset(data.Dataset):
 
 # Utility functions for creating DataLoaders
 def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=20, 
-                       prediction_horizon=30, scaler_dir="models_new_theoretical"):
+                       prediction_horizon=30, scaler_dir="models_new_theoretical", num_sensors=10):
     """
     Create PyTorch DataLoaders for train, validation, and test sets.
     
@@ -597,6 +599,7 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         sequence_length (int): Number of input timesteps
         prediction_horizon (int): Steps ahead to predict
         scaler_dir (str): Directory to save/load scalers
+        num_sensors (int): The number of thermal sensors to use.
         
     Returns:
         tuple: (train_loader, val_loader, test_loader, train_dataset)
@@ -608,7 +611,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         sequence_length=sequence_length,
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
-        split='train'
+        split='train',
+        num_sensors=num_sensors
     )
     
     # Create validation dataset (loads pre-fitted scalers)
@@ -617,7 +621,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         sequence_length=sequence_length,
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
-        split='val'
+        split='val',
+        num_sensors=num_sensors
     )
     val_dataset.load_pretrained_scalers(scaler_dir)
     
@@ -627,7 +632,8 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         sequence_length=sequence_length,
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
-        split='test'
+        split='test',
+        num_sensors=num_sensors
     )
     test_dataset.load_pretrained_scalers(scaler_dir)
     

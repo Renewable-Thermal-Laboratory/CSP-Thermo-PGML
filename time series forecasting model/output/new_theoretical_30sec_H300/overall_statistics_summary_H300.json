@@ -1,0 +1,40 @@
+{
+  "horizon_steps": 300,
+  "horizon_label": "300 steps",
+  "temperature_accuracy": {
+    "mae_overall": 2.329596996307373,
+    "rmse_overall": 3.761378288269043,
+    "r2_overall": 0.9028609469532967,
+    "mean_mae_across_sensors": 2.329596996307373,
+    "mean_rmse_across_sensors": 3.761378288269043,
+    "mean_r2_across_sensors": 0.9028609469532967,
+    "max_error_across_all": 3.4943954944610596
+  },
+  "physics_losses": {
+    "physics_loss": 870.3958402474722,
+    "constraint_loss": 96142538.51302083,
+    "power_balance_loss": 5.356964236027314
+  },
+  "power_balance": {
+    "horizon_steps": 300,
+    "horizon_label": "300 steps",
+    "mean_actual_power": -10555.727565079927,
+    "mean_predicted_power": 217.33674830198288,
+    "mean_incoming_power": 217.90658569335938,
+    "mean_actual_to_incoming_ratio": -48.44152613145005,
+    "mean_predicted_to_incoming_ratio": 0.9973849464459125,
+    "conservation_violations": {
+      "count": 97,
+      "percentage": 18.9453125,
+      "mean_violation_amount": 1.856223824097938e-05
+    }
+  },
+  "energy_conservation": {
+    "horizon_steps": 300,
+    "horizon_label": "300 steps",
+    "conservation_violated": true,
+    "violation_count": 97,
+    "violation_percentage": 18.9453125,
+    "mean_violation_amount": 1.856223824097938e-05
+  }
+}

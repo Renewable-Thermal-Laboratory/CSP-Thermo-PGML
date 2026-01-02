@@ -1,0 +1,79 @@
+{
+  "sequence_length": 20,
+  "horizons_tested": [
+    60,
+    90,
+    120,
+    180,
+    240,
+    300,
+    450,
+    580
+  ],
+  "max_viable_H": null,
+  "thresholds": {
+    "mae_thresh": 3.0,
+    "viol_thresh_pct": 1.0,
+    "ratio_thresh": 1.01,
+    "pb_mult_baseline": 3.0
+  },
+  "pb_baseline": null,
+  "per_horizon_results": [
+    {
+      "H": 60,
+      "pass": false,
+      "mae": 0.6482782959938049,
+      "viol_pct": 25.1953125,
+      "pred_to_in_ratio": 0.9999999988192492
+    },
+    {
+      "H": 90,
+      "pass": false,
+      "mae": 0.7176203727722168,
+      "viol_pct": 29.296875,
+      "pred_to_in_ratio": 1.0000000040145527
+    },
+    {
+      "H": 120,
+      "pass": false,
+      "mae": 0.6301472187042236,
+      "viol_pct": 24.0234375,
+      "pred_to_in_ratio": 0.9999999995276996
+    },
+    {
+      "H": 180,
+      "pass": false,
+      "mae": 0.6518514752388,
+      "viol_pct": 27.734375,
+      "pred_to_in_ratio": 1.0000000021253515
+    },
+    {
+      "H": 240,
+      "pass": false,
+      "mae": 0.5761191844940186,
+      "viol_pct": 23.2421875,
+      "pred_to_in_ratio": 0.9999999943323961
+    },
+    {
+      "H": 300,
+      "pass": false,
+      "mae": 0.5747377872467041,
+      "viol_pct": 25.9765625,
+      "pred_to_in_ratio": 0.9999999976384983
+    },
+    {
+      "H": 450,
+      "pass": false,
+      "mae": 0.7596253752708435,
+      "viol_pct": 24.21875,
+      "pred_to_in_ratio": 1.0000000017711261
+    },
+    {
+      "H": 580,
+      "pass": false,
+      "mae": 2.6613824367523193,
+      "viol_pct": 22.857142857142858,
+      "pred_to_in_ratio": 1.0000000025909053
+    }
+  ]
+}

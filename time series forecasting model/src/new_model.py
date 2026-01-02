@@ -11,7 +11,7 @@ from collections import defaultdict
 class PhysicsInformedLSTM(nn.Module):
     """Physics-informed LSTM for thermal system temperature prediction.
     
-    Predicts TC1-TC10 temperatures at timestep 21 given 20 previous timesteps,
+    Predicts TC1-TC<n> temperatures at a future timestep given previous timesteps,
     with physics-based constraints for energy conservation and heat transfer.
     """
     
@@ -31,7 +31,7 @@ class PhysicsInformedLSTM(nn.Module):
         # Stacked LSTM for temporal processing
         self.lstm_layers = 2
         self.lstm = nn.LSTM(
-            input_size=11,  # time + TC1-TC10
+            input_size=num_sensors + 1,  # time + TC1-TC<n>
             hidden_size=lstm_units,
             num_layers=self.lstm_layers,
             batch_first=True,
@@ -100,7 +100,7 @@ class PhysicsInformedLSTM(nn.Module):
             time_series, static_params = inputs['time_series'], inputs['static_params']
         
         # Input validation
-        assert time_series.shape[1:] == (self.sequence_length, 11), f"Expected time_series shape (*, {self.sequence_length}, 11), got {time_series.shape}"
+        assert time_series.shape[1:] == (self.sequence_length, self.num_sensors + 1), f"Expected time_series shape (*, {self.sequence_length}, {self.num_sensors + 1}), got {time_series.shape}"
         assert static_params.shape[1:] == (4,), f"Expected static_params shape (*, 4), got {static_params.shape}"
         
         # Process time series through stacked LSTM
@@ -231,17 +231,17 @@ class PhysicsInformedTrainer:
             thermal_mean_tensor = torch.tensor(thermal_scaler.mean_, dtype=torch.float32, device=self.device)
             thermal_scale_tensor = torch.tensor(thermal_scaler.scale_, dtype=torch.float32, device=self.device)
             
-            # Ensure proper shape for broadcasting - reshape to (1, 10) for safety
-            if thermal_mean_tensor.dim() == 1 and thermal_mean_tensor.shape[0] == 10:
-                self.thermal_mean = thermal_mean_tensor.view(1, 10)
-                self.thermal_scale = thermal_scale_tensor.view(1, 10)
+            # Ensure proper shape for broadcasting - reshape to (1, num_sensors) for safety
+            if thermal_mean_tensor.dim() == 1 and thermal_mean_tensor.shape[0] == self.model.num_sensors:
+                self.thermal_mean = thermal_mean_tensor.view(1, self.model.num_sensors)
+                self.thermal_scale = thermal_scale_tensor.view(1, self.model.num_sensors)
             else:
                 print(f"Warning: Unexpected thermal scaler shape {thermal_mean_tensor.shape}, using defaults")
-                self.thermal_mean = torch.zeros(1, 10, dtype=torch.float32, device=self.device)
-                self.thermal_scale = torch.ones(1, 10, dtype=torch.float32, device=self.device)
+                self.thermal_mean = torch.zeros(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
+                self.thermal_scale = torch.ones(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
         else:
-            self.thermal_mean = torch.zeros(1, 10, dtype=torch.float32, device=self.device)
-            self.thermal_scale = torch.ones(1, 10, dtype=torch.float32, device=self.device)
+            self.thermal_mean = torch.zeros(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
+            self.thermal_scale = torch.ones(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
         
         # FIXED: Source physics constants from model buffers to prevent drift
         self.rho = model.rho.to(self.device)
@@ -249,9 +249,9 @@ class PhysicsInformedTrainer:
         self.radius = model.radius.to(self.device)
         self.pi = model.pi.to(self.device)
         
-        # Define 9 bins using adjacent sensor pairs
-        self.num_bins = 9
-        self.bin_sensor_pairs = [(i, i+1) for i in range(9)]
+        # Define bins using adjacent sensor pairs
+        self.num_bins = self.model.num_sensors - 1
+        self.bin_sensor_pairs = [(i, i+1) for i in range(self.num_bins)]
         
         # Optimizer
         self.optimizer = optim.Adam(
@@ -334,7 +334,7 @@ class PhysicsInformedTrainer:
         
         return soft_capped_powers, penalty, scaling
 
-    def compute_nine_bin_physics_loss(self, y_pred, power_metadata_list):
+    def compute_physics_loss(self, y_pred, power_metadata_list):
         """FIXED: Compute physics loss with proper error handling and per-batch error rate."""
         try:
             if not power_metadata_list or len(power_metadata_list) == 0:
@@ -574,7 +574,7 @@ class PhysicsInformedTrainer:
             return physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info
             
         except Exception as e:
-            print(f"CRITICAL ERROR in 9-bin physics loss computation: {e}")
+            print(f"CRITICAL ERROR in physics loss computation: {e}")
             self.physics_error_count += len(power_metadata_list) if power_metadata_list else 1
             zero_loss = torch.tensor(0.0, dtype=torch.float32, device=self.device, requires_grad=True)
             return zero_loss, zero_loss, zero_loss, zero_loss, {'error': str(e)}
@@ -661,7 +661,8 @@ class PhysicsInformedTrainer:
                 time_mean=self.time_mean,
                 time_std=self.time_std,
                 temp_clamp_range=self.temp_clamp_range,
-                min_time_diff=self.min_time_diff
+                min_time_diff=self.min_time_diff,
+                num_sensors=self.model.num_sensors
             )
         
         self.optimizer.zero_grad()
@@ -673,7 +674,7 @@ class PhysicsInformedTrainer:
                 mae_loss = torch.mean(torch.abs(y_true - y_pred))
                 
                 if power_metadata_list is not None:
-                    physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_nine_bin_physics_loss(
+                    physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_physics_loss(
                         y_pred, power_metadata_list
                     )
                     
@@ -707,7 +708,7 @@ class PhysicsInformedTrainer:
             mae_loss = torch.mean(torch.abs(y_true - y_pred))
             
             if power_metadata_list is not None:
-                physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_nine_bin_physics_loss(
+                physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_physics_loss(
                     y_pred, power_metadata_list
                 )
                 
@@ -776,7 +777,8 @@ class PhysicsInformedTrainer:
                     time_mean=self.time_mean,
                     time_std=self.time_std,
                     temp_clamp_range=self.temp_clamp_range,
-                    min_time_diff=self.min_time_diff
+                    min_time_diff=self.min_time_diff,
+                    num_sensors=self.model.num_sensors
                 )
             
             # Forward pass with optional mixed precision
@@ -791,7 +793,7 @@ class PhysicsInformedTrainer:
             
             # Physics loss with FIXED symmetric weighting
             if power_metadata_list is not None:
-                physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_nine_bin_physics_loss(
+                physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_physics_loss(
                     y_pred, power_metadata_list
                 )
                 
@@ -1117,7 +1119,7 @@ class PhysicsInformedTrainer:
         # Save metadata with V4 fix information
         metadata = {
             'model_type': 'PhysicsInformedLSTM',
-            'physics_approach': '9-bin_spatial_segmentation_v4_critical_bug_fixes',
+            'physics_approach': f"{self.model.num_sensors - 1}-bin_spatial_segmentation_v4_critical_bug_fixes",
             'num_sensors': self.model.num_sensors,
             'sequence_length': self.model.sequence_length,
             'lstm_units': self.model.lstm_units,
@@ -1247,13 +1249,13 @@ class PhysicsInformedTrainer:
             thermal_scale_tensor = torch.tensor(self.thermal_scaler.scale_, dtype=torch.float32, device=self.device)
             
             # Ensure proper shape for broadcasting
-            if thermal_mean_tensor.dim() == 1 and thermal_mean_tensor.shape[0] == 10:
-                self.thermal_mean = thermal_mean_tensor.view(1, 10)
-                self.thermal_scale = thermal_scale_tensor.view(1, 10)
+            if thermal_mean_tensor.dim() == 1 and thermal_mean_tensor.shape[0] == self.model.num_sensors:
+                self.thermal_mean = thermal_mean_tensor.view(1, self.model.num_sensors)
+                self.thermal_scale = thermal_scale_tensor.view(1, self.model.num_sensors)
             else:
                 print(f"Warning: Unexpected thermal scaler shape {thermal_mean_tensor.shape}")
-                self.thermal_mean = torch.zeros(1, 10, dtype=torch.float32, device=self.device)
-                self.thermal_scale = torch.ones(1, 10, dtype=torch.float32, device=self.device)
+                self.thermal_mean = torch.zeros(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
+                self.thermal_scale = torch.ones(1, self.model.num_sensors, dtype=torch.float32, device=self.device)
         
         # Load optimizer state if available
         optimizer_path = os.path.join(dirpath, 'optimizer_state_dict.pth')
@@ -1296,7 +1298,7 @@ class PhysicsInformedTrainer:
 
 
 def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300.0, time_std=300.0, 
-                           temp_clamp_range=None, min_time_diff=1e-3):
+                           temp_clamp_range=None, min_time_diff=1e-3, num_sensors=10):
     """FIXED: Process power data with explicit time normalization flags and parameterized min_time_diff."""
     if not power_data_list:
         return None
@@ -1314,8 +1316,8 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
             if debug_enabled:
                 print(f"Warning: Invalid power_data at index {i}, using dummy values")
             processed_metadata.append({
-                'temps_row1': [300.0] * 10,
-                'temps_target': [301.0] * 10,
+                'temps_row1': [300.0] * num_sensors,
+                'temps_target': [301.0] * num_sensors,
                 'time_diff': 1.0,
                 'h': 50.0,
                 'q0': 1000.0,
@@ -1342,8 +1344,8 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
                 if debug_enabled:
                     print(f"Warning: Missing target AND legacy keys at index {i}")
                 processed_metadata.append({
-                    'temps_row1': [300.0] * 10,
-                    'temps_target': [301.0] * 10,
+                    'temps_row1': [300.0] * num_sensors,
+                    'temps_target': [301.0] * num_sensors,
                     'time_diff': 1.0,
                     'h': 50.0,
                     'q0': 1000.0,
@@ -1355,18 +1357,18 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
             temps_row1 = power_data['temps_row1']
             if isinstance(temps_row1, (list, tuple)):
                 temps_row1 = [float(x) for x in temps_row1]
-                if len(temps_row1) != 10:
-                    temps_row1 = (temps_row1 + [300.0] * 10)[:10]
+                if len(temps_row1) != num_sensors:
+                    temps_row1 = (temps_row1 + [300.0] * num_sensors)[:num_sensors]
             else:
-                temps_row1 = [300.0] * 10
+                temps_row1 = [300.0] * num_sensors
             
             temps_final = power_data[final_temps_key]
             if isinstance(temps_final, (list, tuple)):
                 temps_final = [float(x) for x in temps_final]
-                if len(temps_final) != 10:
-                    temps_final = (temps_final + [301.0] * 10)[:10]
+                if len(temps_final) != num_sensors:
+                    temps_final = (temps_final + [301.0] * num_sensors)[:num_sensors]
             else:
-                temps_final = [301.0] * 10
+                temps_final = [301.0] * num_sensors
             
             # Temperature unscaling logic
             raw_initial = temps_row1[0] if temps_row1 else 300.0
@@ -1456,8 +1458,8 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
             if debug_enabled:
                 print(f"Error processing power_data at index {i}: {e}")
             processed_metadata.append({
-                'temps_row1': [300.0] * 10,
-                'temps_target': [301.0] * 10,
+                'temps_row1': [300.0] * num_sensors,
+                'temps_target': [301.0] * num_sensors,
                 'time_diff': 1.0,
                 'h': 50.0,
                 'q0': 1000.0,

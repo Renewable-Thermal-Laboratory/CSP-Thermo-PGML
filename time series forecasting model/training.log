@@ -1,0 +1,170 @@
+Traceback (most recent call last):
+  File "/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py", line 42, in tf
+    from tensorboard.compat import notf  # noqa: F401
+ImportError: cannot import name 'notf' from 'tensorboard.compat' (/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py)
+
+During handling of the above exception, another exception occurred:
+
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+Traceback (most recent call last):
+  File "/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py", line 42, in tf
+    from tensorboard.compat import notf  # noqa: F401
+ImportError: cannot import name 'notf' from 'tensorboard.compat' (/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py)
+
+During handling of the above exception, another exception occurred:
+
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+Traceback (most recent call last):
+  File "/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py", line 42, in tf
+    from tensorboard.compat import notf  # noqa: F401
+ImportError: cannot import name 'notf' from 'tensorboard.compat' (/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py)
+
+During handling of the above exception, another exception occurred:
+
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+Traceback (most recent call last):
+  File "/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py", line 42, in tf
+    from tensorboard.compat import notf  # noqa: F401
+ImportError: cannot import name 'notf' from 'tensorboard.compat' (/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py)
+
+During handling of the above exception, another exception occurred:
+
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py", line 42, in tf
+    from tensorboard.compat import notf  # noqa: F401
+ImportError: cannot import name 'notf' from 'tensorboard.compat' (/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/tensorboard/compat/__init__.py)
+
+During handling of the above exception, another exception occurred:
+
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=30
+================================================================================
+Config updated: L=20, H=30
+   Output dir: output/new_theoretical_TC11_L20_H30
+   Run tag: new_theoretical_TC11_L20_H30
+   Paper fig dir: output/new_theoretical_TC11_L20_H30/paper_figs
+Using device: cpu
+
+Loading datasets for L=20, H=30...
+Found 23 CSV files
+Split: 16 train, 3 val, 4 test files
+Fitting scalers on 16 valid training files
+Scalers fitted and saved successfully
+Generated 8994 train sequences from 16 files
+Dataset initialized with 8994 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 30 (30 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 16 train, 3 val, 4 test
+Valid files: 16, Invalid: 0
+Training sequences: 8994
+Prediction horizon: 30 (30 steps ahead)
+Target calculation: Sequence end + 30 timesteps
+Min sequence length required: 50
+Data quality issues:
+  - Files with outliers: 14
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 16 train, 3 val, 4 test files
+Generated 1780 val sequences from 3 files
+Dataset initialized with 1780 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 30 (30 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 16 train, 3 val, 4 test files
+Generated 2087 test sequences from 4 files
+Dataset initialized with 2087 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 30 (30 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=30
+Horizon validation passed for prediction_horizon=30
+Horizon validation passed for prediction_horizon=30
+Building model for L=20, H=30...
+
+Training model for L=20, H=30...
+
+Evaluating best model for L=20, H=30...
+Processing power data batch with 7 samples (V4 - EXPLICIT TIME FLAGS)
+Using horizon-aware target keys
+Successfully processed 7 power metadata entries
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 30 steps):
+   MAE:  1.06 K
+   RMSE: 1.75 K
+   R²:   0.994281
+   Physics Loss: 3033.924764
+   Constraint Loss: 910656021.359848
+   Power Balance Loss: 2384.106852
+
+Generating profile plots for each test file (H=30)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 2087 sample indices
+Successfully mapped 2087 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux78_abs0_surf0_523s - Sheet2.csv
+   Sample 1: h6_flux78_abs0_surf0_523s - Sheet2.csv
+   Sample 2: h6_flux78_abs0_surf0_523s - Sheet2.csv
+   Sample 3: h6_flux78_abs0_surf0_523s - Sheet2.csv
+   Sample 4: h6_flux78_abs0_surf0_523s - Sheet2.csv
+Saved profile plot: output/new_theoretical_TC11_L20_H30/profile_plots_H30/h6_flux78_abs0_surf0_523s - Sheet2_H30_profiles.png
+Saved profile plot: output/new_theoretical_TC11_L20_H30/profile_plots_H30/h6_flux73_abs0_surf1_754s - Sheet3_H30_profiles.png
+Saved profile plot: output/new_theoretical_TC11_L20_H30/profile_plots_H30/h6_flux73_abs0_surf0_511s - Sheet3_H30_profiles.png
+Saved profile plot: output/new_theoretical_TC11_L20_H30/profile_plots_H30/h6_flux88_abs0_surf1_newSalt_573s - Sheet2_H30_profiles.png
+Profile plots for horizon 30 saved to: output/new_theoretical_TC11_L20_H30/profile_plots_H30
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 30 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 30 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 177.14 W
+  Std:  4.78 W
+  Min:  163.22 W
+  Max:  178.78 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 9655.32 W
+  Std:  18035.11 W
+  Min:  -12196.43 W
+  Max:  93285.25 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: -2615.52 W
+  Std:  1533.42 W
+  Min:  -5178.06 W
+  Max:  178.78 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 56.936, Std: 108.745
+  Predicted/Incoming ratio - Mean: -14.630, Std: 8.578
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 355/512 (69.3%)
+  Predicted power > incoming: 14/512 (2.7%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 30 steps)!

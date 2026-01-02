@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import RobustScaler
 import joblib
-from model import ImprovedTempModel
+from new_model import ImprovedTempModel
 
 # Expected column names
 THERMAL_COLS = ["TC1_tip", "TC2", "TC3", "TC4", "TC5",
