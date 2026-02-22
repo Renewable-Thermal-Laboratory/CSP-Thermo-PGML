@@ -1206,6 +1206,35 @@ def generate_profile_plots_per_file(trainer, test_loader, horizon_steps, output_
         for i in range(num_sensors):
             ax.annotate(f'TC{i+1}', (best_profile['y_true'][i], physical_depths[i]), textcoords="offset points", xytext=(5, -5), ha='left')
             
+        # ================= NEW 1D MODEL CODE =================
+        depths_1d = [
+            0, -0.0158, -0.0315, -0.0473, -0.0630, -0.0788, 
+            -0.0945, -0.1103, -0.1260, -0.1417, -0.1575
+        ]
+    
+        # Pick the correct temperatures based on the horizon (H)
+        if horizon_steps == 60:
+            temperatures_1d = [
+                284.5487, 302.9150, 302.9150, 302.9150, 302.9150, 302.9150, 
+                302.9150, 302.9150, 302.9150, 302.9150, 339.0725
+            ]
+            ax.plot(temperatures_1d, depths_1d, color='green', marker='^', linestyle='-', linewidth=2, label='1D model')
+            
+        elif horizon_steps == 300:
+            temperatures_1d = [
+                292.3949, 311.5475, 311.5475, 311.5475, 311.5475, 311.5475, 
+                311.5475, 311.5475, 311.5475, 311.5475, 347.7051
+            ]
+            ax.plot(temperatures_1d, depths_1d, color='green', marker='^', linestyle='-', linewidth=2, label='1D model')
+            
+        elif horizon_steps == 150:
+            temperatures_1d = [
+                287.5114, 306.1720, 306.1720, 306.1720, 306.1720, 306.1720, 
+                306.1720, 306.1720, 306.1720, 306.1720, 342.3296
+            ]
+            ax.plot(temperatures_1d, depths_1d, color='green', marker='^', linestyle='-', linewidth=2, label='1D model')
+        # =====================================================
+            
         mae = best_profile['mae']
         flux = best_profile['flux']
         abs_val = best_profile['abs']
