@@ -37,14 +37,14 @@ warnings.filterwarnings('ignore')
 pd.options.mode.chained_assignment = None
 
 # Fixed imports - ensure all classes are imported
-from .new_model import (
+from new_model import (
     build_model, 
     create_trainer, 
     compute_r2_score, 
     PhysicsInformedTrainer,
     PhysicsInformedLSTM
 )
-from .new_dataset_builder import create_data_loaders
+from new_dataset_builder import create_data_loaders
 
 
 # =====================
@@ -1198,7 +1198,7 @@ def generate_profile_plots_per_file(trainer, test_loader, horizon_steps, output_
         fig, ax = plt.subplots(figsize=(8, 10))
         
         h = best_profile['h']
-        physical_depths = np.linspace(0, h, num_sensors)
+        physical_depths = np.linspace(0, -h, num_sensors)[::-1]
         
         ax.plot(best_profile['y_true'], physical_depths, 'o-', label='Actual', color='blue', markersize=6, linewidth=2)
         ax.plot(best_profile['y_pred'], physical_depths, 's--', label='Predicted', color='red', markersize=5, linewidth=2)
@@ -1352,4 +1352,4 @@ def run_single_experiment_with_profiles(L: int, H: int, seed: int = 42) -> dict:
         }
 
 if __name__ == '__main__':
-    run_single_experiment_with_profiles(L=20, H=30, seed=42)
+    run_single_experiment_with_profiles(L=20, H=60, seed=42)
