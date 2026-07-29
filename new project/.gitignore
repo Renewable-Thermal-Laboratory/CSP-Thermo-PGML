@@ -1,0 +1,4 @@
+# IR frame archives: 38 files x ~0.5GB, all exceed GitHub's 100MB limit.
+# Regenerate from the raw .seq archive with:  python ../"time series forecasting model"/ir_pipeline/seq_to_h5.py
+data/processed_IR/*.h5
+.DS_Store
