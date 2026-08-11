@@ -14,6 +14,7 @@ src/
   extract_ir_features.py   IR .h5 -> 8 surface features/second (auto dish detection)
   build_dataset.py         join IR features + TC rake -> data/dataset.csv (sync-verified)
   train_final.py           depth-conditioned model, leave-one-run-out eval, saves model
+  leave_condition_out.py   generalization test: hold out a whole flux/abs/surf regime
   mlp_model.py             shared MLP wrapper (import path for the pickle)
   predict.py               deployment CLI: snapshot + TC1 + conditions -> profile
   train.py                 earlier RF baseline + no-IR ablation
@@ -38,6 +39,33 @@ Leave-one-run-out MAE **1.34 °C** overall (abs0 1.12 / abs20 1.61 / abs92 1.84)
 interior channels ~1 °C, surface (TC10) 3.3 °C, TC9.5 4.6 °C (only 5 runs carry it).
 Camera spec accuracy is ±2 °C. Excluded run: `h6_abs0_flux73_surf0_run4`
 (IR/TC alignment failure, corr −0.91).
+
+This 1.34 °C is the **interpolation** number: predicting an unseen *run* of a
+condition the model has other examples of.
+
+## Generalization (leave-one-condition-out)
+
+`src/leave_condition_out.py` holds out an entire flux/abs/surf regime and predicts
+it from the other eight — the honest "unseen regime" test.
+
+| held-out condition | runs | MAE (°C) | note |
+|---|---|---|---|
+| abs0 flux78 surf1 | 3 | 1.20 | well-surrounded |
+| abs0 flux73 surf1 | 3 | 1.69 | |
+| abs0 flux73 surf0 | 3 | 1.86 | |
+| abs0 flux78 surf0 | 4 | 3.29 | |
+| abs0 flux88 surf1 | 4 | 3.51 | |
+| abs0 flux88 surf0 | 6 | 7.27 | contains both longruns (~390 °C) |
+| abs20 flux88 surf1 | 3 | 7.50 | only 2 abs20 conditions exist |
+| abs20 flux88 surf0 | 6 | 13.87 | only 2 abs20 conditions exist |
+| **abs92 flux88 surf0** | 5 | **48.89** | **pure extrapolation — only abs=92 regime** |
+
+**Takeaway: the model interpolates well but does not yet extrapolate.** Within a
+sampled regime it is ~1.3 °C; a nearby unseen condition degrades to ~1–14 °C; a
+genuinely new regime (abs92 removed entirely) collapses to ~49 °C. The model must
+not be trusted outside the conditions it has training data for — motivating (a) an
+input out-of-range guard before deployment and (b) a physics-informed (1D
+conduction) term, which is the intended route to real extrapolation.
 
 ## Predict
 
