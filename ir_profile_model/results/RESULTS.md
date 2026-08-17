@@ -95,9 +95,16 @@ extrapolation.
 
 ## Figures
 
+Profile figures use physical depth (m), surface (TC10) at top → bottom (TC1) at
+−0.1575 m, evenly spaced — matching the lab forecasting-paper style.
+
 - `fig1_profiles.png` — predicted vs measured profiles, 9 held-out conditions
+- `fig1b_profile_single.png` — single-panel exemplar (forecasting-paper layout)
 - `fig2_calibration.png` — calibration scatter (R²=0.96) + error-by-depth vs ±2 °C
 - `fig3_generalization.png` — leave-one-condition-out MAE (log scale)
+
+(A third "1D model" series can be added to fig1 once the physics-informed term is
+built, to fully mirror the forecasting figures' Actual/Predicted/1D-model layout.)
 
 ## Reproduce
 
