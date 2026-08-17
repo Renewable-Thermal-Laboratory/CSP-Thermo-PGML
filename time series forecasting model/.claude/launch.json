@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "portfolio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/bhuvan/Desktop/Important doc/creative-profile-box", "run", "dev"],
+      "port": 8080
+    },
+    {
+      "name": "magic-mirror",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/1d8e3cc5-bba5-496f-8f8f-0615284b9a00/scratchpad/sonu-magic-mirror' && exec python3 -m http.server 8643"],
+      "port": 8643
+    },
+    {
+      "name": "sonu-birthday",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/49560c9b-99f5-4f08-a0b2-a843542be8c3/scratchpad/sonu-birthday-website' && exec python3 -m http.server 8642"],
+      "port": 8642
+    },
+    {
+      "name": "sonu-recovery",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/e1938c74-0221-4a7f-9e28-0ea8ac351ebd/scratchpad/sonu-recovery-kit' && exec python3 -m http.server 8644"],
+      "port": 8644
+    }
+  ]
+}

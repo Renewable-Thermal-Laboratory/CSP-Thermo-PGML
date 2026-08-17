@@ -15,21 +15,29 @@ class PhysicsInformedLSTM(nn.Module):
     with physics-based constraints for energy conservation and heat transfer.
     """
     
-    def __init__(self, num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=0.2):
+    def __init__(self, num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=0.2,
+                 residual_prediction=True, baseline_mode='persistence', horizon_steps=None):
         super().__init__()
         self.num_sensors = num_sensors
         self.sequence_length = sequence_length
         self.lstm_units = lstm_units
         self.dropout_rate = dropout_rate
-        
+        # Residual (delta) forecasting: model the CHANGE from a baseline trajectory instead
+        # of the absolute value. baseline_mode='persistence' anchors on the last observed
+        # temperature; 'linear' anchors on a slope extrapolation over the input window
+        # (last_obs + slope*H). See forward() for details. horizon_steps is needed for 'linear'.
+        self.residual_prediction = residual_prediction
+        self.baseline_mode = baseline_mode
+        self.horizon_steps = horizon_steps
+
         # Physics constants as parameters (non-trainable)
         self.register_buffer('rho', torch.tensor(1836.31, dtype=torch.float32))  # kg/m³
         self.register_buffer('cp', torch.tensor(1512.0, dtype=torch.float32))    # J/(kg·K)
         self.register_buffer('radius', torch.tensor(0.05175, dtype=torch.float32))  # m
         self.register_buffer('pi', torch.tensor(np.pi, dtype=torch.float32))
-        
+
         # Stacked LSTM for temporal processing
-        self.lstm_layers = 2
+        self.lstm_layers = 3
         self.lstm = nn.LSTM(
             input_size=num_sensors + 1,  # time + TC1-TC<n>
             hidden_size=lstm_units,
@@ -38,29 +46,45 @@ class PhysicsInformedLSTM(nn.Module):
             dropout=dropout_rate if self.lstm_layers > 1 else 0,
         )
         self.lstm_norm = nn.LayerNorm(lstm_units)
-        
-        # Static parameter processing
-        self.param_dense1 = nn.Linear(4, 32)
-        self.param_norm = nn.LayerNorm(32)
-        self.param_dropout = nn.Dropout(dropout_rate)
-        
-        # Combined processing
-        self.combine_dense1 = nn.Linear(lstm_units + 32, 64)
-        self.combine_norm = nn.LayerNorm(64)
-        self.combine_dropout = nn.Dropout(dropout_rate)
-        
-        self.combine_dense2 = nn.Linear(64, 32)
-        
+
+        # Multi-head temporal self-attention over the input sequence.
+        self.attn = nn.MultiheadAttention(
+            embed_dim=lstm_units,
+            num_heads=4,
+            batch_first=True,
+            dropout=dropout_rate
+        )
+        self.attn_norm  = nn.LayerNorm(lstm_units)
+
+        # Static parameter processing: 2-layer 64-dim MLP
+        self.param_dense1  = nn.Linear(4, 64)
+        self.param_norm1    = nn.LayerNorm(64)
+        self.param_dropout1 = nn.Dropout(dropout_rate)
+        self.param_dense2  = nn.Linear(64, 64)
+        self.param_norm2    = nn.LayerNorm(64)
+        self.param_dropout2 = nn.Dropout(dropout_rate)
+
+        # FiLM parameter generators
+        self.film_gamma = nn.Linear(64, lstm_units)
+        self.film_beta  = nn.Linear(64, lstm_units)
+
+        # Wider combination MLP: (lstm_units+64) → 128 → 64 → num_sensors
+        self.combine_dense1 = nn.Linear(lstm_units + 64, 128)
+        self.combine_norm1  = nn.LayerNorm(128)
+        self.combine_drop1  = nn.Dropout(dropout_rate)
+
+        self.combine_dense2 = nn.Linear(128, 64)
+        self.combine_norm2  = nn.LayerNorm(64)
+
         # Output layer
-        self.output_dense = nn.Linear(32, num_sensors)
-        
+        self.output_dense = nn.Linear(64, num_sensors)
+
         # Initialize weights
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize weights with corrected LSTM forget gate bias - FIXED V4."""
+        """Initialize weights: Xavier for linear, orthogonal for LSTM recurrent, forget-gate bias = 1."""
         with torch.no_grad():
-            # Initialize linear layer weights and biases
             for m in self.modules():
                 if isinstance(m, nn.Linear):
                     nn.init.xavier_uniform_(m.weight)
@@ -69,62 +93,94 @@ class PhysicsInformedLSTM(nn.Module):
                 elif isinstance(m, nn.LayerNorm):
                     nn.init.ones_(m.weight)
                     nn.init.zeros_(m.bias)
-            
-            # FIXED: Safe LSTM parameter initialization without in-place operations on leaf tensors
+
+            # LSTM: orthogonal recurrent weights + forget-gate bias = 1.
             for layer in range(self.lstm.num_layers):
-                # Handle both unidirectional and bidirectional LSTMs
                 directions = [''] if not getattr(self.lstm, 'bidirectional', False) else ['', '_reverse']
-                
                 for direction in directions:
-                    # Initialize weights
                     weight_ih = getattr(self.lstm, f'weight_ih_l{layer}{direction}')
                     weight_hh = getattr(self.lstm, f'weight_hh_l{layer}{direction}')
                     nn.init.xavier_uniform_(weight_ih)
                     nn.init.orthogonal_(weight_hh)
-                    
-                    # Initialize biases safely
                     for bias_name in ['bias_ih', 'bias_hh']:
                         bias = getattr(self.lstm, f'{bias_name}_l{layer}{direction}')
                         bias.zero_()
-                        
-                        # Set forget gate bias to 1.0
-                        # PyTorch LSTM gate order: [input, forget, cell, output]
                         H = self.lstm.hidden_size
-                        bias[H:2*H].fill_(1.0)  # Forget gate bias slice
+                        bias[H:2*H].fill_(1.0)  # forget gate = 1
     
     def forward(self, inputs):
-        """Forward pass of the model."""
+        """Forward pass with temporal self-attention over the input sequence."""
         if isinstance(inputs, (list, tuple)):
             time_series, static_params = inputs
         else:
             time_series, static_params = inputs['time_series'], inputs['static_params']
-        
+
         # Input validation
-        assert time_series.shape[1:] == (self.sequence_length, self.num_sensors + 1), f"Expected time_series shape (*, {self.sequence_length}, {self.num_sensors + 1}), got {time_series.shape}"
-        assert static_params.shape[1:] == (4,), f"Expected static_params shape (*, 4), got {static_params.shape}"
-        
-        # Process time series through stacked LSTM
-        x, _ = self.lstm(time_series)
-        x = x[:, -1, :]  # Take last timestep
-        x = self.lstm_norm(x)
-        
-        # Process static parameters
-        params = F.relu(self.param_dense1(static_params))
-        params = self.param_norm(params)
-        params = self.param_dropout(params)
-        
-        # Combined processing
+        assert time_series.shape[1:] == (self.sequence_length, self.num_sensors + 1), \
+            f"Expected time_series shape (*, {self.sequence_length}, {self.num_sensors + 1}), got {time_series.shape}"
+        assert static_params.shape[1:] == (4,), \
+            f"Expected static_params shape (*, 4), got {static_params.shape}"
+
+        # --- LSTM: encode the full sequence ---
+        lstm_out, _ = self.lstm(time_series)          # (B, T, lstm_units)
+        lstm_out = self.lstm_norm(lstm_out)
+
+        # --- Static parameter branch ---
+        params = F.gelu(self.param_dense1(static_params))
+        params = self.param_norm1(params)
+        params = self.param_dropout1(params)
+        params = F.gelu(self.param_dense2(params))
+        params = self.param_norm2(params)
+        params = self.param_dropout2(params)
+
+        # --- FiLM conditioning ---
+        gamma = self.film_gamma(params)
+        beta = self.film_beta(params)
+        modulated_lstm_out = gamma.unsqueeze(1) * lstm_out + beta.unsqueeze(1)
+
+        # --- Multi-head temporal self-attention ---
+        attn_out, _ = self.attn(modulated_lstm_out, modulated_lstm_out, modulated_lstm_out)
+
+        # Residual connection + layer norm on the last timestep
+        x = self.attn_norm(modulated_lstm_out[:, -1, :] + attn_out[:, -1, :])
+
+        # --- Wider combination MLP ---
         combined = torch.cat([x, params], dim=-1)
-        
-        features = F.relu(self.combine_dense1(combined))
-        features = self.combine_norm(features)
-        features = self.combine_dropout(features)
-        
-        output_features = F.relu(self.combine_dense2(features))
-        
-        # Output predictions
-        predictions = self.output_dense(output_features)
-        
+
+        features = F.gelu(self.combine_dense1(combined))
+        features = self.combine_norm1(features)
+        features = self.combine_drop1(features)
+
+        features = F.gelu(self.combine_dense2(features))
+        features = self.combine_norm2(features)
+
+        # --- Output ---
+        predictions = self.output_dense(features)
+
+        # Residual (delta) forecasting: predict the CHANGE from a baseline trajectory.
+        # Columns 1: of time_series are the last timestep's scaled temps (col 0 is time);
+        # everything stays in the same per-sensor scaled space, so the sum is still a scaled
+        # ABSOLUTE target — loss, unscaling, R², physics and plotting paths are unchanged.
+        #   • 'persistence': baseline = last observed temperature.
+        #   • 'linear':      baseline = last_obs + slope*H, where slope is the least-squares
+        #     per-step slope over the input window. This starts near the truth during active
+        #     heating ramps (where persistence loses) and reduces to persistence when flat.
+        # At init output_dense ≈ 0, so the model starts exactly at the chosen baseline.
+        if self.residual_prediction:
+            temps = time_series[:, :, 1:]              # (B, T, S) scaled temps
+            last_observed_temps = temps[:, -1, :]      # (B, S)
+            if self.baseline_mode == 'linear' and self.horizon_steps:
+                T = temps.shape[1]
+                step = torch.arange(T, device=temps.device, dtype=temps.dtype)
+                step_c = step - step.mean()                          # (T,)
+                denom = (step_c * step_c).sum().clamp_min(1e-8)      # scalar
+                temp_c = temps - temps.mean(dim=1, keepdim=True)     # (B, T, S)
+                slope = (step_c.view(1, T, 1) * temp_c).sum(dim=1) / denom   # (B, S) per step
+                baseline = last_observed_temps + slope * float(self.horizon_steps)
+            else:
+                baseline = last_observed_temps
+            predictions = predictions + baseline
+
         return predictions
     
     def get_config(self):
@@ -133,7 +189,10 @@ class PhysicsInformedLSTM(nn.Module):
             'num_sensors': self.num_sensors,
             'sequence_length': self.sequence_length,
             'lstm_units': self.lstm_units,
-            'dropout_rate': self.dropout_rate
+            'dropout_rate': self.dropout_rate,
+            'residual_prediction': self.residual_prediction,
+            'baseline_mode': self.baseline_mode,
+            'horizon_steps': self.horizon_steps
         }
 
 
@@ -146,14 +205,27 @@ class PhysicsInformedTrainer:
                  use_soft_capping=False, soft_cap_factor=0.9, soft_cap_slope=10.0,
                  use_lateral_area=False, temp_clamp_range=None, use_amp=False, physics_on_capped=False,
                  seed=None, debug_samples=10, log_gradients=False, power_enforcement_mode='power_balance_only',
-                 min_time_diff=1e-3):
+                 min_time_diff=1e-3, use_huber=False, huber_delta=2.0):
         self.model = model
         self.physics_weight = physics_weight
-        
+
         # FIXED: Separate explicit weights for different penalty types
         self.soft_penalty_weight = soft_penalty_weight  # For scale/soft penalties
         self.excess_penalty_weight = excess_penalty_weight  # For excess penalties
         self.power_balance_weight = power_balance_weight
+
+        # When every physics/penalty weight is zero, the physics term is identically 0.
+        # Skip the (expensive) per-sample per-bin power computation entirely in that case —
+        # it was running every step and being multiplied by 0. Eval-time power analysis
+        # still calls compute_physics_loss directly, so reporting is unaffected.
+        self._physics_active = (
+            physics_weight > 0 or soft_penalty_weight > 0
+            or excess_penalty_weight > 0 or power_balance_weight > 0
+        )
+
+        # Huber loss option: improves R² vs pure MAE by treating small errors as L2
+        self.use_huber = use_huber
+        self.huber_delta = huber_delta
         
         # Store model parameters for saving metadata
         self.lstm_units = lstm_units
@@ -253,12 +325,14 @@ class PhysicsInformedTrainer:
         self.num_bins = self.model.num_sensors - 1
         self.bin_sensor_pairs = [(i, i+1) for i in range(self.num_bins)]
         
-        # Optimizer
-        self.optimizer = optim.Adam(
+        # Optimizer — AdamW adds L2 weight decay for better regularisation.
+        # weight_decay back to 1e-4 (1e-3 over-regularized alongside the 256 cut).
+        self.optimizer = optim.AdamW(
             self.model.parameters(),
             lr=learning_rate,
             betas=(0.9, 0.999),
-            eps=1e-7
+            eps=1e-7,
+            weight_decay=1e-4
         )
         
         # Training history
@@ -636,8 +710,12 @@ class PhysicsInformedTrainer:
         
         return total_physics_term
     
-    def train_step(self, batch):
-        """FIXED: Custom training step with proper error handling and symmetric weighting."""
+    def train_step(self, batch, return_pred=False):
+        """FIXED: Custom training step with proper error handling and symmetric weighting.
+
+        return_pred=True also returns the (detached) scaled prediction so callers can compute
+        unscaled metrics without a second forward pass through the model.
+        """
         self.model.train()
         
         # Move batch to device - ensure consistent batch size
@@ -651,9 +729,9 @@ class PhysicsInformedTrainer:
         static_params = static_params[:min_batch_size]
         y_true = y_true[:min_batch_size]
         
-        # Process power metadata for physics loss
+        # Process power metadata for physics loss (skip entirely when physics is inactive)
         power_metadata_list = None
-        if power_data is not None:
+        if power_data is not None and self._physics_active:
             power_data_trimmed = power_data[:min_batch_size] if len(power_data) > min_batch_size else power_data
             power_metadata_list = process_power_data_batch(
                 power_data_trimmed,
@@ -671,7 +749,10 @@ class PhysicsInformedTrainer:
         if self.use_amp and self.scaler is not None:
             with torch.cuda.amp.autocast():
                 y_pred = self.model([time_series, static_params])
-                mae_loss = torch.mean(torch.abs(y_true - y_pred))
+                if self.use_huber:
+                    mae_loss = F.huber_loss(y_pred, y_true, reduction='mean', delta=self.huber_delta)
+                else:
+                    mae_loss = torch.mean(torch.abs(y_true - y_pred))
                 
                 if power_metadata_list is not None:
                     physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_physics_loss(
@@ -705,7 +786,10 @@ class PhysicsInformedTrainer:
         else:
             # Regular forward pass
             y_pred = self.model([time_series, static_params])
-            mae_loss = torch.mean(torch.abs(y_true - y_pred))
+            if self.use_huber:
+                mae_loss = F.huber_loss(y_pred, y_true, reduction='mean', delta=self.huber_delta)
+            else:
+                mae_loss = torch.mean(torch.abs(y_true - y_pred))
             
             if power_metadata_list is not None:
                 physics_loss, soft_penalty_loss, excess_penalty_loss, power_balance_loss, power_info = self.compute_physics_loss(
@@ -739,8 +823,8 @@ class PhysicsInformedTrainer:
         
         # Calculate physical units metrics (with unit safety)
         mae_phys, mse_phys = self._compute_physical_metrics(y_true, y_pred)
-        
-        return {
+
+        metrics = {
             'loss': total_loss.detach().item(),
             'mae': mae_loss.detach().item(),
             'mse': mse_loss.detach().item(),
@@ -751,9 +835,16 @@ class PhysicsInformedTrainer:
             'excess_penalty': excess_penalty_loss.detach().item(),
             'power_balance_loss': power_balance_loss.detach().item()
         }
+        if return_pred:
+            return metrics, y_pred.detach()
+        return metrics
 
-    def validation_step(self, batch):
-        """FIXED: Validation step with proper error handling and symmetric weighting."""
+    def validation_step(self, batch, return_pred=False):
+        """FIXED: Validation step with proper error handling and symmetric weighting.
+
+        return_pred=True also returns the scaled prediction so callers can compute unscaled
+        metrics without a second forward pass.
+        """
         self.model.eval()
         
         with torch.no_grad():
@@ -767,9 +858,9 @@ class PhysicsInformedTrainer:
             static_params = static_params[:min_batch_size]
             y_true = y_true[:min_batch_size]
             
-            # Process power metadata for physics loss
+            # Process power metadata for physics loss (skip entirely when physics is inactive)
             power_metadata_list = None
-            if power_data is not None:
+            if power_data is not None and self._physics_active:
                 power_data_trimmed = power_data[:min_batch_size] if len(power_data) > min_batch_size else power_data
                 power_metadata_list = process_power_data_batch(
                     power_data_trimmed,
@@ -814,7 +905,7 @@ class PhysicsInformedTrainer:
             # Calculate physical units metrics (with unit safety)
             mae_phys, mse_phys = self._compute_physical_metrics(y_true, y_pred)
             
-            return {
+            metrics = {
                 'val_loss': total_loss.item(),
                 'val_mae': mae_loss.item(),
                 'val_mse': mse_loss.item(),
@@ -825,6 +916,9 @@ class PhysicsInformedTrainer:
                 'val_excess_penalty': excess_penalty_loss.item(),
                 'val_power_balance_loss': power_balance_loss.item()
             }
+            if return_pred:
+                return metrics, y_pred.detach()
+            return metrics
 
     def train_epoch(self, train_loader, val_loader=None):
         """Train for one epoch with detailed physics tracking."""
@@ -1474,33 +1568,36 @@ def process_power_data_batch(power_data_list, thermal_scaler=None, time_mean=300
 
 
 # Utility functions
-def build_model(num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=0.2, device=None):
+def build_model(num_sensors=10, sequence_length=20, lstm_units=64, dropout_rate=0.2, device=None,
+                baseline_mode='persistence', horizon_steps=None):
     """Build the physics-informed model."""
     if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
+        device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else 'cpu'))
+
     model = PhysicsInformedLSTM(
         num_sensors=num_sensors,
         sequence_length=sequence_length,
         lstm_units=lstm_units,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
+        baseline_mode=baseline_mode,
+        horizon_steps=horizon_steps
     )
-    
+
     return model.to(device)
 
 
-def create_trainer(model, physics_weight=0.1, soft_penalty_weight=0.01, excess_penalty_weight=0.01, 
-                  power_balance_weight=0.05, learning_rate=0.001, lstm_units=64, dropout_rate=0.2, 
-                  device=None, thermal_scaler=None, time_mean=300.0, time_std=300.0,
-                  use_soft_capping=False, soft_cap_factor=0.9, soft_cap_slope=10.0,
-                  use_lateral_area=False, temp_clamp_range=None, use_amp=False, physics_on_capped=False,
-                  seed=None, debug_samples=10, log_gradients=False, power_enforcement_mode='power_balance_only',
-                  min_time_diff=1e-3):
-    """FIXED: Create trainer with explicit penalty weights and parameterized min_time_diff."""
+def create_trainer(model, physics_weight=0.1, soft_penalty_weight=0.01, excess_penalty_weight=0.01,
+                   power_balance_weight=0.05, learning_rate=0.001, lstm_units=64, dropout_rate=0.2,
+                   device=None, thermal_scaler=None, time_mean=300.0, time_std=300.0,
+                   use_soft_capping=False, soft_cap_factor=0.9, soft_cap_slope=10.0,
+                   use_lateral_area=False, temp_clamp_range=None, use_amp=False, physics_on_capped=False,
+                   seed=None, debug_samples=10, log_gradients=False, power_enforcement_mode='power_balance_only',
+                   min_time_diff=1e-3, use_huber=False, huber_delta=2.0):
+    """Create trainer with explicit penalty weights, parameterized min_time_diff, and optional Huber loss."""
     trainer = PhysicsInformedTrainer(
         model=model,
         physics_weight=physics_weight,
-        soft_penalty_weight=soft_penalty_weight,  # FIXED: Separate weights
+        soft_penalty_weight=soft_penalty_weight,
         excess_penalty_weight=excess_penalty_weight,
         power_balance_weight=power_balance_weight,
         learning_rate=learning_rate,
@@ -1521,7 +1618,9 @@ def create_trainer(model, physics_weight=0.1, soft_penalty_weight=0.01, excess_p
         debug_samples=debug_samples,
         log_gradients=log_gradients,
         power_enforcement_mode=power_enforcement_mode,
-        min_time_diff=min_time_diff
+        min_time_diff=min_time_diff,
+        use_huber=use_huber,
+        huber_delta=huber_delta
     )
     
     return trainer

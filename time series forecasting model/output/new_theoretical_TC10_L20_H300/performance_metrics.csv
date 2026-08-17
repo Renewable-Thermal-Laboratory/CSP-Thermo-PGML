@@ -1,0 +1,2 @@
+experiment,seq_len,horizon,status,best_epoch,mae_K,rmse_K,r2,physics_loss,power_balance_loss,mean_actual_power_W,mean_predicted_power_W,mean_incoming_power_W,conservation_violations_pct
+new_theoretical_TC10,20,300,success,134,1.1848632097244263,2.253704309463501,0.9902101401239634,0.0,0.0,35.39826668333262,25.3909898144193,217.90658569335938,0.0

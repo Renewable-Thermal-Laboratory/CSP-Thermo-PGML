@@ -1,0 +1,73 @@
+############################################################
+# H=60  (11-sensor incl TC_9.5)
+############################################################
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/tc95_H60_s42_L20_H60
+   Run tag: tc95_H60_s42_L20_H60
+   Paper fig dir: output/tc95_H60_s42_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 8 CSV files
+Split: 5 train, 2 val, 1 test files
+Fitting scalers on 5 valid training files
+Scalers fitted and saved successfully
+Generated 5408 train sequences from 5 files
+Dataset initialized with 5408 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 5 train, 2 val, 1 test
+Valid files: 5, Invalid: 0
+Training sequences: 5408
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 8 CSV files
+Split: 5 train, 2 val, 1 test files
+Generated 865 val sequences from 2 files
+Dataset initialized with 865 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from ../models_TC95
+Found 8 CSV files
+Split: 5 train, 2 val, 1 test files
+Generated 3628 test sequences from 1 files
+Dataset initialized with 3628 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from ../models_TC95
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60 (num_outputs=11, bin_target=False)...
+
+Training model for L=20, H=60 (max_epochs=300, patience=50)...
+  Epoch 1/300 — val_mae=2.0328  smooth=2.0328  best=2.0328  patience=0/50  lr=3.00e-05
+  Epoch 11/300 — val_mae=0.6681  smooth=0.6430  best=0.6388  patience=1/50  lr=3.00e-04
+  Epoch 21/300 — val_mae=0.4949  smooth=0.5937  best=0.5832  patience=3/50  lr=2.99e-04
+  Epoch 31/300 — val_mae=0.5864  smooth=0.5632  best=0.5569  patience=1/50  lr=2.97e-04
+  Epoch 41/300 — val_mae=0.5401  smooth=0.5583  best=0.5367  patience=5/50  lr=2.92e-04
+  Epoch 51/300 — val_mae=0.5631  smooth=0.5353  best=0.5169  patience=7/50  lr=2.86e-04
+  Epoch 61/300 — val_mae=0.5828  smooth=0.5570  best=0.5169  patience=17/50  lr=2.79e-04

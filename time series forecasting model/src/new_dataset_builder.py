@@ -35,8 +35,10 @@ class TempSequenceDataset(data.Dataset):
         - target: (num_sensors,) with normalized target temperatures.
         - power_data: Dictionary with unscaled time and temperatures for power calculation.
     """
-    def __init__(self, data_dir, sequence_length=20, prediction_horizon=1, 
-                 scaler_dir="models_new_theoretical", split='train', num_sensors=10):
+    def __init__(self, data_dir, sequence_length=20, prediction_horizon=1,
+                 scaler_dir="models_new_theoretical", split='train', num_sensors=10,
+                 zscore_threshold=3.0, target_test_files=None, augment_noise_std=0.0,
+                 bin_target=False):
         # Guard acceptable horizons (A4)
         assert (prediction_horizon >= 1) or (prediction_horizon == -1), \
             "prediction_horizon must be >=1 or -1 (use -1 to mean 'to the end of file')."
@@ -48,6 +50,16 @@ class TempSequenceDataset(data.Dataset):
         self.scaler_dir = scaler_dir
         self.split = split
         self.num_sensors = num_sensors
+        self.zscore_threshold = zscore_threshold
+        # Train-only input augmentation: stddev of Gaussian noise added to the scaled
+        # thermal channels each __getitem__ (0 disables). Combats memorization of the
+        # ~15 training trajectories (measured val ≪ test gap).
+        self.augment_noise_std = augment_noise_std if split == 'train' else 0.0
+        # Paper-aligned target: predict (num_sensors-1) bin averages between adjacent TCs
+        # instead of the num_sensors raw thermocouples. Matches PG-LSTM Table 4 setup and
+        # dampens the dominant TC11-variance (std≈54 K) that drives overall MAE on TC11 dataset.
+        self.bin_target = bin_target
+        self.num_outputs = (num_sensors - 1) if bin_target else num_sensors
         os.makedirs(self.scaler_dir, exist_ok=True)
 
         # Initialize scalers
@@ -56,10 +68,14 @@ class TempSequenceDataset(data.Dataset):
         
         # Initialize data cache and statistics
         self._file_cache = {}
+        # Per-file SCALED arrays cache. Scalers are fixed once fitted/loaded, so the scaled
+        # thermal/time/param arrays are constant per file — cache them instead of re-running
+        # scaler.transform over the whole file on every __getitem__ (the old hot path).
+        self._scaled_cache = {}
         self._data_stats = defaultdict(int)
 
         # Load and process data
-        self._load_data(data_dir)
+        self._load_data(data_dir, target_test_files)
         
         if split == 'train':
             # Only fit scalers on training data
@@ -105,29 +121,31 @@ class TempSequenceDataset(data.Dataset):
         )
 
     def _get_thermal_columns(self, df):
-        """Extract and validate thermal sensor columns (TC1-TC<num_sensors>)."""
-        # Handle both TC1_tip and TC1 formats, extract sensor numbers
+        """Extract thermal columns. Raw files have TC1..TC{num_sensors}; once binned,
+        the file has BIN1..BIN{num_outputs}. Returns the appropriate list for whichever
+        form the dataframe currently holds, so callers don't need to special-case."""
+        bin_cols = [c for c in df.columns if c.upper().startswith('BIN')]
+        if bin_cols and len(bin_cols) == self.num_outputs:
+            bin_cols.sort(key=lambda c: int(re.findall(r'\d+', c)[0]))
+            return bin_cols
+
         potential_cols = []
         for col in df.columns:
             if 'TC' in col.upper():
-                # Extract number from column name (handles TC1_tip, TC2, etc.)
                 numbers = re.findall(r'\d+', col)
                 if numbers:
                     sensor_num = int(numbers[0])
                     if 1 <= sensor_num <= self.num_sensors:
                         potential_cols.append((sensor_num, col))
-        
-        # Sort by sensor number and extract column names
         potential_cols.sort(key=lambda x: x[0])
         thermal_cols = [col for _, col in potential_cols]
-        
+
         if len(thermal_cols) != self.num_sensors:
             available_cols = [col for col in df.columns if 'TC' in col.upper()]
             raise ValueError(
                 f"Expected {self.num_sensors} thermal sensors (TC1-TC{self.num_sensors}), found {len(thermal_cols)}: {thermal_cols}. "
                 f"Available TC columns: {available_cols}"
             )
-        
         return thermal_cols
 
     def _validate_required_columns(self, df, file_path):
@@ -170,22 +188,45 @@ class TempSequenceDataset(data.Dataset):
             
         return df
 
-    def _load_data(self, data_dir):
+    def _load_data(self, data_dir, target_test_files=None):
         """Load and split data files."""
-        all_files = glob.glob(os.path.join(data_dir, "*.csv"))
+        # sorted() makes the file order deterministic across machines/runs; combined with
+        # the fixed-seed RandomState below this guarantees the SAME train/val split for the
+        # train, val and test dataset objects (see leakage fix at the shuffle).
+        all_files = sorted(glob.glob(os.path.join(data_dir, "*.csv")))
         if not all_files:
             raise ValueError(f"No CSV files found in {data_dir}")
 
         print(f"Found {len(all_files)} CSV files")
-        
-        # Shuffle files for random split
-        np.random.shuffle(all_files)
-        split_1 = int(0.7 * len(all_files))
-        split_2 = int(0.85 * len(all_files))
 
-        self.train_files = all_files[:split_1]
-        self.val_files = all_files[split_1:split_2]
-        self.test_files = all_files[split_2:]
+        # Force specific files into the test set.
+        # Override per-experiment via target_test_files (e.g. choose longer files for TC10).
+        _default_test_files = [
+            "h6_flux88_abs20_surf0_781s - Sheet2.csv",
+            "h6_flux88_abs92_surf0_648s - Sheet3.csv",
+            "h6_flux88_abs0_surf1_790s - Sheet1.csv",
+            "h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv",
+        ]
+        if target_test_files is None:
+            target_test_files = _default_test_files
+
+        # Normalize target_test_files to basenames to guarantee robust exclusion from splits
+        target_test_basenames = {os.path.basename(f) for f in target_test_files}
+
+        self.test_files = [f for f in all_files if os.path.basename(f) in target_test_basenames]
+        remaining_files = [f for f in all_files if os.path.basename(f) not in target_test_basenames]
+
+        # CRITICAL LEAKAGE FIX: this method runs once per dataset object (train, val, test).
+        # The old `np.random.shuffle` used the GLOBAL RNG, whose state advanced between those
+        # three constructions, so each got a DIFFERENT shuffle — and the val object's held-out
+        # 20% landed inside the train object's 80% (measured: 4/4 val files were also in train).
+        # A dedicated, fixed-seed RandomState gives the identical split every time, so train and
+        # val are truly disjoint. (Also makes early stopping / checkpoint selection meaningful.)
+        np.random.RandomState(42).shuffle(remaining_files)
+        split_idx = int(0.8 * len(remaining_files))
+
+        self.train_files = remaining_files[:split_idx]
+        self.val_files = remaining_files[split_idx:]
         
         print(f"Split: {len(self.train_files)} train, {len(self.val_files)} val, {len(self.test_files)} test files")
 
@@ -281,25 +322,37 @@ class TempSequenceDataset(data.Dataset):
             # Compute z-scores once for outlier detection
             if len(thermal_cols) > 0:
                 z_scores = np.abs(zscore(df[thermal_cols], nan_policy='omit'))
-                outlier_mask_before = (z_scores >= 3).any(axis=1)
+                outlier_mask_before = (z_scores >= self.zscore_threshold).any(axis=1)
                 outlier_count = outlier_mask_before.sum()
                 
                 if outlier_count > 0:
                     self._data_stats['total_outliers'] += outlier_count
                     self._data_stats['files_with_outliers'] += 1
                 
-                # Apply outlier filter (keep rows with z-score < 3 in all columns)
-                outlier_mask = (z_scores < 3).all(axis=1)
+                # Apply outlier filter (keep rows with z-score < threshold in all columns)
+                outlier_mask = (z_scores < self.zscore_threshold).all(axis=1)
                 df = df[outlier_mask]
                 
                 if len(df) == 0:
                     print(f"Warning: {file_path} is empty after outlier removal")
                     return None
             
+            # Paper-aligned bin averaging: replace TC1..TC{N} columns with B1..B{N-1}
+            # bin columns where B_i = (TC_i + TC_{i+1})/2. Done on UNSCALED Kelvin temps;
+            # the scaler is then fit on bins so input scaling, target, and unscaling all
+            # share the same (num_outputs,)-shaped statistic.
+            if self.bin_target:
+                t = df[thermal_cols].values
+                bin_vals = 0.5 * (t[:, :-1] + t[:, 1:])
+                bin_cols = [f'BIN{i+1}' for i in range(bin_vals.shape[1])]
+                non_thermal = [c for c in df.columns if c not in thermal_cols]
+                df_bins = pd.DataFrame(bin_vals, columns=bin_cols, index=df.index)
+                df = pd.concat([df[non_thermal], df_bins], axis=1)
+
             # Cache the processed dataframe
             self._file_cache[file_path] = df
             self._data_stats['valid_files'] += 1
-            
+
             return df
             
         except Exception as e:
@@ -367,22 +420,37 @@ class TempSequenceDataset(data.Dataset):
             return None
 
         try:
-            # Get raw data
-            thermal_data = df[thermal_cols].values
-            time_data = df[time_col].values.reshape(-1, 1)
+            # Raw static params (unscaled) are needed for power_data; one-row read is cheap.
             static_params = df[param_cols].iloc[0].values
 
-            # Apply scaling
-            thermal_data_scaled = self.thermal_scaler.transform(thermal_data)
-            static_params_scaled = self.param_scaler.transform([static_params])[0]
+            # The scaled full-file arrays are identical across every window from this file,
+            # so compute them once and cache. Previously scaler.transform ran over the ENTIRE
+            # file on each __getitem__ (then a 20-row slice) — the dominant per-epoch cost.
+            cached = self._scaled_cache.get(file_path)
+            if cached is None:
+                thermal_data = df[thermal_cols].values
+                time_data = df[time_col].values.reshape(-1, 1)
 
-            # Normalize time (match model: mean=300, std=300)
-            time_scaled = (time_data - 300.0) / 300.0
+                thermal_data_scaled = self.thermal_scaler.transform(thermal_data)
+                static_params_scaled = self.param_scaler.transform([static_params])[0]
+                time_scaled = (time_data - 300.0) / 300.0  # match model: mean=300, std=300
+
+                self._scaled_cache[file_path] = (thermal_data_scaled, time_scaled, static_params_scaled)
+            else:
+                thermal_data_scaled, time_scaled, static_params_scaled = cached
 
             # Create input sequence
             sequence_thermal = thermal_data_scaled[start_idx:start_idx + self.sequence_length]
             sequence_time = time_scaled[start_idx:start_idx + self.sequence_length]
-            time_series = np.hstack([sequence_time, sequence_thermal])
+            time_series = np.hstack([sequence_time, sequence_thermal])  # fresh array (cache-safe)
+
+            # Train-only input augmentation: perturb the scaled thermal channels with small
+            # Gaussian noise (targets stay clean). Fresh draw each access → multiplies the
+            # effective diversity of the ~15 training trajectories.
+            if self.augment_noise_std > 0.0:
+                time_series[:, 1:] += np.random.normal(
+                    0.0, self.augment_noise_std, size=time_series[:, 1:].shape
+                )
 
             # Compute horizon-aware target index (A1)
             seq_end_idx = start_idx + self.sequence_length - 1
@@ -391,7 +459,10 @@ class TempSequenceDataset(data.Dataset):
             else:
                 target_idx = seq_end_idx + self.prediction_horizon
 
-            # Create target
+            # Create target = scaled per-output temperature at target_idx.
+            # When bin_target is on, both input thermal channels and target are already in
+            # bin space (averaged unscaled then scaled by the bin-fitted scaler upstream),
+            # so this single indexing line works in either mode.
             target = thermal_data_scaled[target_idx]
 
             # Create horizon-consistent power data with unscaled values (A2, D1)
@@ -587,8 +658,10 @@ class TempSequenceDataset(data.Dataset):
 
 
 # Utility functions for creating DataLoaders
-def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=20, 
-                       prediction_horizon=30, scaler_dir="models_new_theoretical", num_sensors=10):
+def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=20,
+                       prediction_horizon=30, scaler_dir="models_new_theoretical", num_sensors=10,
+                       zscore_threshold=3.0, target_test_files=None, augment_noise_std=0.0,
+                       bin_target=False):
     """
     Create PyTorch DataLoaders for train, validation, and test sets.
     
@@ -612,9 +685,13 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
         split='train',
-        num_sensors=num_sensors
+        num_sensors=num_sensors,
+        zscore_threshold=zscore_threshold,
+        target_test_files=target_test_files,
+        augment_noise_std=augment_noise_std,
+        bin_target=bin_target
     )
-    
+
     # Create validation dataset (loads pre-fitted scalers)
     val_dataset = TempSequenceDataset(
         data_dir=data_dir,
@@ -622,10 +699,13 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
         split='val',
-        num_sensors=num_sensors
+        num_sensors=num_sensors,
+        zscore_threshold=zscore_threshold,
+        target_test_files=target_test_files,
+        bin_target=bin_target
     )
     val_dataset.load_pretrained_scalers(scaler_dir)
-    
+
     # Create test dataset (loads pre-fitted scalers)
     test_dataset = TempSequenceDataset(
         data_dir=data_dir,
@@ -633,7 +713,10 @@ def create_data_loaders(data_dir, batch_size=32, num_workers=4, sequence_length=
         prediction_horizon=prediction_horizon,
         scaler_dir=scaler_dir,
         split='test',
-        num_sensors=num_sensors
+        num_sensors=num_sensors,
+        zscore_threshold=zscore_threshold,
+        target_test_files=target_test_files,
+        bin_target=bin_target
     )
     test_dataset.load_pretrained_scalers(scaler_dir)
     

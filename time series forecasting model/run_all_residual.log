@@ -1,0 +1,2307 @@
+/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+================================================================================
+STARTING SWEEP: TC11 (11 SENSORS)
+================================================================================
+
+====================================================================================================
+HORIZON SWEEP: Fixed Sequence Length L=20
+====================================================================================================
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/new_theoretical_TC11_L20_H60
+   Run tag: new_theoretical_TC11_L20_H60
+   Paper fig dir: output/new_theoretical_TC11_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Generated 7280 train sequences from 15 files
+Dataset initialized with 7280 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 15, Invalid: 0
+Training sequences: 7280
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 15
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 1832 val sequences from 4 files
+Dataset initialized with 1832 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 2638 test sequences from 4 files
+Dataset initialized with 2638 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60...
+
+Training model for L=20, H=60 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=2.5704  smooth=2.5704  best=2.5704  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=0.4702  smooth=0.5291  best=0.5291  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=0.4514  smooth=0.4372  best=0.4117  patience=2/100  lr=3.00e-04
+  Epoch 31/400 — val_mae=0.3390  smooth=0.3742  best=0.3742  patience=0/100  lr=2.98e-04
+  Epoch 41/400 — val_mae=0.3152  smooth=0.3308  best=0.3302  patience=8/100  lr=2.96e-04
+  Epoch 51/400 — val_mae=0.2739  smooth=0.2953  best=0.2953  patience=0/100  lr=2.92e-04
+  Epoch 61/400 — val_mae=0.2963  smooth=0.2761  best=0.2639  patience=6/100  lr=2.88e-04
+  Epoch 71/400 — val_mae=0.2345  smooth=0.2253  best=0.2242  patience=1/100  lr=2.83e-04
+  Epoch 81/400 — val_mae=0.2030  smooth=0.2120  best=0.2120  patience=0/100  lr=2.77e-04
+  Epoch 91/400 — val_mae=0.2163  smooth=0.1842  best=0.1759  patience=1/100  lr=2.70e-04
+  Epoch 101/400 — val_mae=0.1810  smooth=0.2441  best=0.1759  patience=11/100  lr=2.62e-04
+  Epoch 111/400 — val_mae=0.1774  smooth=0.1671  best=0.1637  patience=3/100  lr=2.54e-04
+  Epoch 121/400 — val_mae=0.1482  smooth=0.1569  best=0.1569  patience=0/100  lr=2.45e-04
+  Epoch 131/400 — val_mae=0.1400  smooth=0.1594  best=0.1560  patience=7/100  lr=2.35e-04
+  Epoch 141/400 — val_mae=0.1444  smooth=0.1438  best=0.1419  patience=1/100  lr=2.25e-04
+  Epoch 151/400 — val_mae=0.1494  smooth=0.1489  best=0.1344  patience=5/100  lr=2.15e-04
+  Epoch 161/400 — val_mae=0.1254  smooth=0.1331  best=0.1331  patience=0/100  lr=2.04e-04
+  Epoch 171/400 — val_mae=0.1233  smooth=0.1309  best=0.1308  patience=7/100  lr=1.92e-04
+  Epoch 181/400 — val_mae=0.1251  smooth=0.1212  best=0.1212  patience=0/100  lr=1.80e-04
+  Epoch 191/400 — val_mae=0.1451  smooth=0.1208  best=0.1147  patience=1/100  lr=1.69e-04
+  Epoch 201/400 — val_mae=0.1173  smooth=0.1231  best=0.1147  patience=11/100  lr=1.57e-04
+  Epoch 211/400 — val_mae=0.1171  smooth=0.1102  best=0.1102  patience=0/100  lr=1.44e-04
+  Epoch 221/400 — val_mae=0.1100  smooth=0.1133  best=0.1087  patience=8/100  lr=1.32e-04
+  Epoch 231/400 — val_mae=0.1046  smooth=0.1097  best=0.1087  patience=18/100  lr=1.21e-04
+  Epoch 241/400 — val_mae=0.1071  smooth=0.1049  best=0.1041  patience=1/100  lr=1.09e-04
+  Epoch 251/400 — val_mae=0.1006  smooth=0.1048  best=0.1027  patience=4/100  lr=9.75e-05
+  Epoch 261/400 — val_mae=0.0947  smooth=0.0975  best=0.0962  patience=3/100  lr=8.64e-05
+  Epoch 271/400 — val_mae=0.0916  smooth=0.0952  best=0.0952  patience=0/100  lr=7.58e-05
+  Epoch 281/400 — val_mae=0.0906  smooth=0.0921  best=0.0921  patience=0/100  lr=6.56e-05
+  Epoch 291/400 — val_mae=0.0913  smooth=0.0909  best=0.0909  patience=0/100  lr=5.59e-05
+  Epoch 301/400 — val_mae=0.0888  smooth=0.0917  best=0.0904  patience=9/100  lr=4.69e-05
+  Epoch 311/400 — val_mae=0.0970  smooth=0.0906  best=0.0888  patience=2/100  lr=3.86e-05
+  Epoch 321/400 — val_mae=0.0869  smooth=0.0867  best=0.0854  patience=2/100  lr=3.10e-05
+  Epoch 331/400 — val_mae=0.0852  smooth=0.0854  best=0.0854  patience=2/100  lr=2.41e-05
+  Epoch 341/400 — val_mae=0.0859  smooth=0.0842  best=0.0839  patience=1/100  lr=1.81e-05
+  Epoch 351/400 — val_mae=0.0825  smooth=0.0822  best=0.0822  patience=0/100  lr=1.30e-05
+  Epoch 361/400 — val_mae=0.0824  smooth=0.0830  best=0.0821  patience=9/100  lr=8.69e-06
+  Epoch 371/400 — val_mae=0.0822  smooth=0.0819  best=0.0819  patience=0/100  lr=5.34e-06
+  Epoch 381/400 — val_mae=0.0811  smooth=0.0811  best=0.0811  patience=0/100  lr=2.94e-06
+  Epoch 391/400 — val_mae=0.0811  smooth=0.0810  best=0.0810  patience=0/100  lr=1.48e-06
+
+Evaluating best model for L=20, H=60 (best epoch=391)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 60 steps):
+   MAE:  2.09 K
+   RMSE: 6.49 K
+   R²:   0.912872
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+
+Generating profile plots for each test file (H=60)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 2638 sample indices
+Successfully mapped 2638 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 493.0s
+Actual:
+[362.34 359.76 362.81 362.63 362.67 364.44 364.2  364.19 362.98 355.47
+ 350.  ]
+Predicted:
+[361.92 359.86 362.84 362.78 362.96 364.57 364.18 364.4  363.   355.2
+ 349.88]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H60/profile_plots_H60/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H60_profiles.png
+File: h6_flux88_abs20_surf0_781s - Sheet2.csv
+Time stamp: 228.0s
+Actual:
+[354.64 355.29 358.72 360.62 361.53 364.8  364.56 366.12 367.72 355.38
+ 354.  ]
+Predicted:
+[356.74 356.8  359.59 360.86 361.11 364.52 363.95 365.19 366.79 355.37
+ 354.33]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H60/profile_plots_H60/h6_flux88_abs20_surf0_781s - Sheet2_H60_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 504.0s
+Actual:
+[362.69 360.79 362.58 363.19 362.99 365.21 363.82 364.54 364.42 349.76
+ 243.83]
+Predicted:
+[363.34 360.92 362.41 363.35 363.19 365.28 363.81 364.49 363.7  349.47
+ 243.83]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H60/profile_plots_H60/h6_flux88_abs0_surf1_790s - Sheet1_H60_profiles.png
+File: h6_flux88_abs92_surf0_648s - Sheet3.csv
+Time stamp: 447.0s
+Actual:
+[343.56 345.65 351.54 354.03 354.48 357.97 358.64 364.24 389.25 392.59
+ 403.  ]
+Predicted:
+[343.82 345.84 351.62 354.15 354.58 358.09 358.79 364.35 389.29 392.6
+ 402.83]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H60/profile_plots_H60/h6_flux88_abs92_surf0_648s - Sheet3_H60_profiles.png
+Profile plots for horizon 60 saved to: output/new_theoretical_TC11_L20_H60/profile_plots_H60
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 60 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 60 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 19.35 W
+  Std:  12.75 W
+  Min:  -15.25 W
+  Max:  41.47 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: 7.33 W
+  Std:  43.19 W
+  Min:  -144.10 W
+  Max:  47.86 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.089, Std: 0.059
+  Predicted/Incoming ratio - Mean: 0.034, Std: 0.198
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 60 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC11_L20_H60/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=180
+================================================================================
+Config updated: L=20, H=180
+   Output dir: output/new_theoretical_TC11_L20_H180
+   Run tag: new_theoretical_TC11_L20_H180
+   Paper fig dir: output/new_theoretical_TC11_L20_H180/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=180...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Generated 5480 train sequences from 15 files
+Dataset initialized with 5480 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 15, Invalid: 0
+Training sequences: 5480
+Prediction horizon: 180 (180 steps ahead)
+Target calculation: Sequence end + 180 timesteps
+Min sequence length required: 200
+Data quality issues:
+  - Files with outliers: 15
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 1352 val sequences from 4 files
+Dataset initialized with 1352 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 2158 test sequences from 4 files
+Dataset initialized with 2158 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=180
+Horizon validation passed for prediction_horizon=180
+Horizon validation passed for prediction_horizon=180
+Building model for L=20, H=180...
+
+Training model for L=20, H=180 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=3.3652  smooth=3.3652  best=3.3652  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=0.5218  smooth=0.6841  best=0.6841  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=0.4419  smooth=0.4729  best=0.4582  patience=3/100  lr=3.00e-04
+  Epoch 31/400 — val_mae=0.3621  smooth=0.3948  best=0.3948  patience=0/100  lr=2.98e-04
+  Epoch 41/400 — val_mae=0.3169  smooth=0.3461  best=0.3461  patience=0/100  lr=2.96e-04
+  Epoch 51/400 — val_mae=0.4106  smooth=0.3393  best=0.3205  patience=1/100  lr=2.92e-04
+  Epoch 61/400 — val_mae=0.2882  smooth=0.2925  best=0.2879  patience=2/100  lr=2.88e-04
+  Epoch 71/400 — val_mae=0.2788  smooth=0.3041  best=0.2690  patience=3/100  lr=2.83e-04
+  Epoch 81/400 — val_mae=0.2305  smooth=0.2800  best=0.2690  patience=13/100  lr=2.77e-04
+  Epoch 91/400 — val_mae=0.2440  smooth=0.2501  best=0.2415  patience=3/100  lr=2.70e-04
+  Epoch 101/400 — val_mae=0.2043  smooth=0.2322  best=0.2260  patience=6/100  lr=2.62e-04
+  Epoch 111/400 — val_mae=0.2038  smooth=0.2293  best=0.2260  patience=16/100  lr=2.54e-04
+  Epoch 121/400 — val_mae=0.2035  smooth=0.1933  best=0.1933  patience=0/100  lr=2.45e-04
+  Epoch 131/400 — val_mae=0.1751  smooth=0.1873  best=0.1870  patience=1/100  lr=2.35e-04
+  Epoch 141/400 — val_mae=0.1891  smooth=0.1806  best=0.1741  patience=2/100  lr=2.25e-04
+  Epoch 151/400 — val_mae=0.1668  smooth=0.1661  best=0.1614  patience=2/100  lr=2.15e-04
+  Epoch 161/400 — val_mae=0.1630  smooth=0.1707  best=0.1614  patience=12/100  lr=2.04e-04
+  Epoch 171/400 — val_mae=0.1462  smooth=0.1541  best=0.1541  patience=0/100  lr=1.92e-04
+  Epoch 181/400 — val_mae=0.1906  smooth=0.1632  best=0.1501  patience=3/100  lr=1.80e-04
+  Epoch 191/400 — val_mae=0.1463  smooth=0.1499  best=0.1482  patience=4/100  lr=1.69e-04
+  Epoch 201/400 — val_mae=0.1261  smooth=0.1437  best=0.1434  patience=6/100  lr=1.57e-04
+  Epoch 211/400 — val_mae=0.1290  smooth=0.1379  best=0.1336  patience=6/100  lr=1.44e-04
+  Epoch 221/400 — val_mae=0.1920  smooth=0.1442  best=0.1272  patience=2/100  lr=1.32e-04
+  Epoch 231/400 — val_mae=0.1171  smooth=0.1228  best=0.1228  patience=0/100  lr=1.21e-04
+  Epoch 241/400 — val_mae=0.1565  smooth=0.1327  best=0.1178  patience=7/100  lr=1.09e-04
+  Epoch 251/400 — val_mae=0.1099  smooth=0.1207  best=0.1178  patience=17/100  lr=9.75e-05
+  Epoch 261/400 — val_mae=0.1081  smooth=0.1126  best=0.1126  patience=0/100  lr=8.64e-05
+  Epoch 271/400 — val_mae=0.1130  smooth=0.1116  best=0.1107  patience=1/100  lr=7.58e-05
+  Epoch 281/400 — val_mae=0.1047  smooth=0.1071  best=0.1068  patience=1/100  lr=6.56e-05
+  Epoch 291/400 — val_mae=0.0985  smooth=0.1029  best=0.1029  patience=0/100  lr=5.59e-05
+  Epoch 301/400 — val_mae=0.1076  smooth=0.1040  best=0.1026  patience=9/100  lr=4.69e-05
+  Epoch 311/400 — val_mae=0.0968  smooth=0.0974  best=0.0974  patience=0/100  lr=3.86e-05
+  Epoch 321/400 — val_mae=0.0976  smooth=0.0980  best=0.0970  patience=9/100  lr=3.10e-05
+  Epoch 331/400 — val_mae=0.0998  smooth=0.0977  best=0.0961  patience=2/100  lr=2.41e-05
+  Epoch 341/400 — val_mae=0.0937  smooth=0.0953  best=0.0953  patience=0/100  lr=1.81e-05
+  Epoch 351/400 — val_mae=0.0941  smooth=0.0944  best=0.0942  patience=7/100  lr=1.30e-05
+  Epoch 361/400 — val_mae=0.0919  smooth=0.0923  best=0.0922  patience=1/100  lr=8.69e-06
+  Epoch 371/400 — val_mae=0.0924  smooth=0.0926  best=0.0920  patience=9/100  lr=5.34e-06
+  Epoch 381/400 — val_mae=0.0919  smooth=0.0919  best=0.0914  patience=2/100  lr=2.94e-06
+  Epoch 391/400 — val_mae=0.0907  smooth=0.0908  best=0.0908  patience=1/100  lr=1.48e-06
+
+Evaluating best model for L=20, H=180 (best epoch=390)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 180 steps):
+   MAE:  4.36 K
+   RMSE: 11.19 K
+   R²:   0.770145
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+
+Generating profile plots for each test file (H=180)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 2158 sample indices
+Successfully mapped 2158 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 533.0s
+Actual:
+[362.19 359.83 362.84 363.32 362.96 364.85 364.23 365.4  363.02 355.43
+ 351.  ]
+Predicted:
+[362.3  360.62 363.6  363.84 362.9  364.85 364.71 364.44 362.71 355.4
+ 351.03]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H180/profile_plots_H180/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H180_profiles.png
+File: h6_flux88_abs20_surf0_781s - Sheet2.csv
+Time stamp: 289.0s
+Actual:
+[353.49 354.34 358.47 360.82 362.09 365.66 365.75 367.33 369.02 357.29
+ 355.  ]
+Predicted:
+[358.35 357.73 360.44 361.03 361.05 363.87 363.86 364.98 364.33 349.49
+ 354.25]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H180/profile_plots_H180/h6_flux88_abs20_surf0_781s - Sheet2_H180_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 573.0s
+Actual:
+[363.25 361.42 363.33 363.93 363.77 365.69 364.73 365.76 365.34 351.6
+ 246.81]
+Predicted:
+[363.42 361.28 363.2  363.73 363.28 365.69 363.88 364.98 364.76 350.97
+ 245.85]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H180/profile_plots_H180/h6_flux88_abs0_surf1_790s - Sheet1_H180_profiles.png
+File: h6_flux88_abs92_surf0_648s - Sheet3.csv
+Time stamp: 555.0s
+Actual:
+[341.77 343.95 350.45 353.46 354.17 358.51 360.08 366.99 381.37 366.69
+ 352.  ]
+Predicted:
+[342.41 344.12 350.47 353.42 354.24 358.61 360.32 367.37 381.75 366.44
+ 350.14]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H180/profile_plots_H180/h6_flux88_abs92_surf0_648s - Sheet3_H180_profiles.png
+Profile plots for horizon 180 saved to: output/new_theoretical_TC11_L20_H180/profile_plots_H180
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 180 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 180 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 21.01 W
+  Std:  8.79 W
+  Min:  5.21 W
+  Max:  35.09 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: 2.31 W
+  Std:  37.76 W
+  Min:  -74.84 W
+  Max:  41.75 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.096, Std: 0.040
+  Predicted/Incoming ratio - Mean: 0.011, Std: 0.173
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 180 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC11_L20_H180/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=300
+================================================================================
+Config updated: L=20, H=300
+   Output dir: output/new_theoretical_TC11_L20_H300
+   Run tag: new_theoretical_TC11_L20_H300
+   Paper fig dir: output/new_theoretical_TC11_L20_H300/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=300...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Generated 3680 train sequences from 15 files
+Dataset initialized with 3680 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 15, Invalid: 0
+Training sequences: 3680
+Prediction horizon: 300 (300 steps ahead)
+Target calculation: Sequence end + 300 timesteps
+Min sequence length required: 320
+Data quality issues:
+  - Files with outliers: 15
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 872 val sequences from 4 files
+Dataset initialized with 872 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 1678 test sequences from 4 files
+Dataset initialized with 1678 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=300
+Horizon validation passed for prediction_horizon=300
+Horizon validation passed for prediction_horizon=300
+Building model for L=20, H=300...
+
+Training model for L=20, H=300 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=4.6853  smooth=4.6853  best=4.6853  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=0.6014  smooth=0.7863  best=0.7863  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=0.4762  smooth=0.5390  best=0.5390  patience=0/100  lr=3.00e-04
+  Epoch 31/400 — val_mae=0.5676  smooth=0.4776  best=0.4718  patience=1/100  lr=2.98e-04
+  Epoch 41/400 — val_mae=0.4179  smooth=0.4391  best=0.3996  patience=2/100  lr=2.96e-04
+  Epoch 51/400 — val_mae=0.3953  smooth=0.3931  best=0.3931  patience=0/100  lr=2.92e-04
+  Epoch 61/400 — val_mae=0.3708  smooth=0.3688  best=0.3677  patience=1/100  lr=2.88e-04
+  Epoch 71/400 — val_mae=0.4345  smooth=0.3664  best=0.3416  patience=1/100  lr=2.83e-04
+  Epoch 81/400 — val_mae=0.3858  smooth=0.3336  best=0.3301  patience=3/100  lr=2.77e-04
+  Epoch 91/400 — val_mae=0.3006  smooth=0.3049  best=0.3049  patience=0/100  lr=2.70e-04
+  Epoch 101/400 — val_mae=0.2946  smooth=0.2893  best=0.2893  patience=0/100  lr=2.62e-04
+  Epoch 111/400 — val_mae=0.2729  smooth=0.2953  best=0.2766  patience=3/100  lr=2.54e-04
+  Epoch 121/400 — val_mae=0.2585  smooth=0.2612  best=0.2612  patience=0/100  lr=2.45e-04
+  Epoch 131/400 — val_mae=0.2281  smooth=0.2453  best=0.2453  patience=0/100  lr=2.35e-04
+  Epoch 141/400 — val_mae=0.2512  smooth=0.2575  best=0.2376  patience=2/100  lr=2.25e-04
+  Epoch 151/400 — val_mae=0.2295  smooth=0.2366  best=0.2351  patience=3/100  lr=2.15e-04
+  Epoch 161/400 — val_mae=0.2108  smooth=0.2345  best=0.2337  patience=9/100  lr=2.04e-04
+  Epoch 171/400 — val_mae=0.2290  smooth=0.2223  best=0.2197  patience=2/100  lr=1.92e-04
+  Epoch 181/400 — val_mae=0.1939  smooth=0.2053  best=0.2053  patience=0/100  lr=1.80e-04
+  Epoch 191/400 — val_mae=0.1965  smooth=0.2234  best=0.1955  patience=3/100  lr=1.69e-04
+  Epoch 201/400 — val_mae=0.1845  smooth=0.1919  best=0.1919  patience=0/100  lr=1.57e-04
+  Epoch 211/400 — val_mae=0.1860  smooth=0.1902  best=0.1863  patience=4/100  lr=1.44e-04
+  Epoch 221/400 — val_mae=0.1835  smooth=0.1847  best=0.1798  patience=3/100  lr=1.32e-04
+  Epoch 231/400 — val_mae=0.1851  smooth=0.1803  best=0.1749  patience=2/100  lr=1.21e-04
+  Epoch 241/400 — val_mae=0.1670  smooth=0.1651  best=0.1636  patience=1/100  lr=1.09e-04
+  Epoch 251/400 — val_mae=0.1625  smooth=0.1691  best=0.1636  patience=11/100  lr=9.75e-05
+  Epoch 261/400 — val_mae=0.1690  smooth=0.1608  best=0.1582  patience=1/100  lr=8.64e-05
+  Epoch 271/400 — val_mae=0.1535  smooth=0.1531  best=0.1531  patience=0/100  lr=7.58e-05
+  Epoch 281/400 — val_mae=0.1518  smooth=0.1577  best=0.1531  patience=10/100  lr=6.56e-05
+  Epoch 291/400 — val_mae=0.1500  smooth=0.1497  best=0.1488  patience=3/100  lr=5.59e-05
+  Epoch 301/400 — val_mae=0.1490  smooth=0.1532  best=0.1475  patience=5/100  lr=4.69e-05
+  Epoch 311/400 — val_mae=0.1421  smooth=0.1433  best=0.1433  patience=0/100  lr=3.86e-05
+  Epoch 321/400 — val_mae=0.1406  smooth=0.1407  best=0.1394  patience=2/100  lr=3.10e-05
+  Epoch 331/400 — val_mae=0.1375  smooth=0.1436  best=0.1394  patience=12/100  lr=2.41e-05
+  Epoch 341/400 — val_mae=0.1353  smooth=0.1416  best=0.1381  patience=6/100  lr=1.81e-05
+  Epoch 351/400 — val_mae=0.1398  smooth=0.1370  best=0.1365  patience=6/100  lr=1.30e-05
+  Epoch 361/400 — val_mae=0.1312  smooth=0.1339  best=0.1339  patience=0/100  lr=8.69e-06
+  Epoch 371/400 — val_mae=0.1358  smooth=0.1348  best=0.1330  patience=9/100  lr=5.34e-06
+  Epoch 381/400 — val_mae=0.1327  smooth=0.1339  best=0.1330  patience=19/100  lr=2.94e-06
+  Epoch 391/400 — val_mae=0.1328  smooth=0.1325  best=0.1325  patience=0/100  lr=1.48e-06
+
+Evaluating best model for L=20, H=300 (best epoch=398)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 300 steps):
+   MAE:  5.16 K
+   RMSE: 11.03 K
+   R²:   0.764636
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+
+Generating profile plots for each test file (H=300)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 1678 sample indices
+Successfully mapped 1678 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 518.0s
+Actual:
+[361.78 360.08 362.99 362.94 362.75 364.61 364.29 365.24 362.86 355.75
+ 350.  ]
+Predicted:
+[362.04 360.71 363.33 363.08 363.23 365.27 364.24 365.36 363.83 355.02
+ 350.22]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H300/profile_plots_H300/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H300_profiles.png
+File: h6_flux88_abs20_surf0_781s - Sheet2.csv
+Time stamp: 354.0s
+Actual:
+[352.51 353.57 358.28 361.09 362.74 366.66 366.93 368.53 370.3  358.66
+ 357.  ]
+Predicted:
+[359.87 358.33 361.24 361.77 361.83 364.54 364.17 365.57 366.02 351.14
+ 356.57]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H300/profile_plots_H300/h6_flux88_abs20_surf0_781s - Sheet2_H300_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 647.0s
+Actual:
+[363.92 362.15 364.66 364.99 364.72 366.89 366.31 367.1  367.09 353.14
+ 248.67]
+Predicted:
+[364.11 361.25 364.07 364.24 364.4  366.37 365.53 366.37 366.49 353.14
+ 250.06]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H300/profile_plots_H300/h6_flux88_abs0_surf1_790s - Sheet1_H300_profiles.png
+File: h6_flux88_abs92_surf0_648s - Sheet3.csv
+Time stamp: 577.0s
+Actual:
+[341.75 343.99 350.4  353.51 354.27 358.84 360.46 367.38 375.46 356.52
+ 348.  ]
+Predicted:
+[342.62 344.65 350.75 353.7  354.41 358.96 360.65 367.69 375.96 355.34
+ 350.93]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H300/profile_plots_H300/h6_flux88_abs92_surf0_648s - Sheet3_H300_profiles.png
+Profile plots for horizon 300 saved to: output/new_theoretical_TC11_L20_H300/profile_plots_H300
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 300 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 300 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 23.09 W
+  Std:  6.54 W
+  Min:  9.22 W
+  Max:  32.90 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: -5.44 W
+  Std:  29.55 W
+  Min:  -61.37 W
+  Max:  34.55 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.106, Std: 0.030
+  Predicted/Incoming ratio - Mean: -0.025, Std: 0.136
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 300 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC11_L20_H300/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=480
+================================================================================
+Config updated: L=20, H=480
+   Output dir: output/new_theoretical_TC11_L20_H480
+   Run tag: new_theoretical_TC11_L20_H480
+   Paper fig dir: output/new_theoretical_TC11_L20_H480/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=480...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Fitting scalers on 11 valid training files
+Scalers fitted and saved successfully
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: data/output_with_TC11/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Generated 1073 train sequences from 15 files
+Dataset initialized with 1073 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 11, Invalid: 0
+Training sequences: 1073
+Prediction horizon: 480 (480 steps ahead)
+Target calculation: Sequence end + 480 timesteps
+Min sequence length required: 500
+Data quality issues:
+  - Files with outliers: 11
+  - Files too short: 8
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 152 val sequences from 4 files
+Dataset initialized with 152 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 958 test sequences from 4 files
+Dataset initialized with 958 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Building model for L=20, H=480...
+
+Training model for L=20, H=480 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=6.5906  smooth=6.5906  best=6.5906  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=2.0099  smooth=2.2084  best=2.2084  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=1.4502  smooth=1.5203  best=1.5203  patience=0/100  lr=3.00e-04
+  Epoch 31/400 — val_mae=1.4904  smooth=1.4299  best=1.4027  patience=2/100  lr=2.98e-04
+  Epoch 41/400 — val_mae=1.4342  smooth=1.4062  best=1.3647  patience=3/100  lr=2.96e-04
+  Epoch 51/400 — val_mae=1.3497  smooth=1.3844  best=1.3647  patience=13/100  lr=2.92e-04
+  Epoch 61/400 — val_mae=1.4321  smooth=1.3798  best=1.3584  patience=8/100  lr=2.88e-04
+  Epoch 71/400 — val_mae=1.2557  smooth=1.2772  best=1.2772  patience=0/100  lr=2.83e-04
+  Epoch 81/400 — val_mae=1.3236  smooth=1.2784  best=1.2708  patience=8/100  lr=2.77e-04
+  Epoch 91/400 — val_mae=1.2428  smooth=1.2536  best=1.2405  patience=2/100  lr=2.70e-04
+  Epoch 101/400 — val_mae=1.2031  smooth=1.2373  best=1.2373  patience=0/100  lr=2.62e-04
+  Epoch 111/400 — val_mae=1.2351  smooth=1.2254  best=1.2182  patience=1/100  lr=2.54e-04
+  Epoch 121/400 — val_mae=1.2199  smooth=1.2137  best=1.2137  patience=0/100  lr=2.45e-04
+  Epoch 131/400 — val_mae=1.1473  smooth=1.2064  best=1.2064  patience=0/100  lr=2.35e-04
+  Epoch 141/400 — val_mae=1.2667  smooth=1.2479  best=1.2064  patience=10/100  lr=2.25e-04
+  Epoch 151/400 — val_mae=1.2536  smooth=1.2523  best=1.2064  patience=20/100  lr=2.15e-04
+  Epoch 161/400 — val_mae=1.2202  smooth=1.2410  best=1.2064  patience=30/100  lr=2.04e-04
+  Epoch 171/400 — val_mae=1.2415  smooth=1.2750  best=1.2064  patience=40/100  lr=1.92e-04
+  Epoch 181/400 — val_mae=1.2906  smooth=1.2845  best=1.2064  patience=50/100  lr=1.80e-04
+  Epoch 191/400 — val_mae=1.2179  smooth=1.2494  best=1.2064  patience=60/100  lr=1.69e-04
+  Epoch 201/400 — val_mae=1.2958  smooth=1.2538  best=1.2064  patience=70/100  lr=1.57e-04
+  Epoch 211/400 — val_mae=1.2241  smooth=1.2649  best=1.2064  patience=80/100  lr=1.44e-04
+  Epoch 221/400 — val_mae=1.2686  smooth=1.2790  best=1.2064  patience=90/100  lr=1.32e-04
+  Epoch 231/400 — val_mae=1.2900  smooth=1.2680  best=1.2064  patience=100/100  lr=1.21e-04
+
+[Early Stop] Smoothed val_mae no improvement for 100 epochs. Stopping at epoch 231.
+
+
+Evaluating best model for L=20, H=480 (best epoch=131)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 480 steps):
+   MAE:  5.00 K
+   RMSE: 12.01 K
+   R²:   0.738569
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+
+Generating profile plots for each test file (H=480)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 958 sample indices
+Successfully mapped 958 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 659.0s
+Actual:
+[363.31 361.14 363.82 363.94 363.81 365.61 365.32 365.98 364.68 357.46
+ 352.  ]
+Predicted:
+[361.8  360.34 364.03 364.42 364.54 366.37 365.34 366.88 364.89 355.09
+ 350.91]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H480/profile_plots_H480/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H480_profiles.png
+File: h6_flux88_abs20_surf0_781s - Sheet2.csv
+Time stamp: 510.0s
+Actual:
+[350.89 352.37 358.02 361.99 364.47 369.12 369.7  371.39 373.12 362.08
+ 356.  ]
+Predicted:
+[354.2  353.51 357.78 359.48 359.77 362.87 363.   366.33 371.56 368.35
+ 365.65]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H480/profile_plots_H480/h6_flux88_abs20_surf0_781s - Sheet2_H480_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 899.0s
+Actual:
+[363.66 362.48 364.71 364.78 364.29 366.3  364.55 365.12 360.66 339.67
+ 245.3 ]
+Predicted:
+[360.33 359.48 362.27 363.24 362.46 364.38 363.23 363.73 360.38 337.47
+ 244.94]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H480/profile_plots_H480/h6_flux88_abs0_surf1_790s - Sheet1_H480_profiles.png
+File: h6_flux88_abs92_surf0_648s - Sheet3.csv
+Time stamp: 524.0s
+Actual:
+[341.88 344.11 350.49 353.29 354.04 358.08 359.5  366.15 389.41 386.16
+ 361.  ]
+Predicted:
+[343.64 345.96 351.49 354.43 354.93 358.92 360.1  366.38 391.36 387.89
+ 360.72]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H480/profile_plots_H480/h6_flux88_abs92_surf0_648s - Sheet3_H480_profiles.png
+Profile plots for horizon 480 saved to: output/new_theoretical_TC11_L20_H480/profile_plots_H480
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 480 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 480 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 19.11 W
+  Std:  16.53 W
+  Min:  -30.78 W
+  Max:  55.56 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: 11.17 W
+  Std:  11.20 W
+  Min:  -12.71 W
+  Max:  51.40 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.088, Std: 0.076
+  Predicted/Incoming ratio - Mean: 0.051, Std: 0.051
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 480 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC11_L20_H480/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=600
+================================================================================
+Config updated: L=20, H=600
+   Output dir: output/new_theoretical_TC11_L20_H600
+   Run tag: new_theoretical_TC11_L20_H600
+   Paper fig dir: output/new_theoretical_TC11_L20_H600/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=600...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (580 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_surf0_800s - Sheet2.csv too short (580 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (589 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (519 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (586 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 620
+Fitting scalers on 4 valid training files
+Scalers fitted and saved successfully
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (580 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_surf0_800s - Sheet2.csv too short (580 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (589 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (519 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (586 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 620
+Generated 323 train sequences from 15 files
+Dataset initialized with 323 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 4, Invalid: 0
+Training sequences: 323
+Prediction horizon: 600 (600 steps ahead)
+Target calculation: Sequence end + 600 timesteps
+Min sequence length required: 620
+Data quality issues:
+  - Files with outliers: 4
+  - Files too short: 22
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (586 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (580 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 620
+Generated 0 val sequences from 4 files
+Dataset initialized with 0 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Warning: data/output_with_TC11/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 620
+Warning: data/output_with_TC11/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (592 rows), minimum required: 620
+Generated 608 test sequences from 4 files
+Dataset initialized with 608 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=600
+Horizon validation issues found:
+  - No valid sequences found for horizon 600
+Horizon validation passed for prediction_horizon=600
+
+[WARNING] H=600: Validation dataset is EMPTY. Early stopping and model selection will be based on TRAIN loss — expect overfitting. Consider reducing the horizon or adding more data.
+Building model for L=20, H=600...
+
+Training model for L=20, H=600 (max_epochs=400, patience=100)...
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 1/400 — val_mae=7.0297  smooth=7.0297  best=7.0297  patience=0/100  lr=3.00e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 11/400 — val_mae=1.6607  smooth=1.8894  best=1.8894  patience=0/100  lr=3.00e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 21/400 — val_mae=1.0566  smooth=1.1428  best=1.1428  patience=0/100  lr=3.00e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 31/400 — val_mae=0.8704  smooth=0.9260  best=0.9260  patience=0/100  lr=2.98e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 41/400 — val_mae=0.8264  smooth=0.8133  best=0.8133  patience=0/100  lr=2.96e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 51/400 — val_mae=0.7476  smooth=0.7443  best=0.7443  patience=0/100  lr=2.92e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 61/400 — val_mae=0.6666  smooth=0.6659  best=0.6659  patience=0/100  lr=2.88e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 71/400 — val_mae=0.6318  smooth=0.6445  best=0.6445  patience=0/100  lr=2.83e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 81/400 — val_mae=0.5721  smooth=0.5986  best=0.5986  patience=0/100  lr=2.77e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 91/400 — val_mae=0.5206  smooth=0.5642  best=0.5642  patience=0/100  lr=2.70e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 101/400 — val_mae=0.5542  smooth=0.5563  best=0.5508  patience=2/100  lr=2.62e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 111/400 — val_mae=0.5667  smooth=0.5417  best=0.5383  patience=3/100  lr=2.54e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 121/400 — val_mae=0.5154  smooth=0.5180  best=0.5168  patience=3/100  lr=2.45e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 131/400 — val_mae=0.4947  smooth=0.5002  best=0.4991  patience=2/100  lr=2.35e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 141/400 — val_mae=0.4760  smooth=0.4913  best=0.4818  patience=2/100  lr=2.25e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 151/400 — val_mae=0.4826  smooth=0.4690  best=0.4690  patience=0/100  lr=2.15e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 161/400 — val_mae=0.4681  smooth=0.4671  best=0.4671  patience=0/100  lr=2.04e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 171/400 — val_mae=0.4221  smooth=0.4454  best=0.4454  patience=0/100  lr=1.92e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 181/400 — val_mae=0.4517  smooth=0.4396  best=0.4396  patience=0/100  lr=1.80e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 191/400 — val_mae=0.4248  smooth=0.4287  best=0.4287  patience=0/100  lr=1.69e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 201/400 — val_mae=0.4123  smooth=0.4214  best=0.4184  patience=7/100  lr=1.57e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 211/400 — val_mae=0.4281  smooth=0.4113  best=0.4089  patience=1/100  lr=1.44e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 221/400 — val_mae=0.4125  smooth=0.4037  best=0.4037  patience=0/100  lr=1.32e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 231/400 — val_mae=0.4198  smooth=0.4098  best=0.4037  patience=7/100  lr=1.21e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 241/400 — val_mae=0.4025  smooth=0.3981  best=0.3902  patience=3/100  lr=1.09e-04
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 251/400 — val_mae=0.4006  smooth=0.3900  best=0.3900  patience=0/100  lr=9.75e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 261/400 — val_mae=0.3997  smooth=0.3921  best=0.3854  patience=8/100  lr=8.64e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 271/400 — val_mae=0.3726  smooth=0.3831  best=0.3831  patience=0/100  lr=7.58e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 281/400 — val_mae=0.3703  smooth=0.3875  best=0.3811  patience=9/100  lr=6.56e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 291/400 — val_mae=0.4000  smooth=0.3846  best=0.3805  patience=1/100  lr=5.59e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 301/400 — val_mae=0.3862  smooth=0.3815  best=0.3790  patience=3/100  lr=4.69e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 311/400 — val_mae=0.3779  smooth=0.3836  best=0.3790  patience=13/100  lr=3.86e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 321/400 — val_mae=0.3792  smooth=0.3840  best=0.3761  patience=8/100  lr=3.10e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 331/400 — val_mae=0.3633  smooth=0.3801  best=0.3761  patience=18/100  lr=2.41e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 341/400 — val_mae=0.3840  smooth=0.3701  best=0.3698  patience=1/100  lr=1.81e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 351/400 — val_mae=0.3825  smooth=0.3732  best=0.3698  patience=11/100  lr=1.30e-05
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 361/400 — val_mae=0.3746  smooth=0.3747  best=0.3698  patience=21/100  lr=8.69e-06
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 371/400 — val_mae=0.3630  smooth=0.3737  best=0.3658  patience=4/100  lr=5.34e-06
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 381/400 — val_mae=0.3688  smooth=0.3696  best=0.3658  patience=14/100  lr=2.94e-06
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+  Epoch 391/400 — val_mae=0.3712  smooth=0.3808  best=0.3643  patience=8/100  lr=1.48e-06
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+[WARNING] Validation loader produced ZERO batches for this horizon. val_mae_unscaled is being set equal to train_mae_unscaled — best-model selection and early stopping are UNRELIABLE. Consider increasing data or reducing the prediction horizon.
+
+
+Evaluating best model for L=20, H=600 (best epoch=383)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 600 steps):
+   MAE:  9.22 K
+   RMSE: 15.48 K
+   R²:   0.602946
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+
+Generating profile plots for each test file (H=600)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 608 sample indices
+Successfully mapped 608 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 651.0s
+Actual:
+[362.91 360.79 363.45 363.88 363.74 365.49 364.91 365.36 364.34 357.35
+ 352.  ]
+Predicted:
+[360.33 359.71 361.5  361.81 360.39 363.31 361.42 361.09 358.37 339.48
+ 347.2 ]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H600/profile_plots_H600/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H600_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 930.0s
+Actual:
+[363.38 362.62 364.65 364.76 364.14 366.03 364.29 364.84 360.44 336.01
+ 243.2 ]
+Predicted:
+[360.67 359.92 362.18 362.67 361.85 364.5  363.2  363.68 358.98 330.5
+ 241.77]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC11_L20_H600/profile_plots_H600/h6_flux88_abs0_surf1_790s - Sheet1_H600_profiles.png
+Profile plots for horizon 600 saved to: output/new_theoretical_TC11_L20_H600/profile_plots_H600
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 600 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 600 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 23.15 W
+  Std:  17.70 W
+  Min:  -13.11 W
+  Max:  83.09 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: -12.82 W
+  Std:  8.41 W
+  Min:  -50.58 W
+  Max:  7.41 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.106, Std: 0.081
+  Predicted/Incoming ratio - Mean: -0.059, Std: 0.039
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 600 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC11_L20_H600/performance_metrics.csv
+Sweep results saved to: output/sweeps_experiments/seq20_new_theoretical_TC11_horizon_sweep.csv
+Consolidated sweep results saved to: output/sweeps_experiments/consolidated_horizon_sweep_results.csv
+
+Successfully completed TC11 Sweep!
+
+================================================================================
+STARTING SWEEP: TC10 (10 SENSORS)
+================================================================================
+
+====================================================================================================
+HORIZON SWEEP: Fixed Sequence Length L=20
+====================================================================================================
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/new_theoretical_TC10_L20_H60
+   Run tag: new_theoretical_TC10_L20_H60
+   Paper fig dir: output/new_theoretical_TC10_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Fitting scalers on 36 valid training files
+Scalers fitted and saved successfully
+Generated 30386 train sequences from 36 files
+Dataset initialized with 30386 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 36, Invalid: 0
+Training sequences: 30386
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 6
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 8036 val sequences from 9 files
+Dataset initialized with 8036 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 8354 test sequences from 3 files
+Dataset initialized with 8354 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60...
+
+Training model for L=20, H=60 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=3.5515  smooth=3.5515  best=3.5515  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=0.9012  smooth=1.1840  best=1.1840  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=2.1232  smooth=1.0470  best=0.8302  patience=1/100  lr=3.00e-04
+  Epoch 31/400 — val_mae=0.6258  smooth=0.6555  best=0.6555  patience=0/100  lr=2.98e-04
+  Epoch 41/400 — val_mae=0.5606  smooth=0.6783  best=0.6555  patience=10/100  lr=2.96e-04
+  Epoch 51/400 — val_mae=0.7602  smooth=0.7996  best=0.6338  patience=6/100  lr=2.92e-04
