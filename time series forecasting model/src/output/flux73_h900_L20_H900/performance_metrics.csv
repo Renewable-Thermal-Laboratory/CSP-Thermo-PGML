@@ -1,0 +1,2 @@
+experiment,seq_len,horizon,status,best_epoch,mae_K,rmse_K,r2,physics_loss,power_balance_loss,mean_actual_power_W,mean_predicted_power_W,mean_incoming_power_W,conservation_violations_pct
+flux73_h900,20,900,success,3,5.666606426239014,9.526968955993652,0.8895036950707436,0.0,0.0,-59.85769423097372,-75.9828752875328,163.2196044921875,0.0

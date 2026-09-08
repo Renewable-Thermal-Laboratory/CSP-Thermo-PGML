@@ -1,0 +1,80 @@
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=480
+================================================================================
+Config updated: L=20, H=480
+   Output dir: output/physics_test_TC10_L20_H480
+   Run tag: physics_test_TC10_L20_H480
+   Paper fig dir: output/physics_test_TC10_L20_H480/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=480...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 500
+Fitting scalers on 29 valid training files
+Scalers fitted and saved successfully
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 500
+Generated 12387 train sequences from 36 files
+Dataset initialized with 12387 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 29, Invalid: 0
+Training sequences: 12387
+Prediction horizon: 480 (480 steps ahead)
+Target calculation: Sequence end + 480 timesteps
+Min sequence length required: 500
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 14
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 500
+Generated 7231 val sequences from 9 files
+Dataset initialized with 7231 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 7094 test sequences from 3 files
+Dataset initialized with 7094 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Building model for L=20, H=480 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=480 (max_epochs=250, patience=50)...
+  Epoch 1/250 — val_mae=37.7168  smooth=37.7168  best=37.7168  patience=0/50  lr=3.00e-05
+  Epoch 11/250 — val_mae=24.8858  smooth=25.1890  best=25.1778  patience=2/50  lr=3.00e-04

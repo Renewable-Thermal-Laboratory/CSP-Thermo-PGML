@@ -1,0 +1,40 @@
+==================================================================
+JOURNAL RESULTS — IR->profile model (leave-one-run-out, out-of-fold)
+==================================================================
+
+Dataset: 37 runs, 135,200 evaluated (channel,second) samples
+
+-- Overall predictive accuracy --
+  MAE   = 1.19 C
+  RMSE  = 2.16 C
+  MedAE = 0.65 C
+  Bias  = +0.09 C   (systematic offset)
+  R^2   = 0.9596
+  Pearson r = 0.9800
+  |err|<=1C: 66%   <=2C: 84%   <=3C: 91%
+
+-- Per-channel (bottom -> surface) --
+  chan      MAE   RMSE    bias  p90|e|
+  TC2      0.87   1.33   -0.02    1.82
+  TC3      0.65   1.02   -0.08    1.46
+  TC4      0.79   1.27   -0.05    2.02
+  TC5      1.02   1.64   +0.39    2.55
+  TC6      0.93   1.39   -0.15    1.83
+  TC7      0.88   1.39   +0.30    2.07
+  TC8      0.88   1.54   +0.15    1.78
+  TC9      1.37   1.95   -0.04    2.94
+  TC9.5    4.52   8.91   +1.40   12.18
+  TC10     2.87   3.82   +0.11    6.48
+
+-- Per-absorber regime --
+  abs0  : MAE 0.95 C   RMSE 1.55   (23 runs)
+  abs20 : MAE 1.57 C   RMSE 2.46   (9 runs)
+  abs92 : MAE 1.55 C   RMSE 3.43   (5 runs)
+
+-- Easiest / hardest runs --
+  best  abs0_flux73_surf1_run2                  0.42 C
+  best  abs20_flux88_surf0_run2                 0.46 C
+  best  abs0_flux73_surf0_run2                  0.49 C
+  worst abs92_flux88_surf0_longrun1             2.91 C
+  worst abs20_flux88_surf0_run1                 3.13 C
+  worst abs0_flux78_surf0_run4                  3.99 C

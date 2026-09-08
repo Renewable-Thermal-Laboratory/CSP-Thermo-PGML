@@ -1,0 +1,201 @@
+/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/residual_test_TC11_L20_H60
+   Run tag: residual_test_TC11_L20_H60
+   Paper fig dir: output/residual_test_TC11_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Generated 7280 train sequences from 15 files
+Dataset initialized with 7280 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 15, Invalid: 0
+Training sequences: 7280
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 15
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 1832 val sequences from 4 files
+Dataset initialized with 1832 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from ../models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 2638 test sequences from 4 files
+Dataset initialized with 2638 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from ../models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60...
+
+Training model for L=20, H=60 (max_epochs=200, patience=60)...
+  Epoch 1/200 — val_mae=1.7500  smooth=1.7500  best=1.7500  patience=0/60  lr=3.00e-05
+  Epoch 11/200 — val_mae=1.0817  smooth=1.1083  best=1.1083  patience=0/60  lr=3.00e-04
+  Epoch 21/200 — val_mae=0.7928  smooth=0.8317  best=0.8317  patience=0/60  lr=2.98e-04
+  Epoch 31/200 — val_mae=0.5589  smooth=0.5836  best=0.5836  patience=0/60  lr=2.92e-04
+  Epoch 41/200 — val_mae=0.4390  smooth=0.4805  best=0.4805  patience=0/60  lr=2.82e-04
+  Epoch 51/200 — val_mae=0.4287  smooth=0.4280  best=0.4280  patience=0/60  lr=2.68e-04
+  Epoch 61/200 — val_mae=0.3808  smooth=0.3718  best=0.3718  patience=0/60  lr=2.52e-04
+  Epoch 71/200 — val_mae=0.3746  smooth=0.3795  best=0.3695  patience=9/60  lr=2.32e-04
+  Epoch 81/200 — val_mae=0.3469  smooth=0.3836  best=0.3622  patience=3/60  lr=2.11e-04
+  Epoch 91/200 — val_mae=0.3009  smooth=0.3356  best=0.3356  patience=0/60  lr=1.87e-04
+  Epoch 101/200 — val_mae=0.5632  smooth=0.3454  best=0.2895  patience=1/60  lr=1.63e-04
+  Epoch 111/200 — val_mae=0.2531  smooth=0.2566  best=0.2566  patience=0/60  lr=1.38e-04
+  Epoch 121/200 — val_mae=0.2521  smooth=0.2523  best=0.2523  patience=0/60  lr=1.14e-04
+  Epoch 131/200 — val_mae=0.2432  smooth=0.2313  best=0.2289  patience=1/60  lr=9.04e-05
+  Epoch 141/200 — val_mae=0.2091  smooth=0.2106  best=0.2106  patience=0/60  lr=6.87e-05
+  Epoch 151/200 — val_mae=0.1920  smooth=0.1988  best=0.1988  patience=0/60  lr=4.92e-05
+  Epoch 161/200 — val_mae=0.1852  smooth=0.1891  best=0.1891  patience=0/60  lr=3.25e-05
+  Epoch 171/200 — val_mae=0.1848  smooth=0.1816  best=0.1811  patience=1/60  lr=1.90e-05
+  Epoch 181/200 — val_mae=0.1749  smooth=0.1765  best=0.1765  patience=0/60  lr=9.10e-06
+  Epoch 191/200 — val_mae=0.1728  smooth=0.1737  best=0.1736  patience=2/60  lr=3.04e-06
+
+Evaluating best model for L=20, H=60 (best epoch=200)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 60 steps):
+   MAE:  3.17 K
+   RMSE: 14.54 K
+   R²:   0.562860
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=1.65  TC2=1.72  TC3=1.10  TC4=1.11  TC5=1.64  TC6=1.12  TC7=1.47  TC8=1.46  TC9=3.58  TC10=5.50  TC11=14.58
+   Per-file:
+      MAE=  4.85 K  RMSE= 23.64  R2= 0.5534  n=  852  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  3.95 K  RMSE=  7.06  R2=-0.4974  n=  437  h6_flux88_abs20_surf0_781s - Sheet2.csv
+      MAE=  2.04 K  RMSE= 10.41  R2= 0.4967  n=  513  h6_flux88_abs92_surf0_648s - Sheet3.csv
+      MAE=  1.76 K  RMSE=  2.27  R2= 0.7578  n=  836  h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+
+Generating profile plots for each test file (H=60)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 4 test files in dataset.current_files
+Found 2638 sample indices
+Successfully mapped 2638 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+File: h6_flux88_abs0_surf0_longRun_762s - Sheet1.csv
+Time stamp: 632.0s
+Actual:
+[363.2  360.56 363.53 363.95 363.35 365.43 364.97 365.87 364.38 356.67
+ 352.  ]
+Predicted:
+[363.26 360.67 363.73 363.6  362.02 364.33 364.88 365.16 365.48 357.16
+ 353.07]
+----------------------------------------
+Saved profile plot: output/residual_test_TC11_L20_H60/profile_plots_H60/h6_flux88_abs0_surf0_longRun_762s - Sheet1_H60_profiles.png
+File: h6_flux88_abs20_surf0_781s - Sheet2.csv
+Time stamp: 136.0s
+Actual:
+[356.98 357.13 359.12 360.37 360.78 363.57 362.96 364.45 365.71 350.92
+ 352.  ]
+Predicted:
+[356.58 356.58 358.27 359.75 359.47 363.54 363.83 364.76 365.66 351.21
+ 352.34]
+----------------------------------------
+Saved profile plot: output/residual_test_TC11_L20_H60/profile_plots_H60/h6_flux88_abs20_surf0_781s - Sheet2_H60_profiles.png
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 459.0s
+Actual:
+[362.32 360.28 361.99 362.8  362.68 364.75 363.22 363.91 363.44 347.46
+ 240.7 ]
+Predicted:
+[362.63 359.75 361.34 362.96 362.5  364.61 363.99 363.82 364.37 347.14
+ 241.69]
+----------------------------------------
+Saved profile plot: output/residual_test_TC11_L20_H60/profile_plots_H60/h6_flux88_abs0_surf1_790s - Sheet1_H60_profiles.png
+File: h6_flux88_abs92_surf0_648s - Sheet3.csv
+Time stamp: 419.0s
+Actual:
+[344.3  346.27 351.99 354.37 354.74 358.02 358.48 363.59 388.05 392.07
+ 402.  ]
+Predicted:
+[344.24 346.28 351.99 354.36 354.73 358.01 358.45 363.56 388.16 392.17
+ 401.79]
+----------------------------------------
+Saved profile plot: output/residual_test_TC11_L20_H60/profile_plots_H60/h6_flux88_abs92_surf0_648s - Sheet3_H60_profiles.png
+Profile plots for horizon 60 saved to: output/residual_test_TC11_L20_H60/profile_plots_H60
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 60 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 60 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 10 bins):
+  Mean: 19.35 W
+  Std:  12.75 W
+  Min:  -15.25 W
+  Max:  41.47 W
+
+TOTAL PREDICTED POWER (sum of 10 bins):
+  Mean: 78.89 W
+  Std:  47.15 W
+  Min:  -53.53 W
+  Max:  193.61 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.089, Std: 0.059
+  Predicted/Incoming ratio - Mean: 0.362, Std: 0.216
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 60 steps)!
+Performance metrics saved to CSV: output/residual_test_TC11_L20_H60/performance_metrics.csv
+
+============================================================
+QUICK H=60 RESULT (residual forecasting)
+============================================================
+  status   : success
+  best_epoch: 200
+  TEST MAE : 3.175 K   (old run: 3.28 | persistence: 1.85 | target: <1.0)
+  TEST RMSE: 14.542 K
+  TEST R^2 : 0.5629   (old run: 0.913 | target: >0.97)
+  per-sensor MAE (K): [1.65, 1.72, 1.1, 1.11, 1.64, 1.12, 1.47, 1.46, 3.58, 5.5, 14.58]
+============================================================

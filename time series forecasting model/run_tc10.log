@@ -1,0 +1,1262 @@
+/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+================================================================================
+STARTING SWEEP: TC10 (10 SENSORS) — CLEAN RE-RUN with per-experiment scalers + repro check
+================================================================================
+
+====================================================================================================
+HORIZON SWEEP: Fixed Sequence Length L=20
+====================================================================================================
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/new_theoretical_TC10_L20_H60
+   Run tag: new_theoretical_TC10_L20_H60
+   Paper fig dir: output/new_theoretical_TC10_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Fitting scalers on 36 valid training files
+Scalers fitted and saved successfully
+Generated 27395 train sequences from 36 files
+Dataset initialized with 27395 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 36, Invalid: 0
+Training sequences: 27395
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 10996 val sequences from 9 files
+Dataset initialized with 10996 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 8354 test sequences from 3 files
+Dataset initialized with 8354 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=60 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=4.8147  smooth=4.8147  best=4.8147  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=2.0118  smooth=2.1007  best=1.7340  patience=2/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=1.9748  smooth=2.0466  best=1.5155  patience=5/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=0.8645  smooth=1.0775  best=0.9792  patience=4/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=0.6166  smooth=0.7163  best=0.7163  patience=0/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=1.5058  smooth=1.0912  best=0.6429  patience=8/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=0.9627  smooth=1.2284  best=0.6429  patience=18/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=0.7519  smooth=0.8131  best=0.6429  patience=28/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=1.3470  smooth=1.1690  best=0.6429  patience=38/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=1.3383  smooth=1.4083  best=0.6429  patience=48/80  lr=2.70e-04
+  Epoch 101/400 — val_mae=1.0423  smooth=0.9524  best=0.6429  patience=58/80  lr=2.62e-04
+  Epoch 111/400 — val_mae=0.9369  smooth=1.0650  best=0.6429  patience=68/80  lr=2.54e-04
+  Epoch 121/400 — val_mae=0.7434  smooth=0.6698  best=0.6429  patience=78/80  lr=2.45e-04
+  Epoch 123/400 — val_mae=0.6025  smooth=0.6756  best=0.6429  patience=80/80  lr=2.43e-04
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 123.
+
+
+Evaluating best model for L=20, H=60 (best epoch=43)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 60 steps):
+   MAE:  0.70 K
+   RMSE: 1.39 K
+   R²:   0.996058
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=0.76  TC2=0.46  TC3=0.36  TC4=0.43  TC5=0.60  TC6=0.45  TC7=0.61  TC8=0.52  TC9=0.96  TC10=1.80
+   Per-file:
+      MAE=  2.25 K  RMSE=  3.06  R2= 0.8593  n=  883  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  0.55 K  RMSE=  1.30  R2= 0.9980  n= 3665  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.47 K  RMSE=  0.66  R2= 0.9979  n= 3806  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 60 steps):
+   MAE:  0.70 K
+   RMSE: 1.39 K
+   R²:   0.996058
+   Physics Loss: 2.774023
+   Constraint Loss: 0.000000
+   Power Balance Loss: 205.894404
+   Per-sensor MAE (K): TC1=0.76  TC2=0.46  TC3=0.36  TC4=0.43  TC5=0.60  TC6=0.45  TC7=0.61  TC8=0.52  TC9=0.96  TC10=1.80
+   Per-file:
+      MAE=  2.25 K  RMSE=  3.06  R2= 0.8593  n=  883  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  0.55 K  RMSE=  1.30  R2= 0.9980  n= 3665  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.47 K  RMSE=  0.66  R2= 0.9979  n= 3806  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+[REPRO-CHECK OK] H=60: in-run 0.6964 == reloaded 0.6964 K
+
+Generating profile plots for each test file (H=60)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 8354 sample indices
+Successfully mapped 8354 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 514.0s
+Actual:
+[362.87 360.89 362.82 363.17 363.   365.29 363.37 364.65 364.5  350.24]
+Predicted:
+[362.39 360.67 362.86 363.17 363.47 365.25 363.77 364.42 364.48 348.72]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H60/profile_plots_H60/h6_flux88_abs0_surf1_790s - Sheet1_H60_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 1674.0s
+Actual:
+[350.97 353.85 362.75 373.41 378.3  384.59 384.17 386.07 385.69 367.35]
+Predicted:
+[350.38 353.88 362.73 373.39 377.56 384.22 384.48 386.1  385.45 367.35]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H60/profile_plots_H60/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H60_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 1752.0s
+Actual:
+[328.94 332.25 340.26 348.04 353.28 366.   373.61 386.34 414.11 416.02]
+Predicted:
+[327.98 332.56 340.22 347.73 353.29 366.02 373.27 386.39 414.23 416.1 ]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H60/profile_plots_H60/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H60_profiles.png
+Profile plots for horizon 60 saved to: output/new_theoretical_TC10_L20_H60/profile_plots_H60
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 60 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 60 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: -0.62 W
+  Std:  97.44 W
+  Min:  -135.86 W
+  Max:  222.02 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: 29.82 W
+  Std:  51.15 W
+  Min:  -69.31 W
+  Max:  206.25 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: -0.003, Std: 0.447
+  Predicted/Incoming ratio - Mean: 0.137, Std: 0.235
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 5/512 (1.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 60 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H60/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=180
+================================================================================
+Config updated: L=20, H=180
+   Output dir: output/new_theoretical_TC10_L20_H180
+   Run tag: new_theoretical_TC10_L20_H180
+   Paper fig dir: output/new_theoretical_TC10_L20_H180/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=180...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Fitting scalers on 36 valid training files
+Scalers fitted and saved successfully
+Generated 23075 train sequences from 36 files
+Dataset initialized with 23075 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 36, Invalid: 0
+Training sequences: 23075
+Prediction horizon: 180 (180 steps ahead)
+Target calculation: Sequence end + 180 timesteps
+Min sequence length required: 200
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 9916 val sequences from 9 files
+Dataset initialized with 9916 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 7994 test sequences from 3 files
+Dataset initialized with 7994 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 180 (180 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=180
+Horizon validation passed for prediction_horizon=180
+Horizon validation passed for prediction_horizon=180
+Building model for L=20, H=180 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=180 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=6.3186  smooth=6.3186  best=6.3186  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=2.3570  smooth=3.7101  best=3.7101  patience=0/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=2.6140  smooth=2.9306  best=2.6079  patience=9/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=1.0352  smooth=1.2862  best=1.2862  patience=0/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=1.6989  smooth=1.7753  best=1.2557  patience=7/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=3.7046  smooth=1.9849  best=1.2557  patience=17/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=1.4602  smooth=1.2989  best=1.2048  patience=3/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=0.9267  smooth=1.0485  best=1.0485  patience=0/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=0.8441  smooth=1.0635  best=1.0485  patience=10/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=2.5592  smooth=2.3565  best=0.9098  patience=7/80  lr=2.70e-04
+  Epoch 101/400 — val_mae=1.1412  smooth=1.4835  best=0.9098  patience=17/80  lr=2.62e-04
+  Epoch 111/400 — val_mae=1.5387  smooth=1.2410  best=0.9098  patience=27/80  lr=2.54e-04
+  Epoch 121/400 — val_mae=1.0248  smooth=1.0748  best=0.9098  patience=37/80  lr=2.45e-04
+  Epoch 131/400 — val_mae=2.5504  smooth=1.5430  best=0.9098  patience=47/80  lr=2.35e-04
+  Epoch 141/400 — val_mae=1.0337  smooth=0.9423  best=0.9098  patience=57/80  lr=2.25e-04
+  Epoch 151/400 — val_mae=1.1019  smooth=0.8694  best=0.8114  patience=1/80  lr=2.15e-04
+  Epoch 161/400 — val_mae=0.9737  smooth=0.8273  best=0.8052  patience=1/80  lr=2.04e-04
+  Epoch 171/400 — val_mae=0.7087  smooth=0.7844  best=0.7844  patience=0/80  lr=1.92e-04
+  Epoch 181/400 — val_mae=0.8455  smooth=0.9072  best=0.7607  patience=6/80  lr=1.80e-04
+  Epoch 191/400 — val_mae=0.7474  smooth=0.8237  best=0.7607  patience=16/80  lr=1.69e-04
+  Epoch 201/400 — val_mae=0.8057  smooth=0.7744  best=0.7607  patience=26/80  lr=1.57e-04
+  Epoch 211/400 — val_mae=1.0760  smooth=0.8579  best=0.7263  patience=8/80  lr=1.44e-04
+  Epoch 221/400 — val_mae=0.7627  smooth=0.7775  best=0.7263  patience=18/80  lr=1.32e-04
+  Epoch 231/400 — val_mae=0.7056  smooth=0.7929  best=0.7263  patience=28/80  lr=1.21e-04
+  Epoch 241/400 — val_mae=0.7282  smooth=0.8333  best=0.7263  patience=38/80  lr=1.09e-04
+  Epoch 251/400 — val_mae=0.7323  smooth=0.7260  best=0.7260  patience=0/80  lr=9.75e-05
+  Epoch 261/400 — val_mae=0.8351  smooth=0.7943  best=0.7083  patience=5/80  lr=8.64e-05
+  Epoch 271/400 — val_mae=0.6575  smooth=0.7312  best=0.6941  patience=5/80  lr=7.58e-05
+  Epoch 281/400 — val_mae=0.7534  smooth=0.7858  best=0.6941  patience=15/80  lr=6.56e-05
+  Epoch 291/400 — val_mae=0.7645  smooth=0.7880  best=0.6941  patience=25/80  lr=5.59e-05
+  Epoch 301/400 — val_mae=0.7546  smooth=0.7537  best=0.6941  patience=35/80  lr=4.69e-05
+  Epoch 311/400 — val_mae=0.7509  smooth=0.7332  best=0.6941  patience=45/80  lr=3.86e-05
+  Epoch 321/400 — val_mae=0.7747  smooth=0.7607  best=0.6941  patience=55/80  lr=3.10e-05
+  Epoch 331/400 — val_mae=0.6900  smooth=0.7266  best=0.6941  patience=65/80  lr=2.41e-05
+  Epoch 341/400 — val_mae=0.7210  smooth=0.7245  best=0.6941  patience=75/80  lr=1.81e-05
+  Epoch 346/400 — val_mae=0.7153  smooth=0.7143  best=0.6941  patience=80/80  lr=1.54e-05
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 346.
+
+
+Evaluating best model for L=20, H=180 (best epoch=266)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 180 steps):
+   MAE:  0.91 K
+   RMSE: 3.31 K
+   R²:   0.978321
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=0.64  TC2=0.47  TC3=0.49  TC4=0.49  TC5=0.49  TC6=0.58  TC7=0.58  TC8=0.78  TC9=1.58  TC10=3.06
+   Per-file:
+      MAE=  5.06 K  RMSE=  7.45  R2= 0.0129  n=  763  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  0.62 K  RMSE=  3.54  R2= 0.9855  n= 3545  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.34 K  RMSE=  0.46  R2= 0.9990  n= 3686  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 180 steps):
+   MAE:  0.91 K
+   RMSE: 3.31 K
+   R²:   0.978321
+   Physics Loss: 1.571691
+   Constraint Loss: 0.000000
+   Power Balance Loss: 207.171664
+   Per-sensor MAE (K): TC1=0.64  TC2=0.47  TC3=0.49  TC4=0.49  TC5=0.49  TC6=0.58  TC7=0.58  TC8=0.78  TC9=1.58  TC10=3.06
+   Per-file:
+      MAE=  5.06 K  RMSE=  7.45  R2= 0.0129  n=  763  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  0.62 K  RMSE=  3.54  R2= 0.9855  n= 3545  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.34 K  RMSE=  0.46  R2= 0.9990  n= 3686  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+[REPRO-CHECK OK] H=180: in-run 0.9145 == reloaded 0.9145 K
+
+Generating profile plots for each test file (H=180)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 7994 sample indices
+Successfully mapped 7994 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 961.0s
+Actual:
+[363.13 362.52 364.26 364.52 363.92 365.69 363.79 363.6  358.53 334.3 ]
+Predicted:
+[363.03 362.55 364.22 364.16 363.87 366.12 364.31 363.97 357.88 331.56]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H180/profile_plots_H180/h6_flux88_abs0_surf1_790s - Sheet1_H180_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 1217.0s
+Actual:
+[348.91 351.82 360.22 369.85 374.28 380.2  379.72 381.49 381.16 362.72]
+Predicted:
+[348.73 351.84 360.22 369.75 374.12 379.89 379.7  381.28 381.13 362.91]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H180/profile_plots_H180/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H180_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 2140.0s
+Actual:
+[326.21 329.89 338.62 347.7  354.11 368.25 376.68 389.86 416.75 416.53]
+Predicted:
+[326.17 329.81 338.45 347.55 354.14 368.46 376.75 390.15 416.82 416.54]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H180/profile_plots_H180/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H180_profiles.png
+Profile plots for horizon 180 saved to: output/new_theoretical_TC10_L20_H180/profile_plots_H180
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 180 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 180 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: 18.85 W
+  Std:  63.35 W
+  Min:  -113.86 W
+  Max:  106.89 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: -5.63 W
+  Std:  45.60 W
+  Min:  -87.34 W
+  Max:  84.25 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.086, Std: 0.291
+  Predicted/Incoming ratio - Mean: -0.026, Std: 0.209
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 180 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H180/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=300
+================================================================================
+Config updated: L=20, H=300
+   Output dir: output/new_theoretical_TC10_L20_H300
+   Run tag: new_theoretical_TC10_L20_H300
+   Paper fig dir: output/new_theoretical_TC10_L20_H300/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=300...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Fitting scalers on 36 valid training files
+Scalers fitted and saved successfully
+Generated 18755 train sequences from 36 files
+Dataset initialized with 18755 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 36, Invalid: 0
+Training sequences: 18755
+Prediction horizon: 300 (300 steps ahead)
+Target calculation: Sequence end + 300 timesteps
+Min sequence length required: 320
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 8836 val sequences from 9 files
+Dataset initialized with 8836 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 7634 test sequences from 3 files
+Dataset initialized with 7634 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 300 (300 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=300
+Horizon validation passed for prediction_horizon=300
+Horizon validation passed for prediction_horizon=300
+Building model for L=20, H=300 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=300 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=10.5377  smooth=10.5377  best=10.5377  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=2.5511  smooth=3.4912  best=3.4912  patience=0/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=3.9673  smooth=4.7266  best=3.4912  patience=10/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=3.7913  smooth=4.7245  best=3.4912  patience=20/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=4.9257  smooth=4.6465  best=3.4912  patience=30/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=5.0540  smooth=5.0823  best=3.4912  patience=40/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=3.3959  smooth=4.5271  best=3.4912  patience=50/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=3.8433  smooth=4.1022  best=3.4912  patience=60/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=3.5338  smooth=3.9659  best=3.4912  patience=70/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=2.9992  smooth=3.1353  best=2.9664  patience=4/80  lr=2.70e-04
+  Epoch 101/400 — val_mae=5.6727  smooth=4.4102  best=2.9486  patience=5/80  lr=2.62e-04
+  Epoch 111/400 — val_mae=3.5189  smooth=4.4426  best=2.9486  patience=15/80  lr=2.54e-04
+  Epoch 121/400 — val_mae=4.6558  smooth=4.1217  best=2.9486  patience=25/80  lr=2.45e-04
+  Epoch 131/400 — val_mae=2.1112  smooth=2.8151  best=2.8151  patience=0/80  lr=2.35e-04
+  Epoch 141/400 — val_mae=3.0715  smooth=2.8460  best=2.5771  patience=7/80  lr=2.25e-04
+  Epoch 151/400 — val_mae=2.7789  smooth=3.5098  best=2.5771  patience=17/80  lr=2.15e-04
+  Epoch 161/400 — val_mae=4.0907  smooth=3.9040  best=2.5771  patience=27/80  lr=2.04e-04
+  Epoch 171/400 — val_mae=2.7768  smooth=3.3840  best=2.5771  patience=37/80  lr=1.92e-04
+  Epoch 181/400 — val_mae=3.4473  smooth=3.2563  best=2.5771  patience=47/80  lr=1.80e-04
+  Epoch 191/400 — val_mae=3.2063  smooth=3.5641  best=2.5771  patience=57/80  lr=1.69e-04
+  Epoch 201/400 — val_mae=4.3290  smooth=4.1676  best=2.5771  patience=67/80  lr=1.57e-04
+  Epoch 211/400 — val_mae=4.0595  smooth=4.0670  best=2.5771  patience=77/80  lr=1.44e-04
+  Epoch 214/400 — val_mae=3.6426  smooth=3.9365  best=2.5771  patience=80/80  lr=1.41e-04
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 214.
+
+
+Evaluating best model for L=20, H=300 (best epoch=134)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 300 steps):
+   MAE:  1.18 K
+   RMSE: 2.25 K
+   R²:   0.990210
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=1.36  TC2=1.34  TC3=1.00  TC4=1.20  TC5=0.97  TC6=0.76  TC7=0.89  TC8=0.93  TC9=1.18  TC10=2.22
+   Per-file:
+      MAE=  4.03 K  RMSE=  5.96  R2=-0.0257  n=  643  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  1.00 K  RMSE=  1.90  R2= 0.9960  n= 3425  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.85 K  RMSE=  1.01  R2= 0.9949  n= 3566  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 300 steps):
+   MAE:  1.18 K
+   RMSE: 2.25 K
+   R²:   0.990210
+   Physics Loss: 1.397594
+   Constraint Loss: 0.000000
+   Power Balance Loss: 207.836229
+   Per-sensor MAE (K): TC1=1.36  TC2=1.34  TC3=1.00  TC4=1.20  TC5=0.97  TC6=0.76  TC7=0.89  TC8=0.93  TC9=1.18  TC10=2.22
+   Per-file:
+      MAE=  4.03 K  RMSE=  5.96  R2=-0.0257  n=  643  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  1.00 K  RMSE=  1.90  R2= 0.9960  n= 3425  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  0.85 K  RMSE=  1.01  R2= 0.9949  n= 3566  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+[REPRO-CHECK OK] H=300: in-run 1.1849 == reloaded 1.1849 K
+
+Generating profile plots for each test file (H=300)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 7634 sample indices
+Successfully mapped 7634 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 520.0s
+Actual:
+[362.99 361.08 362.88 363.23 363.06 365.19 363.87 364.91 364.67 350.38]
+Predicted:
+[360.67 360.84 362.59 363.64 363.18 364.7  364.96 365.22 364.61 347.13]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H300/profile_plots_H300/h6_flux88_abs0_surf1_790s - Sheet1_H300_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 2841.0s
+Actual:
+[358.64 361.14 369.82 380.55 385.75 392.8  392.53 394.26 394.11 376.72]
+Predicted:
+[357.29 359.9  369.13 380.05 385.33 392.8  392.44 394.33 394.11 376.52]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H300/profile_plots_H300/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H300_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 405.0s
+Actual:
+[346.47 347.8  353.   354.96 355.15 358.2  358.22 362.96 387.69 391.76]
+Predicted:
+[346.07 347.27 352.12 353.5  355.37 357.73 358.43 363.72 387.45 391.78]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H300/profile_plots_H300/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H300_profiles.png
+Profile plots for horizon 300 saved to: output/new_theoretical_TC10_L20_H300/profile_plots_H300
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 300 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 300 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: 35.40 W
+  Std:  31.59 W
+  Min:  -44.39 W
+  Max:  85.93 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: 25.39 W
+  Std:  34.62 W
+  Min:  -45.51 W
+  Max:  87.34 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.162, Std: 0.145
+  Predicted/Incoming ratio - Mean: 0.117, Std: 0.159
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 300 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H300/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=480
+================================================================================
+Config updated: L=20, H=480
+   Output dir: output/new_theoretical_TC10_L20_H480
+   Run tag: new_theoretical_TC10_L20_H480
+   Paper fig dir: output/new_theoretical_TC10_L20_H480/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=480...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 500
+Fitting scalers on 29 valid training files
+Scalers fitted and saved successfully
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 500
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 500
+Generated 12387 train sequences from 36 files
+Dataset initialized with 12387 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 29, Invalid: 0
+Training sequences: 12387
+Prediction horizon: 480 (480 steps ahead)
+Target calculation: Sequence end + 480 timesteps
+Min sequence length required: 500
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 14
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 500
+Generated 7231 val sequences from 9 files
+Dataset initialized with 7231 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 7094 test sequences from 3 files
+Dataset initialized with 7094 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 480 (480 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Horizon validation passed for prediction_horizon=480
+Building model for L=20, H=480 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=480 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=15.3995  smooth=15.3995  best=15.3995  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=3.6332  smooth=4.8887  best=4.7582  patience=4/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=15.1552  smooth=11.1697  best=4.6098  patience=9/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=7.7555  smooth=12.8401  best=4.6098  patience=19/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=7.7592  smooth=14.4104  best=4.6098  patience=29/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=19.1686  smooth=11.4369  best=4.6098  patience=39/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=4.8262  smooth=11.3138  best=4.6098  patience=49/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=9.4485  smooth=8.3442  best=4.6098  patience=59/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=94.2865  smooth=36.5405  best=4.6098  patience=69/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=10.8087  smooth=12.5845  best=4.6098  patience=79/80  lr=2.70e-04
+  Epoch 92/400 — val_mae=10.1519  smooth=11.7289  best=4.6098  patience=80/80  lr=2.69e-04
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 92.
+
+
+Evaluating best model for L=20, H=480 (best epoch=12)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 480 steps):
+   MAE:  2.60 K
+   RMSE: 3.51 K
+   R²:   0.977420
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=1.97  TC2=3.68  TC3=2.18  TC4=1.95  TC5=2.82  TC6=3.00  TC7=1.36  TC8=1.84  TC9=2.74  TC10=4.43
+   Per-file:
+      MAE=  4.41 K  RMSE=  6.73  R2=-0.5748  n=  463  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.56 K  RMSE=  3.22  R2= 0.9888  n= 3245  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  2.39 K  RMSE=  3.10  R2= 0.9512  n= 3386  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 480 steps):
+   MAE:  2.60 K
+   RMSE: 3.51 K
+   R²:   0.977420
+   Physics Loss: 1.721039
+   Constraint Loss: 0.000000
+   Power Balance Loss: 203.431958
+   Per-sensor MAE (K): TC1=1.97  TC2=3.68  TC3=2.18  TC4=1.95  TC5=2.82  TC6=3.00  TC7=1.36  TC8=1.84  TC9=2.74  TC10=4.43
+   Per-file:
+      MAE=  4.41 K  RMSE=  6.73  R2=-0.5748  n=  463  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.56 K  RMSE=  3.22  R2= 0.9888  n= 3245  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+      MAE=  2.39 K  RMSE=  3.10  R2= 0.9512  n= 3386  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+[REPRO-CHECK OK] H=480: in-run 2.5963 == reloaded 2.5963 K
+
+Generating profile plots for each test file (H=480)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 7094 sample indices
+Successfully mapped 7094 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 912.0s
+Actual:
+[363.57 362.56 364.68 364.83 364.3  366.22 364.38 364.69 360.5  337.98]
+Predicted:
+[363.5  359.78 361.16 364.41 363.28 368.09 366.24 365.02 363.41 338.16]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H480/profile_plots_H480/h6_flux88_abs0_surf1_790s - Sheet1_H480_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 2538.0s
+Actual:
+[356.55 359.18 368.   378.93 384.13 391.13 390.82 392.7  392.28 374.49]
+Predicted:
+[355.07 355.21 367.89 378.86 382.58 391.27 390.7  393.05 391.15 371.61]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H480/profile_plots_H480/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H480_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 1628.0s
+Actual:
+[330.03 333.21 340.99 348.26 353.1  365.22 372.54 385.   412.95 415.16]
+Predicted:
+[330.62 335.42 343.28 344.83 354.37 368.03 370.35 386.41 413.13 416.  ]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H480/profile_plots_H480/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H480_profiles.png
+Profile plots for horizon 480 saved to: output/new_theoretical_TC10_L20_H480/profile_plots_H480
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 480 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 480 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: 29.56 W
+  Std:  24.63 W
+  Min:  -14.51 W
+  Max:  76.13 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: 15.45 W
+  Std:  10.29 W
+  Min:  -8.71 W
+  Max:  45.98 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.136, Std: 0.113
+  Predicted/Incoming ratio - Mean: 0.071, Std: 0.047
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 480 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H480/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=600
+================================================================================
+Config updated: L=20, H=600
+   Output dir: output/new_theoretical_TC10_L20_H600
+   Run tag: new_theoretical_TC10_L20_H600
+   Paper fig dir: output/new_theoretical_TC10_L20_H600/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=600...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 620
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Warning: data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 620
+Generated 10088 train sequences from 36 files
+Dataset initialized with 10088 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 15, Invalid: 0
+Training sequences: 10088
+Prediction horizon: 600 (600 steps ahead)
+Target calculation: Sequence end + 600 timesteps
+Min sequence length required: 620
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 42
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_wr_surf0_835s - Sheet1.csv too short (516 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 620
+Warning: data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 620
+Generated 6775 val sequences from 9 files
+Dataset initialized with 6775 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 6734 test sequences from 3 files
+Dataset initialized with 6734 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 600 (600 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=600
+Horizon validation passed for prediction_horizon=600
+Horizon validation passed for prediction_horizon=600
+Building model for L=20, H=600 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=600 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=37.6456  smooth=37.6456  best=37.6456  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=3.0546  smooth=14.0047  best=7.8123  patience=2/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=6.1230  smooth=7.8954  best=6.2672  patience=3/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=9.5492  smooth=7.5936  best=6.2672  patience=13/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=6.6909  smooth=7.6484  best=6.2672  patience=23/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=7.8171  smooth=9.0020  best=6.2672  patience=33/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=7.9595  smooth=8.2228  best=6.2672  patience=43/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=12.0727  smooth=9.4357  best=6.2672  patience=53/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=17.0570  smooth=11.4039  best=6.2672  patience=63/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=9.8605  smooth=10.2881  best=6.2672  patience=73/80  lr=2.70e-04
+  Epoch 98/400 — val_mae=10.7395  smooth=9.9731  best=6.2672  patience=80/80  lr=2.65e-04
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 98.
+
+
+Evaluating best model for L=20, H=600 (best epoch=18)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 600 steps):
+   MAE:  4.57 K
+   RMSE: 16.67 K
+   R²:   0.506147
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=3.39  TC2=4.50  TC3=3.54  TC4=4.91  TC5=4.40  TC6=5.25  TC7=4.32  TC8=4.88  TC9=5.22  TC10=5.28
+   Per-file:
+      MAE=  6.62 K  RMSE= 23.61  R2=-1.8538  n= 3266  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+      MAE=  4.99 K  RMSE=  8.51  R2=-1.2216  n=  343  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.38 K  RMSE=  2.86  R2= 0.9914  n= 3125  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 600 steps):
+   MAE:  4.57 K
+   RMSE: 16.67 K
+   R²:   0.506147
+   Physics Loss: 2.593027
+   Constraint Loss: 0.000000
+   Power Balance Loss: 211.628643
+   Per-sensor MAE (K): TC1=3.39  TC2=4.50  TC3=3.54  TC4=4.91  TC5=4.40  TC6=5.25  TC7=4.32  TC8=4.88  TC9=5.22  TC10=5.28
+   Per-file:
+      MAE=  6.62 K  RMSE= 23.61  R2=-1.8538  n= 3266  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+      MAE=  4.99 K  RMSE=  8.51  R2=-1.2216  n=  343  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.38 K  RMSE=  2.86  R2= 0.9914  n= 3125  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+[REPRO-CHECK OK] H=600: in-run 4.5688 == reloaded 4.5688 K
+
+Generating profile plots for each test file (H=600)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 6734 sample indices
+Successfully mapped 6734 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 960.0s
+Actual:
+[363.14 362.51 364.28 364.53 363.94 365.7  363.79 363.63 358.47 334.32]
+Predicted:
+[362.52 363.05 364.88 365.32 365.44 370.21 365.52 367.39 362.73 334.68]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H600/profile_plots_H600/h6_flux88_abs0_surf1_790s - Sheet1_H600_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 1784.0s
+Actual:
+[351.59 354.47 363.4  374.17 379.15 385.55 385.08 386.96 386.41 367.85]
+Predicted:
+[351.33 357.05 363.27 372.86 379.61 386.24 384.57 387.17 385.97 368.02]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H600/profile_plots_H600/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H600_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 1765.0s
+Actual:
+[328.85 332.14 340.21 348.01 353.31 366.08 373.72 386.45 414.27 416.2 ]
+Predicted:
+[328.73 333.99 341.75 344.06 353.36 368.25 371.26 388.71 413.5  416.33]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H600/profile_plots_H600/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H600_profiles.png
+Profile plots for horizon 600 saved to: output/new_theoretical_TC10_L20_H600/profile_plots_H600
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 600 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 600 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: 30.33 W
+  Std:  13.55 W
+  Min:  -1.25 W
+  Max:  54.82 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: 19.32 W
+  Std:  10.16 W
+  Min:  2.82 W
+  Max:  41.03 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.139, Std: 0.062
+  Predicted/Incoming ratio - Mean: 0.089, Std: 0.047
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 600 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H600/performance_metrics.csv
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=900
+================================================================================
+Config updated: L=20, H=900
+   Output dir: output/new_theoretical_TC10_L20_H900
+   Run tag: new_theoretical_TC10_L20_H900
+   Paper fig dir: output/new_theoretical_TC10_L20_H900/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=900...
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_466s - Sheet1.csv too short (692 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Fitting scalers on 5 valid training files
+Scalers fitted and saved successfully
+Warning: data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf1_newSalt_466s - Sheet1.csv too short (692 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Generated 7683 train sequences from 36 files
+Dataset initialized with 7683 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 36 train, 9 val, 3 test
+Valid files: 5, Invalid: 0
+Training sequences: 7683
+Prediction horizon: 900 (900 steps ahead)
+Target calculation: Sequence end + 900 timesteps
+Min sequence length required: 920
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 62
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Warning: data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_wr_surf0_835s - Sheet1.csv too short (516 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 920
+Warning: data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 920
+Generated 6175 val sequences from 9 files
+Dataset initialized with 6175 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Found 48 CSV files
+Split: 36 train, 9 val, 3 test files
+Generated 5834 test sequences from 3 files
+Dataset initialized with 5834 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Building model for L=20, H=900 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=900 (max_epochs=400, patience=80)...
+  Epoch 1/400 — val_mae=36.6867  smooth=36.6867  best=36.6867  patience=0/80  lr=3.00e-05
+  Epoch 11/400 — val_mae=45.3173  smooth=28.6808  best=28.6808  patience=0/80  lr=3.00e-04
+  Epoch 21/400 — val_mae=16.3417  smooth=12.9928  best=12.9928  patience=0/80  lr=3.00e-04
+  Epoch 31/400 — val_mae=14.9139  smooth=14.9663  best=12.1019  patience=9/80  lr=2.98e-04
+  Epoch 41/400 — val_mae=31.4333  smooth=28.2915  best=12.1019  patience=19/80  lr=2.96e-04
+  Epoch 51/400 — val_mae=13.9018  smooth=12.7928  best=12.1019  patience=29/80  lr=2.92e-04
+  Epoch 61/400 — val_mae=16.2033  smooth=17.7257  best=12.1019  patience=39/80  lr=2.88e-04
+  Epoch 71/400 — val_mae=15.5957  smooth=16.3890  best=12.1019  patience=49/80  lr=2.83e-04
+  Epoch 81/400 — val_mae=14.5260  smooth=14.7195  best=12.1019  patience=59/80  lr=2.77e-04
+  Epoch 91/400 — val_mae=12.3879  smooth=13.5956  best=12.1019  patience=69/80  lr=2.70e-04
+  Epoch 101/400 — val_mae=14.4109  smooth=24.9414  best=12.1019  patience=79/80  lr=2.62e-04
+  Epoch 102/400 — val_mae=19.1460  smooth=25.8427  best=12.1019  patience=80/80  lr=2.62e-04
+
+[Early Stop] Smoothed val_mae no improvement for 80 epochs. Stopping at epoch 102.
+
+
+Evaluating best model for L=20, H=900 (best epoch=22)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  11.77 K
+   RMSE: 45.59 K
+   R²:   -2.396734
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=12.58  TC2=10.66  TC3=13.40  TC4=11.89  TC5=12.22  TC6=11.36  TC7=10.65  TC8=11.58  TC9=11.94  TC10=11.38
+   Per-file:
+      MAE= 20.96 K  RMSE= 63.86  R2=-20.3445  n= 2966  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+      MAE=  7.75 K  RMSE=  8.61  R2= 0.0072  n=   43  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.17 K  RMSE=  2.96  R2= 0.9912  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  11.77 K
+   RMSE: 45.59 K
+   R²:   -2.396734
+   Physics Loss: 5.062125
+   Constraint Loss: 0.000000
+   Power Balance Loss: 242.907212
+   Per-sensor MAE (K): TC1=12.58  TC2=10.66  TC3=13.40  TC4=11.89  TC5=12.22  TC6=11.36  TC7=10.65  TC8=11.58  TC9=11.94  TC10=11.38
+   Per-file:
+      MAE= 20.96 K  RMSE= 63.86  R2=-20.3445  n= 2966  h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+      MAE=  7.75 K  RMSE=  8.61  R2= 0.0072  n=   43  h6_flux88_abs0_surf1_790s - Sheet1.csv
+      MAE=  2.17 K  RMSE=  2.96  R2= 0.9912  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+[REPRO-CHECK OK] H=900: in-run 11.7652 == reloaded 11.7652 K
+
+Generating profile plots for each test file (H=900)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 3 test files in dataset.current_files
+Found 5834 sample indices
+Successfully mapped 5834 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 1: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 2: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 3: h6_flux88_abs0_surf1_790s - Sheet1.csv
+   Sample 4: h6_flux88_abs0_surf1_790s - Sheet1.csv
+File: h6_flux88_abs0_surf1_790s - Sheet1.csv
+Time stamp: 921.0s
+Actual:
+[363.45 362.59 364.66 364.85 364.23 366.09 364.24 364.79 360.03 336.83]
+Predicted:
+[358.23 360.14 358.85 360.07 360.92 366.87 364.54 361.7  361.62 330.13]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H900/profile_plots_H900/h6_flux88_abs0_surf1_790s - Sheet1_H900_profiles.png
+File: h6_flux88_abs20_surf0_longRun_612s - Sheet2.csv
+Time stamp: 1917.0s
+Actual:
+[352.53 355.34 364.18 375.05 380.09 386.7  386.36 388.23 387.15 369.39]
+Predicted:
+[348.57 354.06 358.2  372.6  377.8  386.79 386.73 386.01 386.86 369.18]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H900/profile_plots_H900/h6_flux88_abs20_surf0_longRun_612s - Sheet2_H900_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 1543.0s
+Actual:
+[330.83 333.91 341.53 348.42 352.97 364.65 371.69 384.02 412.01 413.27]
+Predicted:
+[328.54 333.65 339.12 346.37 352.74 365.03 371.   383.28 410.39 412.89]
+----------------------------------------
+Saved profile plot: output/new_theoretical_TC10_L20_H900/profile_plots_H900/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H900_profiles.png
+Profile plots for horizon 900 saved to: output/new_theoretical_TC10_L20_H900/profile_plots_H900
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 900 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 900 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 217.91 W
+  Std:  0.00 W
+  Min:  217.91 W
+  Max:  217.91 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: 30.92 W
+  Std:  11.47 W
+  Min:  -8.43 W
+  Max:  39.88 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: -398.28 W
+  Std:  438.05 W
+  Min:  -1168.01 W
+  Max:  13.68 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: 0.142, Std: 0.053
+  Predicted/Incoming ratio - Mean: -1.828, Std: 2.010
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 900 steps)!
+Performance metrics saved to CSV: output/new_theoretical_TC10_L20_H900/performance_metrics.csv
+Sweep results saved to: output/sweeps_experiments/seq20_new_theoretical_TC10_horizon_sweep.csv
+Consolidated sweep results saved to: output/sweeps_experiments/consolidated_horizon_sweep_results.csv
+
+Successfully completed TC10 Sweep!

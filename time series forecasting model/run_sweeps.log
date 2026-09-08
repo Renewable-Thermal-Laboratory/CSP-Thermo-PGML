@@ -1,0 +1,91 @@
+/Users/bhuvan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+================================================================================
+STARTING SWEEP: TC11 (11 SENSORS)
+================================================================================
+
+====================================================================================================
+HORIZON SWEEP: Fixed Sequence Length L=20
+====================================================================================================
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=60
+================================================================================
+Config updated: L=20, H=60
+   Output dir: output/new_theoretical_TC11_L20_H60
+   Run tag: new_theoretical_TC11_L20_H60
+   Paper fig dir: output/new_theoretical_TC11_L20_H60/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=60...
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Fitting scalers on 15 valid training files
+Scalers fitted and saved successfully
+Generated 7280 train sequences from 15 files
+Dataset initialized with 7280 sequences for train split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 15 train, 4 val, 4 test
+Valid files: 15, Invalid: 0
+Training sequences: 7280
+Prediction horizon: 60 (60 steps ahead)
+Target calculation: Sequence end + 60 timesteps
+Min sequence length required: 80
+Data quality issues:
+  - Files with outliers: 15
+  - Files too short: 0
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 1832 val sequences from 4 files
+Dataset initialized with 1832 sequences for val split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Found 23 CSV files
+Split: 15 train, 4 val, 4 test files
+Generated 2638 test sequences from 4 files
+Dataset initialized with 2638 sequences for test split
+Input shape: time_series [20, 12], static_params [4]
+Output shape: [11]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 60 (60 steps ahead)
+Loaded pre-fitted scalers from models_TC11
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Horizon validation passed for prediction_horizon=60
+Building model for L=20, H=60...
+
+Training model for L=20, H=60 (max_epochs=400, patience=100)...
+  Epoch 1/400 — val_mae=1.7978  smooth=1.7978  best=1.7978  patience=0/100  lr=3.00e-05
+  Epoch 11/400 — val_mae=0.5022  smooth=0.5622  best=0.5622  patience=0/100  lr=3.00e-04
+  Epoch 21/400 — val_mae=0.3782  smooth=0.4593  best=0.4478  patience=5/100  lr=2.71e-04
+  Epoch 31/400 — val_mae=0.2710  smooth=0.3011  best=0.3011  patience=0/100  lr=1.97e-04
+  Epoch 41/400 — val_mae=0.2345  smooth=0.2497  best=0.2497  patience=0/100  lr=1.04e-04
+  Epoch 51/400 — val_mae=0.2109  smooth=0.2188  best=0.2188  patience=0/100  lr=2.96e-05
+  Epoch 61/400 — val_mae=0.5873  smooth=0.2807  best=0.2041  patience=1/100  lr=3.00e-04
+  Epoch 71/400 — val_mae=0.2921  smooth=0.3403  best=0.2041  patience=11/100  lr=2.93e-04
+  Epoch 81/400 — val_mae=0.2768  smooth=0.2809  best=0.2041  patience=21/100  lr=2.71e-04
+  Epoch 91/400 — val_mae=0.2477  smooth=0.2434  best=0.2041  patience=31/100  lr=2.38e-04
+  Epoch 101/400 — val_mae=0.2471  smooth=0.2267  best=0.2041  patience=41/100  lr=1.97e-04
+  Epoch 111/400 — val_mae=0.1848  smooth=0.1899  best=0.1899  patience=0/100  lr=1.50e-04
+  Epoch 121/400 — val_mae=0.1654  smooth=0.1646  best=0.1646  patience=0/100  lr=1.04e-04
+  Epoch 131/400 — val_mae=0.1502  smooth=0.1529  best=0.1529  patience=0/100  lr=6.26e-05
+  Epoch 141/400 — val_mae=0.1367  smooth=0.1387  best=0.1387  patience=0/100  lr=2.96e-05
+  Epoch 151/400 — val_mae=0.1314  smooth=0.1336  best=0.1336  patience=0/100  lr=8.32e-06
+  Epoch 161/400 — val_mae=0.3021  smooth=0.1644  best=0.1299  patience=3/100  lr=3.00e-04
+  Epoch 171/400 — val_mae=0.2533  smooth=0.2456  best=0.1299  patience=13/100  lr=2.98e-04

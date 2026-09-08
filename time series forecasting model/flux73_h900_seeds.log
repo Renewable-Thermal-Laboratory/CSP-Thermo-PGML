@@ -1,0 +1,492 @@
+################################################################
+# flux73 H=900 SEED ROLL (held-out run1). seed42 already = 11.64 K
+################################################################
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=900
+================================================================================
+Config updated: L=20, H=900
+   Output dir: output/flux73_h900_s7_L20_H900
+   Run tag: flux73_h900_s7_L20_H900
+   Paper fig dir: output/flux73_h900_s7_L20_H900/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=900...
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Fitting scalers on 8 valid training files
+Scalers fitted and saved successfully
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Generated 14494 train sequences from 40 files
+Dataset initialized with 14494 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 40 train, 10 val, 2 test
+Valid files: 8, Invalid: 0
+Training sequences: 14494
+Prediction horizon: 900 (900 steps ahead)
+Target calculation: Sequence end + 900 timesteps
+Min sequence length required: 920
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 64
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_wr_surf0_835s - Sheet1.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_466s - Sheet1.csv too short (692 rows), minimum required: 920
+Generated 3528 val sequences from 10 files
+Dataset initialized with 3528 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Generated 3565 test sequences from 2 files
+Dataset initialized with 3565 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Building model for L=20, H=900 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=900 (max_epochs=300, patience=60)...
+  Epoch 1/300 — val_mae=12.1709  smooth=12.1709  best=12.1709  patience=0/60  lr=3.00e-05
+  Epoch 11/300 — val_mae=12.5283  smooth=18.6151  best=9.7091  patience=8/60  lr=3.00e-04
+  Epoch 21/300 — val_mae=22.8966  smooth=22.2159  best=9.7091  patience=18/60  lr=2.99e-04
+  Epoch 31/300 — val_mae=23.7613  smooth=24.2091  best=9.7091  patience=28/60  lr=2.97e-04
+  Epoch 41/300 — val_mae=28.9111  smooth=28.2263  best=9.7091  patience=38/60  lr=2.92e-04
+  Epoch 51/300 — val_mae=26.7255  smooth=25.3601  best=9.7091  patience=48/60  lr=2.86e-04
+  Epoch 61/300 — val_mae=27.2514  smooth=26.2672  best=9.7091  patience=58/60  lr=2.79e-04
+  Epoch 63/300 — val_mae=27.3830  smooth=26.8464  best=9.7091  patience=60/60  lr=2.77e-04
+
+[Early Stop] Smoothed val_mae no improvement for 60 epochs. Stopping at epoch 63.
+
+
+Evaluating best model for L=20, H=900 (best epoch=3)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  5.42 K
+   RMSE: 7.98 K
+   R²:   0.922456
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=7.92  TC2=3.35  TC3=2.69  TC4=3.86  TC5=5.02  TC6=5.03  TC7=5.24  TC8=3.59  TC9=6.29  TC10=11.16
+   Per-file:
+      MAE= 10.31 K  RMSE= 13.86  R2=-2.8378  n=  740  h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+      MAE=  4.13 K  RMSE=  5.48  R2= 0.9699  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  5.42 K
+   RMSE: 7.98 K
+   R²:   0.922456
+   Physics Loss: 1.551333
+   Constraint Loss: 0.000000
+   Power Balance Loss: 216.793000
+   Per-sensor MAE (K): TC1=7.92  TC2=3.35  TC3=2.69  TC4=3.86  TC5=5.02  TC6=5.03  TC7=5.24  TC8=3.59  TC9=6.29  TC10=11.16
+   Per-file:
+      MAE= 10.31 K  RMSE= 13.86  R2=-2.8378  n=  740  h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+      MAE=  4.13 K  RMSE=  5.48  R2= 0.9699  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+[REPRO-CHECK OK] H=900: in-run 5.4157 == reloaded 5.4157 K
+
+Generating profile plots for each test file (H=900)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 2 test files in dataset.current_files
+Found 3565 sample indices
+Successfully mapped 3565 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 1: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 2: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 3: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 4: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+File: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+Time stamp: 958.0s
+Actual:
+[360.29 359.98 359.95 360.6  359.97 361.85 360.52 360.87 358.42 339.2 ]
+Predicted:
+[363.27 359.54 351.35 359.97 359.13 354.33 368.13 363.   364.72 335.89]
+----------------------------------------
+Saved profile plot: output/flux73_h900_s7_L20_H900/profile_plots_H900/h6_flux73_abs0_surf0_longRun_1658s - Sheet1_H900_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 2986.0s
+Actual:
+[321.99 326.41 336.26 347.56 355.59 371.88 381.36 395.   420.49 420.09]
+Predicted:
+[318.36 325.74 335.81 347.72 352.42 372.48 379.72 396.23 420.25 428.09]
+----------------------------------------
+Saved profile plot: output/flux73_h900_s7_L20_H900/profile_plots_H900/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H900_profiles.png
+Profile plots for horizon 900 saved to: output/flux73_h900_s7_L20_H900/profile_plots_H900
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 900 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 900 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 163.22 W
+  Std:  0.00 W
+  Min:  163.22 W
+  Max:  163.22 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: -59.86 W
+  Std:  2.31 W
+  Min:  -62.92 W
+  Max:  -52.42 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: -62.54 W
+  Std:  5.45 W
+  Min:  -82.18 W
+  Max:  -46.64 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: -0.367, Std: 0.014
+  Predicted/Incoming ratio - Mean: -0.383, Std: 0.033
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 900 steps)!
+Performance metrics saved to CSV: output/flux73_h900_s7_L20_H900/performance_metrics.csv
+
+>>> seed 7: run1(held-out)=13.15 K  abs92=4.96 K
+
+
+================================================================================
+RUNNING SINGLE EXPERIMENT WITH PROFILES: L=20, H=900
+================================================================================
+Config updated: L=20, H=900
+   Output dir: output/flux73_h900_s123_L20_H900
+   Run tag: flux73_h900_s123_L20_H900
+   Paper fig dir: output/flux73_h900_s123_L20_H900/paper_figs
+Using device: mps
+
+Loading datasets for L=20, H=900...
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Fitting scalers on 8 valid training files
+Scalers fitted and saved successfully
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_newSalt_641s - Sheet1.csv too short (484 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_613s - Sheet1.csv too short (509 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_689s - Sheet1.csv too short (594 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_628s - Sheet4.csv too short (538 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_graphDisc_surf0_759s - Sheet1.csv too short (507 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_491s - Sheet3.csv too short (695 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_mr_surf0_537s - Sheet1.csv too short (503 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_745s - Sheet1.csv too short (641 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_754s - Sheet3.csv too short (494 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_newSalt_398s - Sheet1.csv too short (488 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_830s - Sheet2.csv too short (514 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_630s - Sheet2.csv too short (617 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_648s - Sheet3.csv too short (620 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_505s - Sheet3.csv too short (490 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_868s - Sheet2.csv too short (835 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_851s - Sheet2.csv too short (554 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_longRun_643s - Sheet3.csv too short (868 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_651s - Sheet4.csv too short (505 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_wr_surf0_632s - Sheet1.csv too short (491 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_429s - Sheet2.csv too short (534 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_surf0_598s - Sheet1.csv too short (528 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_545s - Sheet2.csv too short (745 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_389s - Sheet3.csv too short (524 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf1_newSalt_573s - Sheet2.csv too short (716 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_523s - Sheet2.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_781s - Sheet2.csv too short (521 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_511s - Sheet3.csv too short (621 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_surf0_800s - Sheet1.csv too short (568 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf0_868s - Sheet1.csv too short (530 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_mr_surf0_580s - Sheet1.csv too short (589 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf0_699s - Sheet1.csv too short (445 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_surf1_675s - Sheet3.csv too short (662 rows), minimum required: 920
+Generated 14494 train sequences from 40 files
+Dataset initialized with 14494 sequences for train split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+
+==================================================
+DATASET STATISTICS
+==================================================
+Files: 40 train, 10 val, 2 test
+Valid files: 8, Invalid: 0
+Training sequences: 14494
+Prediction horizon: 900 (900 steps ahead)
+Target calculation: Sequence end + 900 timesteps
+Min sequence length required: 920
+Data quality issues:
+  - Files with outliers: 0
+  - Files too short: 64
+  - Files with missing data: 0
+  - Median timestep: 1000.0 ms
+==================================================
+
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Warning: ../data/processed_H6/h6_flux78_abs0_surf0_450s - Sheet3.csv too short (527 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs0_mr_surf0_617s - Sheet1.csv too short (496 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs92_wr_surf0_835s - Sheet1.csv too short (516 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux73_abs0_surf1_660s - Sheet1.csv too short (477 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux88_abs20_wr_surf0_734s - Sheet1.csv too short (501 rows), minimum required: 920
+Warning: ../data/processed_H6/h6_flux78_abs0_surf1_newSalt_466s - Sheet1.csv too short (692 rows), minimum required: 920
+Generated 3528 val sequences from 10 files
+Dataset initialized with 3528 sequences for val split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Found 52 CSV files
+Split: 40 train, 10 val, 2 test files
+Generated 3565 test sequences from 2 files
+Dataset initialized with 3565 sequences for test split
+Input shape: time_series [20, 11], static_params [4]
+Output shape: [10]
+Power data: Dictionary with unscaled time/temps for power calculation
+Prediction horizon: 900 (900 steps ahead)
+Loaded pre-fitted scalers from ../models_TC10
+Validating horizon consistency...
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Horizon validation passed for prediction_horizon=900
+Building model for L=20, H=900 (num_outputs=10, bin_target=False)...
+
+Training model for L=20, H=900 (max_epochs=300, patience=60)...
+  Epoch 1/300 — val_mae=11.5289  smooth=11.5289  best=11.5289  patience=0/60  lr=3.00e-05
+  Epoch 11/300 — val_mae=6.4083  smooth=11.2250  best=11.2250  patience=0/60  lr=3.00e-04
+  Epoch 21/300 — val_mae=21.3153  smooth=19.9672  best=8.0008  patience=5/60  lr=2.99e-04
+  Epoch 31/300 — val_mae=24.7830  smooth=28.3654  best=8.0008  patience=15/60  lr=2.97e-04
+  Epoch 41/300 — val_mae=22.7653  smooth=26.0791  best=8.0008  patience=25/60  lr=2.92e-04
+  Epoch 51/300 — val_mae=21.1757  smooth=23.3333  best=8.0008  patience=35/60  lr=2.86e-04
+  Epoch 61/300 — val_mae=22.3328  smooth=18.7786  best=8.0008  patience=45/60  lr=2.79e-04
+  Epoch 71/300 — val_mae=23.6053  smooth=23.4834  best=8.0008  patience=55/60  lr=2.70e-04
+  Epoch 76/300 — val_mae=23.5413  smooth=23.6835  best=8.0008  patience=60/60  lr=2.64e-04
+
+[Early Stop] Smoothed val_mae no improvement for 60 epochs. Stopping at epoch 76.
+
+
+Evaluating best model for L=20, H=900 (best epoch=16)...
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  2.02 K
+   RMSE: 2.80 K
+   R²:   0.990434
+   Physics Loss: 0.000000
+   Constraint Loss: 0.000000
+   Power Balance Loss: 0.000000
+   Per-sensor MAE (K): TC1=1.59  TC2=2.03  TC3=3.04  TC4=1.91  TC5=1.45  TC6=1.11  TC7=1.75  TC8=2.13  TC9=1.67  TC10=3.51
+   Per-file:
+      MAE=  2.59 K  RMSE=  3.21  R2= 0.7946  n=  740  h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+      MAE=  1.87 K  RMSE=  2.69  R2= 0.9928  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+
+TEST SET EVALUATION (UNSCALED - HORIZON = 900 steps):
+   MAE:  2.02 K
+   RMSE: 2.80 K
+   R²:   0.990434
+   Physics Loss: 0.762686
+   Constraint Loss: 0.000000
+   Power Balance Loss: 211.247416
+   Per-sensor MAE (K): TC1=1.59  TC2=2.03  TC3=3.04  TC4=1.91  TC5=1.45  TC6=1.11  TC7=1.75  TC8=2.13  TC9=1.67  TC10=3.51
+   Per-file:
+      MAE=  2.59 K  RMSE=  3.21  R2= 0.7946  n=  740  h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+      MAE=  1.87 K  RMSE=  2.69  R2= 0.9928  n= 2825  h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+[REPRO-CHECK OK] H=900: in-run 2.0200 == reloaded 2.0200 K
+
+Generating profile plots for each test file (H=900)...
+Extracting ACTUAL test file information...
+Found test dataset: TempSequenceDataset
+Found 2 test files in dataset.current_files
+Found 3565 sample indices
+Successfully mapped 3565 samples to ACTUAL filenames
+First 5 sample-to-filename mappings:
+   Sample 0: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 1: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 2: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 3: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+   Sample 4: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+File: h6_flux73_abs0_surf0_longRun_1658s - Sheet1.csv
+Time stamp: 937.0s
+Actual:
+[360.6  360.31 359.92 360.81 360.3  361.66 360.53 360.35 358.9  338.07]
+Predicted:
+[360.02 360.33 361.49 361.27 362.8  360.32 357.17 360.76 358.5  340.38]
+----------------------------------------
+Saved profile plot: output/flux73_h900_s123_L20_H900/profile_plots_H900/h6_flux73_abs0_surf0_longRun_1658s - Sheet1_H900_profiles.png
+File: h6_flux88_abs92_surf0_longRun_618s - Sheet1.csv
+Time stamp: 2139.0s
+Actual:
+[326.22 329.9  338.62 347.68 354.1  368.24 376.67 389.85 416.74 416.55]
+Predicted:
+[326.23 329.43 338.85 345.99 353.77 367.74 376.44 390.74 417.12 415.89]
+----------------------------------------
+Saved profile plot: output/flux73_h900_s123_L20_H900/profile_plots_H900/h6_flux88_abs92_surf0_longRun_618s - Sheet1_H900_profiles.png
+Profile plots for horizon 900 saved to: output/flux73_h900_s123_L20_H900/profile_plots_H900
+
+============================================================
+POWER BALANCE ANALYSIS (HORIZON = 900 steps)
+============================================================
+Samples analyzed: 512
+Prediction horizon: 900 steps
+
+INCOMING POWER STATISTICS:
+  Mean: 163.22 W
+  Std:  0.00 W
+  Min:  163.22 W
+  Max:  163.22 W
+
+TOTAL ACTUAL POWER (sum of 9 bins):
+  Mean: -59.86 W
+  Std:  2.31 W
+  Min:  -62.92 W
+  Max:  -52.42 W
+
+TOTAL PREDICTED POWER (sum of 9 bins):
+  Mean: -55.49 W
+  Std:  1.45 W
+  Min:  -58.74 W
+  Max:  -48.99 W
+
+POWER BALANCE RATIOS:
+  Actual/Incoming ratio - Mean: -0.367, Std: 0.014
+  Predicted/Incoming ratio - Mean: -0.340, Std: 0.009
+
+ENERGY CONSERVATION VIOLATIONS:
+  Actual power > incoming: 0/512 (0.0%)
+  Predicted power > incoming: 0/512 (0.0%)
+
+SUCCESS: Real power data extracted and analyzed (horizon = 900 steps)!
+Performance metrics saved to CSV: output/flux73_h900_s123_L20_H900/performance_metrics.csv
+
+>>> seed 123: run1(held-out)=3.02 K  abs92=3.02 K
+
+
+========================================================
+SEED ROLL SUMMARY — flux73 H=900 (fresh, held-out run1)
+========================================================
+  seed    7:  run1(held-out)=  13.15 K   abs92=  4.96 K
+  seed   42:  run1(held-out)=  11.64 K   abs92=  4.37 K
+  seed  123:  run1(held-out)=   3.02 K   abs92=  3.02 K
+
+  WINNER: seed 123  held-out flux73 H=900 = 3.02 K
+  -> copied seed 123 to output/flux73_h900_BEST_L20_H900
