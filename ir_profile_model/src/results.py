@@ -6,8 +6,7 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 
-SP = "/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/0087db2c-6d8b-477f-91b4-12c8cb8b30b6/scratchpad"
-OUTDIR = Path("/Users/bhuvan/Desktop/research/ml_models/ir_profile_model/results")
+OUTDIR = Path(__file__).resolve().parent.parent / "results"
 OUTDIR.mkdir(exist_ok=True)
 plt.rcParams.update({"font.size": 11, "font.family": "DejaVu Sans", "axes.grid": True,
                      "grid.alpha": 0.25, "axes.axisbelow": True, "figure.dpi": 120,
@@ -16,7 +15,7 @@ BLUE, RUST, GRAY = "#20567C", "#C1440E", "#6b6b6b"
 ORDER = ["TC2","TC3","TC4","TC5","TC6","TC7","TC8","TC9","TC9.5","TC10"]
 ZMAP = {"TC2":2,"TC3":3,"TC4":4,"TC5":5,"TC6":6,"TC7":7,"TC8":8,"TC9":9,"TC9.5":9.5,"TC10":10}
 
-oof = pd.read_csv(f"{SP}/oof.csv")
+oof = pd.read_csv(OUTDIR / "oof.csv")
 oof["err"] = oof["T_pred"] - oof["T_true"]
 oof["ae"] = oof["err"].abs()
 oof["absr"] = oof["run"].str.extract(r"abs(\d+)").astype(int)
