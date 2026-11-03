@@ -1,0 +1,12 @@
+# Core (needed for build_dataset, train, predict, evaluation, figures)
+numpy
+pandas
+scikit-learn>=1.9,<2     # saved model (models/profile_model.joblib) trained on 1.9.0
+scipy                    # extract_ir_features (dish detection, ndimage)
+h5py                     # read IR .h5 runs
+matplotlib               # results.py / graph_style.py figures
+joblib                   # load/save the model
+
+# Pipeline-only extras
+flirpy                   # seq_to_h5.py: read FLIR .seq (only where raw data lives)
+openpyxl                 # process_tc.py: read .xlsm/.xlsx thermocouple workbooks

@@ -6,6 +6,16 @@ thermocouple (TC1) + run conditions (flux, abs, surf)**. Non-temporal by design 
 the deployment target is an industrial setting with only a camera and one probe.
 
 Full narrative: `IR_Profile_Model_Explained.docx`.
+Results, figures and the per-channel table: `results/RESULTS.md`.
+
+## Setup
+
+```bash
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+All scripts resolve paths relative to the project, so run them from anywhere.
 
 ## Layout
 
@@ -19,6 +29,13 @@ src/
   predict.py               deployment CLI: snapshot + TC1 + conditions -> profile
   train.py                 earlier RF baseline + no-IR ablation
   seq_to_h5.py             FLIR .seq -> compact .h5 converter (run where the raw data lives)
+  process_tc.py            raw .xlsm/.xlsx thermocouple workbooks -> processed_TC CSVs
+  overrides.csv            manual cooldown-trim overrides for process_tc.py
+  oof.py / results.py / graph_style.py   out-of-fold eval + figures
+results/
+  RESULTS.md               metrics, per-channel table, generalization, figure index
+  fig1_profiles.png, fig1b_profile_single.png, fig2_calibration.png, fig3_generalization.png
+  profiles/                one profile figure per condition
 data/
   processed_IR/            38 .h5 IR runs (NOT in git: >100MB each; regenerate via seq_to_h5.py)
   processed_TC/            38 cleaned thermocouple CSVs + cooldown_cuts.txt + process_summary.csv
@@ -29,9 +46,27 @@ models/
   profile_model.joblib     trained depth-conditioned MLP (offset-from-TC1 target)
 ```
 
-TC processing (raw workbooks -> processed_TC) lives in
-`../time series forecasting model/ir_pipeline/process_tc.py` with manual cooldown
-overrides in `overrides.csv`.
+## Reproduce the pipeline
+
+```bash
+# 1. raw FLIR .seq  -> compact .h5           (only where the raw data lives)
+python src/seq_to_h5.py <raw_seq_dir> -o data/processed_IR
+# 2. raw TC workbooks -> cleaned CSVs
+python src/process_tc.py <raw_workbooks_dir> -o data/processed_TC
+# 3. IR .h5 -> per-second surface features
+python src/extract_ir_features.py
+# 4. join IR features + TC -> data/dataset.csv
+python src/build_dataset.py
+# 5. train + leave-one-run-out eval, save models/profile_model.joblib
+python src/train_final.py
+# 6. generalization test, out-of-fold predictions, figures
+python src/leave_condition_out.py
+python src/oof.py && python src/results.py && python src/graph_style.py
+```
+
+`dataset.csv`, the per-run feature/TC CSVs, and the trained model are committed, so
+steps 5-6 and `predict.py` work without the raw .seq / .h5 (steps 1-4 need the raw
+data, which lives on the lab acquisition PC).
 
 ## Headline result
 

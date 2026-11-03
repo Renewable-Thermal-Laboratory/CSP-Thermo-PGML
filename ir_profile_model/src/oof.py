@@ -1,14 +1,18 @@
-"""Out-of-fold predictions (leave-one-run-out), capped to ~400 pts/run for speed."""
+"""Out-of-fold predictions (leave-one-run-out), capped to ~400 pts/run for speed.
+
+Writes results/oof.csv, which results.py and graph_style.py read to build the figures.
+"""
 import sys
 from pathlib import Path
 import numpy as np, pandas as pd
-SRC = Path("/Users/bhuvan/Desktop/research/ml_models/ir_profile_model/src")
+SRC = Path(__file__).resolve().parent
+PROJ = SRC.parent
 sys.path.insert(0, str(SRC))
 from train_final import CHANNELS, BASE, ZNORM, BAD_ALIGN
 from mlp_model import MLPModel
-SP = "/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/0087db2c-6d8b-477f-91b4-12c8cb8b30b6/scratchpad"
+RESULTS = PROJ / "results"; RESULTS.mkdir(exist_ok=True)
 
-df = pd.read_csv(SRC.parent / "data" / "dataset.csv")
+df = pd.read_csv(PROJ / "data" / "dataset.csv")
 df = df[~df["run_key"].isin(BAD_ALIGN)].reset_index(drop=True)
 # cap each run to <=400 evenly spaced seconds (adjacent seconds ~ duplicates)
 CAP = 400
@@ -43,5 +47,5 @@ for i, r in enumerate(np.unique(run), 1):
 oof = pd.concat(rows, ignore_index=True)
 oof["TC1"] = [tc1.loc[(r,t)] for r,t in zip(oof["run"],oof["t"])]
 oof["T_true"] = oof["y_true_off"]+oof["TC1"]; oof["T_pred"]=oof["y_pred_off"]+oof["TC1"]
-oof.to_csv(f"{SP}/oof.csv", index=False)
-print("SAVED", len(oof))
+oof.to_csv(RESULTS / "oof.csv", index=False)
+print("SAVED", len(oof), "->", RESULTS / "oof.csv")

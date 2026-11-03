@@ -2,13 +2,14 @@
 metrology error bars, 20 C-binned shared temperature axis, Experimental/Predicted
 styling, exact 11-slot depth array (TC9.5 at -0.0157 m)."""
 import os, re, glob
+from pathlib import Path
 import numpy as np, pandas as pd
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 
-SP = "/private/tmp/claude-501/-Users-bhuvan-Desktop-research-ml-models-time-series-forecasting-model/0087db2c-6d8b-477f-91b4-12c8cb8b30b6/scratchpad"
-OUT = "/Users/bhuvan/Desktop/research/ml_models/ir_profile_model/results"
+PROJ = Path(__file__).resolve().parent.parent
+OUT = str(PROJ / "results")
 os.makedirs(f"{OUT}/profiles", exist_ok=True)
 
 fonts = {f.name for f in fm.fontManager.ttflist}
@@ -62,7 +63,7 @@ def xaxis_20(vals, step=20):
     return (t0, t1), list(range(t0, t1+1, step))
 
 # ---- build panels from OOF ----
-oof = pd.read_csv(f"{SP}/oof.csv")
+oof = pd.read_csv(f"{OUT}/oof.csv")
 oof["cond"] = oof["run"].str.replace(r"_run\d+|_longrun\d+","",regex=True)
 reps = [oof[oof.cond==c]["run"].iloc[0] for c in sorted(oof["cond"].unique())]
 
