@@ -2,9 +2,10 @@
 
 Predict the vertical temperature profile (TC2–TC10, incl. TC9.5 on abs92 runs) in a
 heated molten-salt sample from a **single top-down IR snapshot + the bottom
-thermocouple (TC1) + run conditions (flux, abs, surf)**. Non-temporal by design —
+thermocouple (TC1) + run conditions (flux, abs, surf)**. Non-temporal by design:
 the deployment target is an industrial setting with only a camera and one probe.
 
+**Picking this up? Start with `HANDOFF.md`** (current status, next steps, gotchas).
 Full narrative: `IR_Profile_Model_Explained.docx`.
 Results, figures and the per-channel table: `results/RESULTS.md`.
 
