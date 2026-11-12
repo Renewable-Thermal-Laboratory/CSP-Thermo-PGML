@@ -63,13 +63,10 @@ tracks the surface thermocouple TC10 with a median correlation of 0.97 across ru
    confident, wrong profile for conditions it never saw (new flux, new salt). Add a
    check that warns when inputs fall outside the training envelope
    (flux 73/78/88, abs 0/20/92, surf 0/1). This is the main silent-failure risk.
-4. **More abs20 and abs92 data, especially runs carrying TC9.5** (only 5 runs have
-   it, which is why TC9.5 error is high). This is a data-collection task, not a
-   modeling one.
-5. **Live-camera feature pipeline.** `predict.py` reads a stored `.h5` or
+4. **Live-camera feature pipeline.** `predict.py` reads a stored `.h5` or
    pre-extracted features; real deployment needs the dish detection + feature
    extraction running on a live IR feed.
-6. **Review the 4 length-mismatch runs** flagged by `build_dataset.py`
+5. **Review the 4 length-mismatch runs** flagged by `build_dataset.py`
    (`abs0_flux78_surf1_run2`, `abs0_flux88_surf0_longrun1`,
    `abs20_flux88_surf0_longrun2`, `abs92_flux88_surf0_run2`): IR and TC lengths differ
    by more than the tolerance; they still align at the start (high corr) so they are
